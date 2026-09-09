@@ -20,7 +20,7 @@
                                 </div>
                                 <div class="text-start">
                                     <h4 class="mb-2 text-lg font-semibold text-gray-800 dark:text-white/90">
-                                        Mimi cumil
+                                        syamimi
                                     </h4>
                                     <div class="flex items-center gap-1 sm:gap-3">
                                         <p class="text-sm text-gray-500 dark:text-gray-400">
