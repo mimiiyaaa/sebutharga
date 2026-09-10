@@ -193,7 +193,7 @@
         <!-- Header -->
         <div class="flex flex-col gap-2 px-5 mb-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <div>
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Latest Transactions</h3>
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Senarai Invois</h3>
             </div>
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <form>

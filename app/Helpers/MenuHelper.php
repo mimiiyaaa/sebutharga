@@ -32,11 +32,16 @@ class MenuHelper
                 ],
             ],
             [
-                'name' => 'Tables',
+                'name' => 'Sebut Harga',
                 'icon' => 'tables',
                 'subItems' => [
-                    ['name' => 'Basic Tables', 'path' => '/basic-tables', 'pro' => false]
+                    ['name' => 'Senarai Sebut Harga', 'path' => '/basic-tables', 'pro' => false]
                 ],
+            ],
+            [
+                'icon' => 'user-profile',
+                'name' => 'Invoice',
+                'path' => '/invoice',
             ],
             [
                 'name' => 'Pages',

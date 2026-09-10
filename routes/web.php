@@ -88,7 +88,10 @@ Route::get('/videos', function () {
 })->name('videos');
 
 
-
+// mimi try invoice pages
+Route::get('/invoice', function () {
+    return view('pages.invoice', ['title' => 'Invoice']);
+})->name('invoice');
 
 
 
