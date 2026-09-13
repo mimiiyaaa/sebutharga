@@ -15,6 +15,16 @@ class MenuHelper
                 ],
             ],
             [
+                'icon' => 'user-profile',
+                'name' => 'Sebut Harga',
+                'path' => '/pelanggan',
+            ],
+            [
+                'icon' => 'user-profile',
+                'name' => 'Invoice',
+                'path' => '/invoice',
+            ],
+            [
                 'icon' => 'calendar',
                 'name' => 'Calendar',
                 'path' => '/calendar',
@@ -24,24 +34,20 @@ class MenuHelper
                 'name' => 'User Profile',
                 'path' => '/profile',
             ],
+
+            [
+                'name' => 'Tables',
+                'icon' => 'tables',
+                'subItems' => [
+                    ['name' => 'Senarai Tables', 'path' => '/basic-tables', 'pro' => false]
+                ],
+            ],
             [
                 'name' => 'Forms',
                 'icon' => 'forms',
                 'subItems' => [
                     ['name' => 'Form Elements', 'path' => '/form-elements', 'pro' => false],
                 ],
-            ],
-            [
-                'name' => 'Sebut Harga',
-                'icon' => 'tables',
-                'subItems' => [
-                    ['name' => 'Senarai Sebut Harga', 'path' => '/basic-tables', 'pro' => false]
-                ],
-            ],
-            [
-                'icon' => 'user-profile',
-                'name' => 'Invoice',
-                'path' => '/invoice',
             ],
             [
                 'name' => 'Pages',

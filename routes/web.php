@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\AuthController;
 
 // Locale Switch Route
 Route::get('/locale/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
@@ -9,8 +10,14 @@ use App\Http\Controllers\DashboardController;
 
 // dashboard pages
 Route::get('/', function () {
-    return view('pages.dashboard.ecommerce', ['title' => 'E-commerce Dashboard']);
-})->name('dashboard');
+    return redirect()->route('signin');
+});
+
+Route::get('/dashboard', function () {
+    return view('pages.dashboard.ecommerce', [
+        'title' => 'Dashboard'
+    ]);
+})->middleware('auth')->name('dashboard');
 
 // calender pages
 Route::get('/calendar', function () {
@@ -87,14 +94,23 @@ Route::get('/videos', function () {
     return view('pages.ui-elements.videos', ['title' => 'Videos']);
 })->name('videos');
 
+// sebut harga pages
+Route::get('/pelanggan', function () {
+    return view('pages.pelanggan', [
+        'title' => 'Pelanggan'
+    ]);
+})->middleware('auth')->name('pelanggan');
 
 // mimi try invoice pages
 Route::get('/invoice', function () {
     return view('pages.invoice', ['title' => 'Invoice']);
 })->name('invoice');
 
+Route::post('/signin', [AuthController::class, 'login'])
+    ->name('signin.store');
 
-
+Route::post('/logout', [AuthController::class, 'logout'])
+    ->name('logout');
 
 
 

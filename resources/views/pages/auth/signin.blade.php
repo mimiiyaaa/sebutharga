@@ -18,14 +18,14 @@
                     <div>
                         <div class="mb-5 sm:mb-8">
                             <h1 class="text-title-sm sm:text-title-md mb-2 font-semibold text-gray-800 dark:text-white/90">
-                                Sign In
+                                Log Masuk
                             </h1>
                             <p class="text-sm text-gray-500 dark:text-gray-400">
-                                Enter your email and password to sign in!
+                                Masukkan butiran log masuk anda!
                             </p>
                         </div>
                         <div>
-                            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-5">
+                            <!-- <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-5">
                                 <button
                                     class="inline-flex items-center justify-center gap-3 rounded-lg bg-gray-100 px-7 py-3 text-sm font-normal text-gray-700 transition-colors hover:bg-gray-200 hover:text-gray-800 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10">
                                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
@@ -55,33 +55,38 @@
 
                                     Sign in with X
                                 </button>
-                            </div>
-                            <div class="relative py-3 sm:py-5">
+                            </div> -->
+                            <!-- <div class="relative py-3 sm:py-5">
                                 <div class="absolute inset-0 flex items-center">
                                     <div class="w-full border-t border-gray-200 dark:border-gray-800"></div>
                                 </div>
                                 <div class="relative flex justify-center text-sm">
                                     <span class="bg-white p-2 text-gray-400 sm:px-5 sm:py-2 dark:bg-gray-900">Or</span>
                                 </div>
-                            </div>
-                            <form>
+                            </div> -->
+                            <form action="{{ route('signin.store') }}" method="POST">
+                                @if ($errors->any())
+                            <div class="mb-4 rounded-lg bg-error-50 p-4 text-sm text-error-600">
+                            {{ $errors->first() }}
+                             </div>
+                                @endif
+                                @csrf
                                 <div class="space-y-5">
                                     <!-- Email -->
                                     <div>
                                         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                            Email<span class="text-error-500">*</span>
+                                            No Kad Pengenalan<span class="text-error-500">*</span>
                                         </label>
-                                        <input type="email" id="email" name="email" placeholder="info@gmail.com"
+                                        <input type="text" id="no_kp" name="no_kp" value="{{ old('no_kp') }}" placeholder="041215-xx-xxxx"
                                             class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                     </div>
                                     <!-- Password -->
                                     <div>
                                         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                            Password<span class="text-error-500">*</span>
+                                            Kata Laluan<span class="text-error-500">*</span>
                                         </label>
                                         <div x-data="{ showPassword: false }" class="relative">
-                                            <input :type="showPassword ? 'text' : 'password'"
-                                                placeholder="Enter your password"
+                                            <input :type="showPassword ? 'text' : 'password'"id="password" name="password" placeholder="Masukkan kata laluan anda"
                                                 class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pr-11 pl-4 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                             <span @click="showPassword = !showPassword"
                                                 class="absolute top-1/2 right-4 z-30 -translate-y-1/2 cursor-pointer text-gray-500 dark:text-gray-400">
@@ -122,19 +127,19 @@
                                     </div>
                                     <!-- Button -->
                                     <div>
-                                        <button
+                                        <button type="submit"
                                             class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 flex w-full items-center justify-center rounded-lg px-4 py-3 text-sm font-medium text-white transition">
-                                            Sign In
+                                            Log In
                                         </button>
                                     </div>
                                 </div>
                             </form>
-                            <div class="mt-5">
+                            <!-- <div class="mt-5">
                                 <p class="text-center text-sm font-normal text-gray-700 sm:text-start dark:text-gray-400">
                                     Don't have an account?
                                     <a href="/signup" class="text-brand-500 hover:text-brand-600 dark:text-brand-400">Sign Up</a>
                                 </p>
-                            </div>
+                            </div> -->
                         </div>
                     </div>
                 </div>

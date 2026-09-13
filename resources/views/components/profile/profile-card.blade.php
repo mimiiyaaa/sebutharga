@@ -11,7 +11,7 @@
             </div>
             <div class="order-3 xl:order-2">
                 <h4 class="mb-2 text-center text-lg font-semibold text-gray-800 xl:text-start dark:text-white/90">
-                    Musharof Chowdhury
+                    Mimi Cumil
                 </h4>
                 <div class="flex flex-col items-center gap-1 text-center xl:flex-row xl:gap-3 xl:text-start">
                     <p class="text-sm text-gray-500 dark:text-gray-400">
