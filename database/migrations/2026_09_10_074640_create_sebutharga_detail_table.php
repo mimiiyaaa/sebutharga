@@ -37,8 +37,9 @@ return new class extends Migration
             $table->unsignedInteger('created_by')->nullable();
             $table->unsignedInteger('updated_by')->nullable();
 
-            // created_at & updated_at
-            $table->timestamps();
+            // Date & Time
+            $table->dateTime('created_at')->nullable();
+            $table->dateTime('updated_at')->nullable();
         });
     }
 

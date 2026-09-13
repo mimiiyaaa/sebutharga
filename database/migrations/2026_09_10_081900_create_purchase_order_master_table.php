@@ -16,7 +16,11 @@ return new class extends Migration
             // PO Information
             $table->string('po_no', 50)->unique();
 
-            // Reference to approved quotation detail
+            // Reference to sebutharga_master
+            // No Foreign Key Constraint
+            $table->unsignedInteger('quotation_id');
+
+            // Reference to sebutharga_detail
             // No Foreign Key Constraint
             $table->unsignedInteger('quotation_detail_id');
 
@@ -32,9 +36,7 @@ return new class extends Migration
 
             // Delivery Information
             $table->text('delivery_address')->nullable();
-
             $table->string('attention_supplier', 255)->nullable();
-
             $table->string('attention_delivery', 255)->nullable();
 
             // Amount
@@ -55,7 +57,6 @@ return new class extends Migration
 
             // Prepared / Approved By
             $table->string('prepared_by', 255)->nullable();
-
             $table->string('approved_by', 255)->nullable();
 
             // PO Status
@@ -65,8 +66,9 @@ return new class extends Migration
             $table->unsignedInteger('created_by')->nullable();
             $table->unsignedInteger('updated_by')->nullable();
 
-            // created_at & updated_at
-            $table->timestamps();
+            // Date & Time
+            $table->dateTime('created_at')->nullable();
+            $table->dateTime('updated_at')->nullable();
         });
     }
 

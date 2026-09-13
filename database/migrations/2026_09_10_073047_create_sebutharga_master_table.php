@@ -17,8 +17,10 @@ return new class extends Migration
             $table->string('quotation_no', 50)->unique();
 
             // Reference to customer_supplier
-            // No Foreign Key Constraint
             $table->unsignedInteger('customer_id');
+
+            // Reference to quotation detail
+            $table->unsignedInteger('quotation_detail_id')->nullable();
 
             $table->date('quotation_date');
 
@@ -34,8 +36,9 @@ return new class extends Migration
             $table->unsignedInteger('created_by')->nullable();
             $table->unsignedInteger('updated_by')->nullable();
 
-            // created_at & updated_at
-            $table->timestamps();
+            // Date & Time
+            $table->dateTime('created_at')->nullable();
+            $table->dateTime('updated_at')->nullable();
         });
     }
 
