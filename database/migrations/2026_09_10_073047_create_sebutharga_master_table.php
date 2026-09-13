@@ -9,11 +9,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('sebutharga_master', function (Blueprint $table) {
+
+            // Primary Key
             $table->increments('quotation_id');
 
+            // Quotation Information
             $table->string('quotation_no', 50)->unique();
 
-            $table->integer('customer_id');
+            // Reference to customer_supplier
+            // No Foreign Key Constraint
+            $table->unsignedInteger('customer_id');
 
             $table->date('quotation_date');
 
@@ -21,11 +26,16 @@ return new class extends Migration
 
             $table->string('no_rujukan_pelanggan', 100)->nullable();
 
-            // 1 = berjaya, 0 = gagal
+            // 1 = Berjaya / Setuju
+            // 0 = Gagal / Tidak Setuju
             $table->integer('status_quotation')->nullable();
 
-            $table->dateTime('created_at')->nullable();
-            $table->dateTime('updated_at')->nullable();
+            // Audit Log
+            $table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
+
+            // created_at & updated_at
+            $table->timestamps();
         });
     }
 

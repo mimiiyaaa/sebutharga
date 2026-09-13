@@ -9,28 +9,36 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('sebutharga_detail', function (Blueprint $table) {
+
+            // Primary Key
             $table->increments('quotation_detail_id');
 
+            // Reference to sebutharga_master
+            // No Foreign Key Constraint
             $table->unsignedInteger('quotation_id');
 
+            // Quotation Version / Draft
             $table->integer('draft_no')->default(1);
 
+            // Total Amount
             $table->decimal('jumlah_total', 12, 2)->default(0.00);
 
+            // Terms & Conditions
             $table->text('terma_syarat')->nullable();
 
+            // Prepared / Accepted By
             $table->string('disediakan_oleh', 255)->nullable();
-
             $table->string('diterima_oleh', 255)->nullable();
 
+            // Example: Draft / Final
             $table->string('status_draft', 20)->nullable();
 
-            $table->dateTime('created_at')->nullable();
-            $table->dateTime('updated_at')->nullable();
+            // Audit Log
+            $table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
 
-            $table->foreign('quotation_id')
-                ->references('quotation_id')
-                ->on('sebutharga_master');
+            // created_at & updated_at
+            $table->timestamps();
         });
     }
 
