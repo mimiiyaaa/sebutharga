@@ -214,10 +214,6 @@
             </div>
         </nav>
 
-        <!-- Sidebar Widget -->
-        <div class="hidden [.sidebar-expanded_&]:block mt-auto">
-            @include('layouts.sidebar-widget')
-        </div>
     </div>
 </aside>
 
