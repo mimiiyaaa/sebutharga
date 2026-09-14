@@ -10,7 +10,7 @@ use App\Http\Controllers\DashboardController;
 
 // dashboard pages
 Route::get('/', function () {
-    return redirect()->route('signin');
+    return redirect()->route('login');
 });
 
 Route::get('/dashboard', function () {
@@ -63,11 +63,11 @@ Route::get('/bar-chart', function () {
 // authentication pages
 Route::get('/signin', function () {
     return view('pages.auth.signin', ['title' => 'Sign In']);
-})->name('signin');
+})->name('login');
 
-Route::get('/signup', function () {
+/* Route::get('/signup', function () {
     return view('pages.auth.signup', ['title' => 'Sign Up']);
-})->name('signup');
+})->name('signup'); */
 
 // ui elements pages
 Route::get('/alerts', function () {
@@ -95,6 +95,12 @@ Route::get('/videos', function () {
 })->name('videos');
 
 // sebut harga pages
+Route::get('/sebut-harga', function () {
+    return view('pages.sebut-harga', [
+        'title' => 'Sebut Harga'
+    ]);
+})->middleware('auth')->name('sebut-harga');
+
 Route::get('/pelanggan', function () {
     return view('pages.pelanggan', [
         'title' => 'Pelanggan'
@@ -112,9 +118,19 @@ Route::post('/signin', [AuthController::class, 'login'])
 Route::post('/logout', [AuthController::class, 'logout'])
     ->name('logout');
 
+// add sebut harga
+Route::get('/sebut-harga/create', function () {
+    return view('pages.sebut-harga.create', [
+        'title' => 'Tambah Sebut Harga'
+    ]);
+})->middleware('auth')->name('sebut-harga.create');
 
-
-
+Route::get('/sebut-harga/{id}', function ($id) {
+    return view('pages.sebut-harga.show', [
+        'title' => 'Detail Sebut Harga',
+        'quotationId' => $id,
+    ]);
+})->middleware('auth')->name('sebut-harga.show');
 
 
 

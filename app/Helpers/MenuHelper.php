@@ -11,13 +11,13 @@ class MenuHelper
                 'icon' => 'dashboard',
                 'name' => 'Dashboard',
                 'subItems' => [
-                    ['name' => 'Ecommerce', 'path' => '/'],
+                    ['name' => 'Ecommerce', 'path' => '/dashboard'],
                 ],
             ],
             [
                 'icon' => 'user-profile',
                 'name' => 'Sebut Harga',
-                'path' => '/pelanggan',
+                'path' => '/sebut-harga',
             ],
             [
                 'icon' => 'user-profile',
