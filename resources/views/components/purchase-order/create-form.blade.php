@@ -55,16 +55,8 @@
                 <label for="po_date" class="{{ $labelClass }}">{{ __('Tarikh PO') }}</label>
                 <input id="po_date" name="po_date" type="date" value="{{ now()->format('Y-m-d') }}" required class="{{ $inputClass }}">
             </div>
-            <div>
-                <label for="quotation_reference" class="{{ $labelClass }}">{{ __('Rujukan Sebut Harga') }}</label>
-                @if ($quotation)
-                <input id="quotation_reference" readonly value="{{ $quotation->quotation_no }} — {{ __('Versi') }} {{ $quotation->draft_no }}" class="{{ $inputClass }}">
-                <input type="hidden" name="quotation_id" value="{{ $quotation->quotation_id }}">
-                <input type="hidden" name="quotation_detail_id" value="{{ $quotation->quotation_detail_id }}">
-                @else
-                <input id="quotation_reference" readonly value="{{ __('Pratonton tanpa sebutharga') }}" class="{{ $inputClass }}">
-                @endif
-            </div>
+<input type="hidden" name="quotation_id" value="{{ $quotation->quotation_id }}">
+<input type="hidden" name="quotation_detail_id" value="{{ $quotation->quotation_detail_id }}">
             <div>
                 <label for="lo_inden_id" class="{{ $labelClass }}">{{ __('LO / Inden (pilihan)') }}</label>
                 <select id="lo_inden_id" disabled class="{{ $inputClass }}">

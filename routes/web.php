@@ -96,41 +96,10 @@ Route::get('/videos', function () {
 })->name('videos');
 
 // sebut harga pages
-Route::get('/purchase-order/create', function () {
-    $quotations = DB::table('sebutharga_master')->orderByDesc('quotation_date')
-        ->get(['quotation_id', 'quotation_no', 'quotation_title', 'quotation_date']);
-    $details = DB::table('sebutharga_detail')->orderByDesc('draft_no')
-        ->get(['quotation_detail_id', 'quotation_id', 'draft_no']);
-
-    return view('pages.purchase-order.select-quotation', compact('quotations', 'details'));
-})->middleware('auth')->name('purchase-order.create');
-
-Route::get('/purchase-order/create/form', function (\Illuminate\Http\Request $request) {
-    $quotation = null;
-    if (!$request->boolean('preview')) {
-    $validated = $request->validate([
-        'quotation_id' => ['required', 'integer'],
-        'quotation_detail_id' => ['required', 'integer'],
-    ]);
-    $quotation = DB::table('sebutharga_master as master')
-        ->join('sebutharga_detail as detail', 'detail.quotation_id', '=', 'master.quotation_id')
-        ->where('master.quotation_id', $validated['quotation_id'])
-        ->where('detail.quotation_detail_id', $validated['quotation_detail_id'])
-        ->first(['master.quotation_id', 'master.quotation_no', 'detail.quotation_detail_id', 'detail.draft_no']);
-    if (!$quotation) {
-        return redirect()->route('purchase-order.create')->withErrors(['quotation_detail_id' => __('Sila pilih sebutharga dan versi yang sah.')]);
-    }
-    }
-    return view('pages.purchase-order.create', [
-        'title' => 'Tambah PO',
-        'quotation' => $quotation,
-        'suppliers' => DB::table('customer_supplier')->where('jenis_customer', 2)
-            ->orderBy('company_name')->get(['customer_id', 'customer_name', 'company_name', 'address', 'phone_no', 'email', 'reference_no']),
-        'customers' => DB::table('customer_supplier')->where('jenis_customer', 1)
-            ->orderBy('company_name')->get(['customer_id', 'customer_name', 'company_name', 'address', 'phone_no']),
-    ]);
-})->middleware('auth')->name('purchase-order.form');
-
+Route::get('/purchase-order/create', [\App\Http\Controllers\PurchaseOrderController::class, 'selectQuotation'])
+    ->middleware('auth')->name('purchase-order.create');
+Route::get('/purchase-order/create/form', [\App\Http\Controllers\PurchaseOrderController::class, 'create'])
+    ->middleware('auth')->name('purchase-order.form');
 Route::get('/purchase-order', function () {
     return view('pages.purchase-order.index', ['title' => 'Pesanan Belian (PO)']);
 })->middleware('auth')->name('purchase-order.index');
