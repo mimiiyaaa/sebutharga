@@ -1,4 +1,4 @@
-@props([])
+@props(['suppliers' => collect(), 'customers' => collect(), 'quotation'])
 
 @php
     $inputClass = 'w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90';
@@ -6,6 +6,19 @@
 @endphp
 
 <form class="space-y-6" @submit.prevent x-data="{
+    suppliers: {{ Illuminate\Support\Js::from($suppliers) }},
+    customers: {{ Illuminate\Support\Js::from($customers) }},
+    supplierId: '',
+    deliveryCustomerId: '',
+    supplier: {},
+    delivery: { company_name: '', address: '', phone_no: '', attention: '' },
+    selectSupplier() {
+        this.supplier = this.suppliers.find(row => String(row.customer_id) === String(this.supplierId)) || {};
+    },
+    selectDeliveryCustomer() {
+        const customer = this.customers.find(row => String(row.customer_id) === String(this.deliveryCustomerId));
+        this.delivery = customer ? { company_name: customer.company_name || '', address: customer.address || '', phone_no: customer.phone_no || '', attention: customer.customer_name || '' } : { company_name: '', address: '', phone_no: '', attention: '' };
+    },
     nextId: 2,
     items: [{ id: 1, description: '', quantity: 1, unit: '', price: 0 }],
     discount: 0,
@@ -43,10 +56,14 @@
                 <input id="po_date" name="po_date" type="date" value="{{ now()->format('Y-m-d') }}" required class="{{ $inputClass }}">
             </div>
             <div>
-                <label for="quotation_detail_id" class="{{ $labelClass }}">{{ __('Sebut Harga Pembekal yang Dipersetujui') }}</label>
-                <select id="quotation_detail_id" disabled class="{{ $inputClass }}">
-                    <option>{{ __('Pilihan sebut harga belum tersedia') }}</option>
-                </select>
+                <label for="quotation_reference" class="{{ $labelClass }}">{{ __('Rujukan Sebut Harga') }}</label>
+                @if ($quotation)
+                <input id="quotation_reference" readonly value="{{ $quotation->quotation_no }} — {{ __('Versi') }} {{ $quotation->draft_no }}" class="{{ $inputClass }}">
+                <input type="hidden" name="quotation_id" value="{{ $quotation->quotation_id }}">
+                <input type="hidden" name="quotation_detail_id" value="{{ $quotation->quotation_detail_id }}">
+                @else
+                <input id="quotation_reference" readonly value="{{ __('Pratonton tanpa sebutharga') }}" class="{{ $inputClass }}">
+                @endif
             </div>
             <div>
                 <label for="lo_inden_id" class="{{ $labelClass }}">{{ __('LO / Inden (pilihan)') }}</label>
@@ -60,35 +77,58 @@
 
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <x-common.component-card :title="__('Kepada: Pembekal')">
+            <div>
+                <label for="customer_id" class="{{ $labelClass }}">{{ __('Pilih Pembekal') }}</label>
+                <select id="customer_id" name="customer_id" x-model="supplierId" @change="selectSupplier()" required class="{{ $inputClass }}">
+                    <option value="">{{ __('Sila pilih pembekal') }}</option>
+                    @foreach ($suppliers as $supplier)
+                        <option value="{{ $supplier->customer_id }}">{{ $supplier->company_name }}</option>
+                    @endforeach
+                </select>
+                @if ($suppliers->isEmpty())
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('Tiada pembekal berdaftar.') }}</p>
+                @endif
+            </div>
             @foreach (['attention_supplier' => 'Untuk Perhatian Pembekal', 'supplier_name' => 'Nama Pembekal', 'company_name' => 'Nama Syarikat', 'phone_no' => 'Nombor Telefon', 'email' => 'E-mel', 'reference_no' => 'No. Rujukan Pembekal'] as $field => $label)
                 <div>
                     <label for="{{ $field }}" class="{{ $labelClass }}">{{ __($label) }}</label>
-                    <input id="{{ $field }}" name="{{ $field }}" type="{{ $field === 'email' ? 'email' : ($field === 'phone_no' ? 'tel' : 'text') }}" class="{{ $inputClass }}">
+                    <input id="{{ $field }}" name="{{ $field }}" type="{{ $field === 'email' ? 'email' : ($field === 'phone_no' ? 'tel' : 'text') }}"
+                        @if ($field !== 'attention_supplier') readonly :value="supplier.{{ $field === 'supplier_name' ? 'customer_name' : $field }} || ''" @endif
+                        class="{{ $inputClass }}">
                 </div>
             @endforeach
             <div>
                 <label for="supplier_address" class="{{ $labelClass }}">{{ __('Alamat Pembekal') }}</label>
-                <textarea id="supplier_address" name="supplier_address" rows="3" class="{{ $inputClass }}"></textarea>
+                <textarea id="supplier_address" name="supplier_address" rows="3" readonly :value="supplier.address || ''" class="{{ $inputClass }}"></textarea>
             </div>
         </x-common.component-card>
     <x-common.component-card :title="__('Maklumat Penghantaran')">
         <div>
+            <label for="delivery_customer_id" class="{{ $labelClass }}">{{ __('Isi Alamat daripada Pelanggan (pilihan)') }}</label>
+            <select id="delivery_customer_id" x-model="deliveryCustomerId" @change="selectDeliveryCustomer()" class="{{ $inputClass }}">
+                <option value="">{{ __('Isi alamat sendiri') }}</option>
+                @foreach ($customers as $customer)
+                    <option value="{{ $customer->customer_id }}">{{ $customer->company_name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
             <label for="delivery_company" class="{{ $labelClass }}">{{ __('Nama Syarikat Penerima') }}</label>
-            <input id="delivery_company" name="delivery_company" class="{{ $inputClass }}">
+            <input id="delivery_company" name="delivery_company" x-model="delivery.company_name" class="{{ $inputClass }}">
         </div>
         <div>
             <label for="delivery_phone" class="{{ $labelClass }}">{{ __('Nombor Telefon Penerima') }}</label>
-            <input id="delivery_phone" name="delivery_phone" type="tel" class="{{ $inputClass }}">
+            <input id="delivery_phone" name="delivery_phone" type="tel" x-model="delivery.phone_no" class="{{ $inputClass }}">
         </div>
         <div>
             <label for="delivery_address" class="{{ $labelClass }}">{{ __('Alamat Penghantaran') }}</label>
-            <textarea id="delivery_address" name="delivery_address" rows="3" class="{{ $inputClass }}"></textarea>
+            <textarea id="delivery_address" name="delivery_address" rows="3" x-model="delivery.address" class="{{ $inputClass }}"></textarea>
         </div>
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
             @foreach (['attention_delivery' => 'Untuk Perhatian Penerima'] as $field => $label)
                 <div>
                     <label for="{{ $field }}" class="{{ $labelClass }}">{{ __($label) }}</label>
-                    <input id="{{ $field }}" name="{{ $field }}" class="{{ $inputClass }}">
+                    <input id="{{ $field }}" name="{{ $field }}" x-model="delivery.attention" class="{{ $inputClass }}">
                 </div>
             @endforeach
         </div>
