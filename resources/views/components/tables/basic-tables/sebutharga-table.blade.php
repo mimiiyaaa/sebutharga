@@ -1,71 +1,7 @@
+@props(['quotations' => collect()])
+
 <div x-data="{
-    tableRowData: [
-        {
-            id: 'DE124321',
-            checked: false,
-            customerName: 'John Doe',
-            customerEmail: 'johndoe@gmail.com',
-            initials: 'JD',
-            avatarBg: 'bg-blue-100',
-            avatarColor: 'text-blue-500',
-            product: 'Software License',
-            value: '$18,50.34',
-            closeDate: '2024-06-15',
-            status: 'Complete',
-        },
-        {
-            id: 'DE124322',
-            checked: false,
-            customerName: 'Kierra Franci',
-            customerEmail: 'kierra@gmail.com',
-            initials: 'KF',
-            avatarBg: 'bg-[#fdf2fa]',
-            avatarColor: 'text-[#dd2590]',
-            product: 'Software License',
-            value: '$18,50.34',
-            closeDate: '2024-06-15',
-            status: 'Complete',
-        },
-        {
-            id: 'DE124323',
-            checked: false,
-            customerName: 'Emerson Workman',
-            customerEmail: 'emerson@gmail.com',
-            initials: 'EW',
-            avatarBg: 'bg-[#f0f9ff]',
-            avatarColor: 'text-[#0086c9]',
-            product: 'Software License',
-            value: '$18,50.34',
-            closeDate: '2024-06-15',
-            status: 'Pending',
-        },
-        {
-            id: 'DE124324',
-            checked: false,
-            customerName: 'Chance Philips',
-            customerEmail: 'chance@gmail.com',
-            initials: 'CP',
-            avatarBg: 'bg-[#fff6ed]',
-            avatarColor: 'text-[#ec4a0a]',
-            product: 'Software License',
-            value: '$18,50.34',
-            closeDate: '2024-06-15',
-            status: 'Complete',
-        },
-        {
-            id: 'DE124325',
-            checked: false,
-            customerName: 'Terry Geidt',
-            customerEmail: 'terry@gmail.com',
-            initials: 'TG',
-            avatarBg: 'bg-green-50',
-            avatarColor: 'text-green-600',
-            product: 'Software License',
-            value: '$18,50.34',
-            closeDate: '2024-06-15',
-            status: 'Complete',
-        },
-    ],
+    tableRowData: @js($quotations),
     selectedRows: [],
     selectAll: false,
     handleSelectAll() {
@@ -85,9 +21,9 @@
     },
     getStatusClass(status) {
         const classes = {
-            'Complete': 'bg-green-50 text-green-700 dark:bg-green-500/15 dark:text-green-500',
-            'Pending': 'bg-yellow-50 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400',
-            'Cancel': 'bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-500',
+            'Diluluskan': 'bg-green-50 text-green-700 dark:bg-green-500/15 dark:text-green-500',
+            'Draf': 'bg-yellow-50 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400',
+            'Batal': 'bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-500',
         };
         return classes[status] || '';
     },
@@ -164,7 +100,7 @@
                                         </svg>
                                     </div>
                                     <div>
-                                        <span class="block font-medium text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.id"></span>
+                                        <span class="block font-medium text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.quotationNo"></span>
                                     </div>
                                 </div>
                             </td>
@@ -188,15 +124,15 @@
                                 <p class="text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.product"></p>
                             </td>
                             <td class="px-4 sm:px-6 py-3.5">
-                                <p class="text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.value"></p>
+                                <p class="text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.version"></p>
+                            </td>
+                            <td class="px-4 sm:px-6 py-3.5">
+                                <span class="text-theme-xs inline-block rounded-full px-2 py-0.5 font-medium"
+                                    :class="getStatusClass(row.status)"
+                                    x-text="row.status"></span>
                             </td>
                             <td class="px-4 sm:px-6 py-3.5">
                                 <p class="text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.closeDate"></p>
-                            </td>
-                            <td class="px-4 sm:px-6 py-3.5">
-                                <span class="text-theme-xs inline-block rounded-full px-2 py-0.5 font-medium" 
-                                    :class="getStatusClass(row.status)" 
-                                    x-text="row.status"></span>
                             </td>
                             <td class="px-4 sm:px-6 py-3.5">
                                 <button @click="deleteRow(row.id)">

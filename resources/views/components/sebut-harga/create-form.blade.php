@@ -27,9 +27,9 @@
                 <input id="quotation_date" name="quotation_date" type="date" value="{{ now()->format('Y-m-d') }}" required class="{{ $inputClass }}">
             </div>
             <div>
-                <label for="customer_id" class="{{ $labelClass }}">Nama Pelanggan / Syarikat</label>
+                <label for="customer_id" class="{{ $labelClass }}">Nama Pelanggan</label>
                 <select id="customer_id" name="customer_id" required class="{{ $inputClass }}">
-                    <option value="">Pilih pelanggan / syarikat</option>
+                    <option value="">Pilih pelanggan</option>
                     @foreach ($customers as $customer)
                         <option value="{{ $customer->customer_id }}">
                             {{ $customer->company_name }}

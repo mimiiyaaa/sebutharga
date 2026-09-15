@@ -136,8 +136,52 @@ Route::get('/purchase-order', function () {
 })->middleware('auth')->name('purchase-order.index');
 
 Route::get('/sebut-harga', function () {
+    $quotations = DB::table('sebutharga_master as quotation')
+        ->leftJoin('customer_supplier as customer', 'customer.customer_id', '=', 'quotation.customer_id')
+        ->leftJoin('sebutharga_detail as detail', 'detail.quotation_detail_id', '=', 'quotation.quotation_detail_id')
+        ->select([
+            'quotation.quotation_id',
+            'quotation.quotation_no',
+            'quotation.quotation_date',
+            'quotation.quotation_title',
+            'quotation.status_quotation',
+            'customer.company_name',
+            'customer.customer_name',
+            'customer.email',
+            'detail.draft_no',
+            'detail.status_draft',
+            'detail.jumlah_total',
+        ])
+        ->orderByDesc('quotation.quotation_date')
+        ->orderByDesc('quotation.quotation_id')
+        ->get()
+        ->map(function ($quotation) {
+            $name = $quotation->company_name ?: ($quotation->customer_name ?: 'Tiada nama');
+            $initials = collect(preg_split('/\s+/', trim($name)))
+                ->filter()
+                ->take(2)
+                ->map(fn ($part) => strtoupper(substr($part, 0, 1)))
+                ->implode('');
+
+            return [
+                'id' => $quotation->quotation_id,
+                'quotationNo' => $quotation->quotation_no,
+                'customerName' => $name,
+                'customerEmail' => $quotation->email ?: '-',
+                'initials' => $initials ?: '?',
+                'avatarBg' => 'bg-brand-50',
+                'avatarColor' => 'text-brand-500',
+                'product' => $quotation->quotation_title ?: '-',
+                'value' => 'RM ' . number_format((float) ($quotation->jumlah_total ?? 0), 2),
+                'version' => $quotation->draft_no ?: 1,
+                'closeDate' => $quotation->quotation_date,
+                'status' => $quotation->status_draft ?: ($quotation->status_quotation === 1 ? 'Diluluskan' : 'Draf'),
+            ];
+        });
+
     return view('pages.sebut-harga', [
-        'title' => 'Sebut Harga'
+        'title' => 'Sebut Harga',
+        'quotations' => $quotations,
     ]);
 })->middleware('auth')->name('sebut-harga');
 
