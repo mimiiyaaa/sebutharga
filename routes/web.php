@@ -100,9 +100,28 @@ Route::get('/purchase-order/create', [\App\Http\Controllers\PurchaseOrderControl
     ->middleware('auth')->name('purchase-order.create');
 Route::get('/purchase-order/create/form', [\App\Http\Controllers\PurchaseOrderController::class, 'create'])
     ->middleware('auth')->name('purchase-order.form');
+Route::post('/purchase-order', [\App\Http\Controllers\PurchaseOrderController::class, 'store'])
+    ->middleware('auth')->name('purchase-order.store');
 Route::get('/purchase-order', function () {
-    return view('pages.purchase-order.index', ['title' => 'Pesanan Belian (PO)']);
+    $orders = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier', 'supplier.customer_id', '=', 'po.customer_id')->orderByDesc('po.purchase_order_id')->get(['po.purchase_order_id','po.po_no','po.quotation_detail_id','po.po_date','po.net_amount','po.status_po','supplier.company_name']);
+    return view('pages.purchase-order.index', ['title' => 'Pesanan Belian (PO)', 'orders' => $orders]);
 })->middleware('auth')->name('purchase-order.index');
+
+Route::get('/purchase-order/{id}/pdf', function ($id) {
+    $order = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier','supplier.customer_id','=','po.customer_id')->where('po.purchase_order_id',$id)->select('po.*','supplier.company_name','supplier.address as supplier_address','supplier.phone_no as supplier_phone')->first();
+    abort_unless($order,404);
+    $items = DB::table('purchase_order_item')->where('purchase_order_id',$id)->orderBy('po_item_id')->get();
+    return \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.purchase-order.pdf', compact('order','items'))
+        ->setPaper('a4')->setOption('isRemoteEnabled', false)->stream($order->po_no.'.pdf');
+})->middleware('auth')->name('purchase-order.pdf');
+
+Route::get('/purchase-order/{id}', function ($id) {
+    $order = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier','supplier.customer_id','=','po.customer_id')->where('po.purchase_order_id',$id)->select('po.*','supplier.company_name','supplier.address as supplier_address','supplier.phone_no as supplier_phone')->first();
+    abort_unless($order,404);
+    $items = DB::table('purchase_order_item')->where('purchase_order_id',$id)->orderBy('po_item_id')->get();
+    return view('pages.purchase-order.preview', compact('order','items'));
+})->middleware('auth')->name('purchase-order.show');
+Route::delete('/purchase-order/{id}', function ($id) { DB::table('purchase_order_item')->where('purchase_order_id',$id)->delete(); DB::table('purchase_order_master')->where('purchase_order_id',$id)->delete(); return redirect()->route('purchase-order.index'); })->middleware('auth')->name('purchase-order.delete');
 
 Route::get('/sebut-harga', function () {
     $quotations = DB::table('sebutharga_master as quotation')
@@ -161,6 +180,12 @@ Route::get('/pelanggan', function () {
 Route::get('/pembekal', function () {
     return view('pages.pembekal', ['title' => 'Pembekal', 'contacts' => DB::table('customer_supplier')->where('jenis_customer', 2)->orderBy('company_name')->get()]);
 })->middleware('auth')->name('pembekal');
+
+Route::get('/{type}/tambah', [\App\Http\Controllers\ContactController::class, 'form'])->whereIn('type', ['pelanggan','pembekal'])->middleware('auth')->name('contacts.create');
+Route::post('/{type}/simpan/{id?}', [\App\Http\Controllers\ContactController::class, 'save'])->whereIn('type', ['pelanggan','pembekal'])->middleware('auth')->name('contacts.save');
+Route::get('/{type}/{id}', [\App\Http\Controllers\ContactController::class, 'show'])->whereIn('type', ['pelanggan','pembekal'])->middleware('auth')->name('contacts.show');
+Route::get('/{type}/{id}/edit', [\App\Http\Controllers\ContactController::class, 'form'])->whereIn('type', ['pelanggan','pembekal'])->middleware('auth')->name('contacts.edit');
+Route::delete('/{type}/{id}', [\App\Http\Controllers\ContactController::class, 'delete'])->whereIn('type', ['pelanggan','pembekal'])->middleware('auth')->name('contacts.delete');
 
 // mimi try invoice pages
 Route::get('/invoice', function () {

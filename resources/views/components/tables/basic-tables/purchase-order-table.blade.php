@@ -1,4 +1,4 @@
-@props([])
+@props(['orders' => collect()])
 
 <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white pt-4 dark:border-white/[0.05] dark:bg-white/[0.03]">
     <div class="mb-4 flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
@@ -36,11 +36,11 @@
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td colspan="7" class="px-6 py-12 text-center text-theme-sm text-gray-500 dark:text-gray-400">
-                        {{ __('Tiada pesanan belian untuk dipaparkan.') }}
-                    </td>
-                </tr>
+                @forelse($orders as $order)
+                <tr class="border-b border-gray-100 dark:border-white/[0.05]"><td class="px-6 py-4 font-medium">{{ $order->po_no }}</td><td class="px-6 py-4">{{ $order->quotation_detail_id }}</td><td class="px-6 py-4">{{ $order->company_name ?: '—' }}</td><td class="px-6 py-4">{{ $order->po_date }}</td><td class="px-6 py-4">RM {{ number_format($order->net_amount,2) }}</td><td class="px-6 py-4">{{ $order->status_po }}</td><td class="px-6 py-4"><div class="flex items-center gap-2"><a href="{{ route('purchase-order.show',$order->purchase_order_id) }}" class="text-brand-600">{{ __('Lihat') }}</a><a href="{{ route('purchase-order.show',$order->purchase_order_id) }}" class="text-gray-600">{{ __('Edit') }}</a><form method="POST" action="{{ route('purchase-order.delete',$order->purchase_order_id) }}" onsubmit="return confirm('Padam PO ini?')">@csrf @method('DELETE')<button class="text-error-600">{{ __('Padam') }}</button></form></div></td></tr>
+                @empty
+                <tr><td colspan="7" class="px-6 py-12 text-center text-theme-sm text-gray-500 dark:text-gray-400">{{ __('Tiada pesanan belian untuk dipaparkan.') }}</td></tr>
+                @endforelse
             </tbody>
         </table>
     </div>

@@ -1,23 +1,19 @@
-@props(['suppliers' => collect(), 'customers' => collect(), 'quotation'])
+@props(['suppliers' => collect(), 'quotation', 'nextPoNo'])
 
 @php
     $inputClass = 'w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90';
     $labelClass = 'mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400';
 @endphp
 
-<form class="space-y-6" @submit.prevent x-data="{
+<form method="POST" action="{{ route('purchase-order.store') }}" class="space-y-6" x-data="{
     suppliers: {{ Illuminate\Support\Js::from($suppliers) }},
-    customers: {{ Illuminate\Support\Js::from($customers) }},
     supplierId: '',
-    deliveryCustomerId: '',
     supplier: {},
-    delivery: { company_name: '', address: '', phone_no: '', attention: '' },
+    attentionSupplier: '',
+    delivery: {{ Illuminate\Support\Js::from(['company_name' => config('purchase_order.issuer_name'), 'address' => config('purchase_order.issuer_address'), 'phone_no' => config('purchase_order.issuer_phone'), 'attention' => config('purchase_order.delivery_attention')]) }},
     selectSupplier() {
         this.supplier = this.suppliers.find(row => String(row.customer_id) === String(this.supplierId)) || {};
-    },
-    selectDeliveryCustomer() {
-        const customer = this.customers.find(row => String(row.customer_id) === String(this.deliveryCustomerId));
-        this.delivery = customer ? { company_name: customer.company_name || '', address: customer.address || '', phone_no: customer.phone_no || '', attention: customer.customer_name || '' } : { company_name: '', address: '', phone_no: '', attention: '' };
+        this.attentionSupplier = this.supplier.customer_name || '';
     },
     nextId: 2,
     items: [{ id: 1, description: '', quantity: 1, unit: '', price: 0 }],
@@ -29,6 +25,15 @@
     money(value) { return new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(value) },
     addItem() { this.items.push({ id: this.nextId++, description: '', quantity: 1, unit: '', price: 0 }) }
 }">
+    @csrf
+    <input type="hidden" name="quotation_id" value="{{ $quotation->quotation_id }}">
+    <input type="hidden" name="quotation_detail_id" value="{{ $quotation->quotation_detail_id }}">
+    <input type="hidden" name="items_json" :value="JSON.stringify(items)">
+    @if ($errors->any())
+        <ul role="alert" class="rounded-lg bg-error-50 p-4 text-error-700 dark:bg-error-500/10 dark:text-error-400">
+            @foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach
+        </ul>
+    @endif
     <p class="rounded-lg border border-warning-200 bg-warning-50 p-4 text-sm text-warning-700 dark:border-warning-500/30 dark:bg-warning-500/10 dark:text-warning-400">
         {{ __('Pratonton borang sahaja. Rekod belum disimpan.') }}
     </p>
@@ -38,18 +43,18 @@
             @foreach (['issuer_name' => 'Nama Syarikat', 'issuer_phone' => 'Nombor Telefon', 'issuer_email' => 'E-mel'] as $field => $label)
                 <div>
                     <label for="{{ $field }}" class="{{ $labelClass }}">{{ __($label) }}</label>
-                    <input id="{{ $field }}" name="{{ $field }}" type="{{ $field === 'issuer_email' ? 'email' : ($field === 'issuer_phone' ? 'tel' : 'text') }}" class="{{ $inputClass }}">
+                    <input id="{{ $field }}" name="{{ $field }}" value="{{ old($field, config('purchase_order.'.$field)) }}" type="{{ $field === 'issuer_email' ? 'email' : ($field === 'issuer_phone' ? 'tel' : 'text') }}" class="{{ $inputClass }}">
                 </div>
             @endforeach
             <div>
                 <label for="issuer_address" class="{{ $labelClass }}">{{ __('Alamat Syarikat') }}</label>
-                <textarea id="issuer_address" name="issuer_address" rows="3" class="{{ $inputClass }}"></textarea>
+                <textarea id="issuer_address" name="issuer_address" rows="3" class="{{ $inputClass }}">{{ old('issuer_address', config('purchase_order.issuer_address')) }}</textarea>
             </div>
         </x-common.component-card>
         <x-common.component-card :title="__('Maklumat PO')">
             <div>
                 <label for="po_no" class="{{ $labelClass }}">{{ __('No. PO') }}</label>
-                <input id="po_no" readonly value="{{ __('Dijana secara automatik semasa disimpan') }}" class="{{ $inputClass }}">
+                <input id="po_no" readonly value="{{ $nextPoNo }}" class="{{ $inputClass }}">
             </div>
             <div>
                 <label for="po_date" class="{{ $labelClass }}">{{ __('Tarikh PO') }}</label>
@@ -81,11 +86,11 @@
                     <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('Tiada pembekal berdaftar.') }}</p>
                 @endif
             </div>
-            @foreach (['attention_supplier' => 'Untuk Perhatian Pembekal', 'supplier_name' => 'Nama Pembekal', 'company_name' => 'Nama Syarikat', 'phone_no' => 'Nombor Telefon', 'email' => 'E-mel', 'reference_no' => 'No. Rujukan Pembekal'] as $field => $label)
+            @foreach (['attention_supplier' => 'Untuk Perhatian Pembekal', 'company_name' => 'Nama Pembekal / Syarikat', 'phone_no' => 'Nombor Telefon', 'email' => 'E-mel', 'reference_no' => 'No. Rujukan Pembekal'] as $field => $label)
                 <div>
                     <label for="{{ $field }}" class="{{ $labelClass }}">{{ __($label) }}</label>
                     <input id="{{ $field }}" name="{{ $field }}" type="{{ $field === 'email' ? 'email' : ($field === 'phone_no' ? 'tel' : 'text') }}"
-                        @if ($field !== 'attention_supplier') readonly :value="supplier.{{ $field === 'supplier_name' ? 'customer_name' : $field }} || ''" @endif
+                        @if ($field !== 'attention_supplier') readonly :value="supplier.{{ $field }} || ''" @else x-model="attentionSupplier" @endif
                         class="{{ $inputClass }}">
                 </div>
             @endforeach
@@ -95,15 +100,6 @@
             </div>
         </x-common.component-card>
     <x-common.component-card :title="__('Maklumat Penghantaran')">
-        <div>
-            <label for="delivery_customer_id" class="{{ $labelClass }}">{{ __('Isi Alamat daripada Pelanggan (pilihan)') }}</label>
-            <select id="delivery_customer_id" x-model="deliveryCustomerId" @change="selectDeliveryCustomer()" class="{{ $inputClass }}">
-                <option value="">{{ __('Isi alamat sendiri') }}</option>
-                @foreach ($customers as $customer)
-                    <option value="{{ $customer->customer_id }}">{{ $customer->company_name }}</option>
-                @endforeach
-            </select>
-        </div>
         <div>
             <label for="delivery_company" class="{{ $labelClass }}">{{ __('Nama Syarikat Penerima') }}</label>
             <input id="delivery_company" name="delivery_company" x-model="delivery.company_name" class="{{ $inputClass }}">
@@ -157,7 +153,7 @@
             <div class="flex justify-between gap-4"><span>{{ __('Jumlah Kasar') }}</span><span x-text="money(gross)"></span></div>
             <div class="flex items-center justify-between gap-4">
                 <label for="discount_percent">{{ __('Diskaun (%)') }}</label>
-                <div class="w-32"><input id="discount_percent" type="number" min="0" max="100" step="0.01" x-model.number="discount" class="{{ $inputClass }}"></div>
+                <div class="w-32"><input id="discount_percent" name="discount_percent" type="number" min="0" max="100" step="0.01" x-model.number="discount" class="{{ $inputClass }}"></div>
             </div>
             <div class="flex justify-between gap-4"><span>{{ __('Jumlah Diskaun') }}</span><span x-text="money(discountAmount)"></span></div>
             <div class="flex justify-between gap-4 border-t border-gray-200 pt-4 text-lg font-semibold dark:border-gray-700"><span>{{ __('Jumlah Bersih') }}</span><span x-text="money(net)"></span></div>
@@ -167,7 +163,7 @@
     <x-common.component-card :title="__('Terma dan Syarat Pembelian')">
         <div>
             <label for="terms_conditions" class="{{ $labelClass }}">{{ __('Terma dan Syarat') }}</label>
-            <textarea id="terms_conditions" name="terms_conditions" rows="6" class="{{ $inputClass }}" placeholder="{{ __('Masukkan satu terma pada setiap baris, bermula dengan 1., 2., 3. dan seterusnya.') }}"></textarea>
+            <textarea id="terms_conditions" name="terms_conditions" rows="6" class="{{ $inputClass }}">{{ old('terms_conditions', config('purchase_order.terms')) }}</textarea>
         </div>
     </x-common.component-card>
     <x-common.component-card :title="__('Pengesahan PO')">
@@ -176,14 +172,14 @@
                 <label for="prepared_by" class="{{ $labelClass }}">{{ __('Disediakan Oleh') }}</label>
                 <input id="prepared_by" name="prepared_by" value="{{ auth()->user()?->name }}" class="{{ $inputClass }}">
                 <label for="prepared_role" class="{{ $labelClass }} mt-4">{{ __('Jawatan / Unit Penyedia') }}</label>
-                <input id="prepared_role" name="prepared_role" class="{{ $inputClass }}">
+                <input id="prepared_role" name="prepared_role" value="{{ old('prepared_role', config('purchase_order.prepared_role')) }}" class="{{ $inputClass }}">
                 <div class="mt-10 border-t border-dashed border-gray-400 pt-2 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">{{ __('Ruang Tandatangan') }}</div>
             </div>
             <div>
                 <label for="approved_by" class="{{ $labelClass }}">{{ __('Diluluskan Oleh') }}</label>
                 <input id="approved_by" name="approved_by" class="{{ $inputClass }}">
                 <label for="approved_role" class="{{ $labelClass }} mt-4">{{ __('Jawatan Pelulus') }}</label>
-                <input id="approved_role" name="approved_role" class="{{ $inputClass }}">
+                <input id="approved_role" name="approved_role" value="{{ old('approved_role', config('purchase_order.approved_role')) }}" class="{{ $inputClass }}">
                 <div class="mt-10 border-t border-dashed border-gray-400 pt-2 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">{{ __('Ruang Tandatangan') }}</div>
             </div>
         </div>
@@ -191,6 +187,6 @@
     <div class="flex flex-wrap justify-end gap-3">
         <button type="button" disabled title="{{ __('Akan datang') }}" class="cursor-not-allowed rounded-lg border border-brand-300 bg-white px-5 py-3 text-sm font-medium text-brand-600 opacity-50 dark:border-brand-700 dark:bg-gray-800 dark:text-brand-400">{{ __('Muat Turun PDF') }}</button>
         <a href="{{ route('purchase-order.index') }}" class="rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">{{ __('Kembali ke Senarai PO') }}</a>
-        <button type="button" disabled title="{{ __('Akan datang') }}" class="cursor-not-allowed rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white opacity-50 dark:bg-brand-500 dark:text-white">{{ __('Simpan PO') }}</button>
+        <button type="submit" class="rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white hover:bg-brand-600 dark:bg-brand-500 dark:text-white">{{ __('Simpan PO') }}</button>
     </div>
 </form>

@@ -16,8 +16,8 @@ class MenuHelper
             ],
             [
                 'icon' => 'user-profile',
-                'name' => 'Sebut Harga',
-                'path' => '/sebut-harga',
+                'name' => 'User Profile',
+                'path' => '/profile',
             ],
             [
                 'icon' => 'user-profile',
@@ -25,12 +25,17 @@ class MenuHelper
                 'path' => '/pelanggan',
             ],
             [
-                'icon' => 'user-profile',
+                'icon' => 'support-ticket',
                 'name' => 'Pembekal',
                 'path' => '/pembekal',
             ],
             [
-                'icon' => 'tables',
+                'icon' => 'pages',
+                'name' => 'Sebut Harga',
+                'path' => '/sebut-harga',
+            ],
+            [
+                'icon' => 'task',
                 'name' => 'Pesanan Belian (PO)',
                 'path' => '/purchase-order',
             ],
@@ -44,12 +49,6 @@ class MenuHelper
                 'name' => 'Calendar',
                 'path' => '/calendar',
             ],
-            [
-                'icon' => 'user-profile',
-                'name' => 'User Profile',
-                'path' => '/profile',
-            ],
-
             [
                 'name' => 'Tables',
                 'icon' => 'tables',

@@ -1,0 +1,12 @@
+<?php
+namespace App\Http\Controllers;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class ContactController extends Controller
+{
+    public function form(string $type, ?int $id = null) { abort_unless(in_array($type, ['pelanggan','pembekal']), 404); $contact = $id ? DB::table('customer_supplier')->where('customer_id',$id)->first() : null; $jenis = $type === 'pembekal' ? 2 : 1; $prefix = $jenis === 1 ? 'C' : 'S'; $start = $jenis === 1 ? 101 : 201; $end = $jenis === 1 ? 199 : 299; $used = DB::table('customer_supplier')->where('jenis_customer',$jenis)->pluck('customer_code')->map(fn ($code) => (int) preg_replace('/\D+/', '', $code))->all(); $next = collect(range($start, $end))->first(fn ($number) => !in_array($number, $used, true)); $generatedCode = $next ? $prefix.$next : 'Had maksimum dicapai'; return view('pages.contacts.form', compact('type','contact','generatedCode')); }
+    public function save(Request $request, string $type, ?int $id = null) { $jenis = $type === 'pembekal' ? 2 : 1; $data = $request->validate(['customer_name'=>'nullable|max:255','company_name'=>'required|max:255','address'=>'required','phone_no'=>'nullable|max:20','email'=>'nullable|email|max:255','reference_no'=>'nullable|max:100']); $data['jenis_customer']=$jenis; $data['updated_at']=now(); if($id) DB::table('customer_supplier')->where('customer_id',$id)->update($data); else { $prefix = $jenis === 1 ? 'C' : 'S'; $start = $jenis === 1 ? 101 : 201; $end = $jenis === 1 ? 199 : 299; $used = DB::table('customer_supplier')->where('jenis_customer',$jenis)->pluck('customer_code')->map(fn ($code) => (int) preg_replace('/\D+/', '', $code))->filter(fn ($number) => $number >= $start && $number <= $end)->all(); $next = collect(range($start, $end))->first(fn ($number) => !in_array($number, $used, true)); if (!$next) return back()->withErrors(['customer_code' => "Had maksimum 99 rekod untuk kategori ini telah dicapai."])->withInput(); $data['customer_code']=$prefix.$next; $data['created_at']=now(); DB::table('customer_supplier')->insert($data); } return redirect('/'.$type); }
+    public function show(string $type, int $id) { $contact=DB::table('customer_supplier')->where('customer_id',$id)->firstOrFail(); return view('pages.contacts.show', compact('type','contact')); }
+    public function delete(string $type, int $id) { DB::table('customer_supplier')->where('customer_id',$id)->delete(); return redirect('/'.$type); }
+}

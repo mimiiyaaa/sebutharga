@@ -44,10 +44,50 @@ class PurchaseOrderController extends Controller
         return view('pages.purchase-order.create', [
             'title' => 'Tambah PO',
             'quotation' => $quotation,
+            'nextPoNo' => $this->nextPoNumber(),
             'suppliers' => DB::table('customer_supplier')->where('jenis_customer', 2)->orderBy('company_name')
                 ->get(['customer_id', 'customer_name', 'company_name', 'address', 'phone_no', 'email', 'reference_no']),
             'customers' => DB::table('customer_supplier')->where('jenis_customer', 1)->orderBy('company_name')
                 ->get(['customer_id', 'customer_name', 'company_name', 'address', 'phone_no']),
         ]);
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'quotation_id'=>['required','integer','exists:sebutharga_master,quotation_id'],
+            'quotation_detail_id'=>['required','integer',Rule::exists('sebutharga_detail','quotation_detail_id')->where('quotation_id',$request->quotation_id)],
+            'customer_id'=>['required','integer',Rule::exists('customer_supplier','customer_id')->where('jenis_customer',2)],
+            'po_date'=>'required|date','items_json'=>'required|json',
+            'discount_percent'=>'nullable|numeric|min:0|max:100',
+            'delivery_address'=>'nullable|string','attention_supplier'=>'nullable|string|max:255',
+            'attention_delivery'=>'nullable|string|max:255','terms_conditions'=>'nullable|string',
+            'prepared_by'=>'nullable|string|max:255','approved_by'=>'nullable|string|max:255',
+        ]);
+        $items = json_decode($data['items_json'], true);
+        validator(['items'=>$items], [
+            'items'=>'required|array|min:1', 'items.*'=>'required|array',
+            'items.*.description'=>'required|string','items.*.quantity'=>'required|integer|min:1|max:1000000',
+            'items.*.unit'=>'required|string|max:50','items.*.price'=>'required|numeric|min:0|max:1000000',
+        ])->validate();
+        $gross = collect($items)->sum(fn($i)=>round((int)$i['quantity']*(float)$i['price'],2));
+        $discount = round($gross * (float)($data['discount_percent'] ?? 0) / 100, 2);
+        $request->merge(['discount_amount'=>$discount,'net_amount'=>round($gross-$discount,2)]);
+        return DB::transaction(function () use ($request,$data,$items,$gross) {
+        DB::table('sebutharga_master')->where('quotation_id',$data['quotation_id'])->lockForUpdate()->first();
+        $poNo = $this->nextPoNumber($data['po_date']);
+        $id = DB::table('purchase_order_master')->insertGetId(['po_no'=>$poNo,'quotation_id'=>$data['quotation_id'],'quotation_detail_id'=>$data['quotation_detail_id'],'customer_id'=>$data['customer_id'],'po_date'=>$data['po_date'],'delivery_address'=>$request->delivery_address,'attention_supplier'=>$request->attention_supplier,'attention_delivery'=>$request->attention_delivery,'gross_amount'=>$gross,'discount_percent'=>$request->discount_percent ?? 0,'discount_amount'=>$request->discount_amount ?? 0,'net_amount'=>$request->net_amount ?? $gross,'terms_conditions'=>$request->terms_conditions,'prepared_by'=>$request->prepared_by,'approved_by'=>$request->approved_by,'status_po'=>'Draf','created_at'=>now(),'updated_at'=>now(),'created_by'=>$request->user()?->id]);
+        foreach($items as $item) DB::table('purchase_order_item')->insert(['purchase_order_id'=>$id,'item_description'=>$item['description']??'','quantity'=>$item['quantity']??0,'unit'=>$item['unit']??'','unit_price'=>$item['price']??0,'subtotal'=>($item['quantity']??0)*($item['price']??0),'created_at'=>now(),'updated_at'=>now()]);
+        return redirect()->route('purchase-order.index')->with('success', "PO {$poNo} berjaya disimpan.");
+        });
+    }
+
+    private function nextPoNumber(?string $date = null): string
+    {
+        $year = $date ? date('Y', strtotime($date)) : now()->format('Y');
+        $prefix = "K1R-POO-{$year}-";
+        $last = DB::table('purchase_order_master')->where('po_no', 'like', $prefix.'%')->orderByDesc('po_no')->value('po_no');
+        $next = $last ? ((int) substr($last, -3)) + 1 : 1;
+        return $prefix.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
     }
 }

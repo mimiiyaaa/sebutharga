@@ -1,0 +1,7 @@
+@extends('layouts.app')
+@section('content')
+<x-common.page-breadcrumb :pageTitle="$contact ? 'Edit' : 'Tambah'" />
+<form method="POST" action="{{ route('contacts.save', ['type'=>$type,'id'=>$contact?->customer_id]) }}" class="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">@csrf
+@foreach(['customer_code'=>'Kod','customer_name'=>'Nama','company_name'=>'Nama Syarikat','address'=>'Alamat','phone_no'=>'Nombor Telefon','email'=>'E-mel','reference_no'=>'No. Rujukan'] as $field=>$label)<div><label class="mb-1 block text-sm">{{ $label }}</label>@if($field==='customer_code')<input readonly value="{{ $contact?->customer_code ?: $generatedCode }}" class="w-full rounded-lg border bg-gray-100 p-2">@elseif($field==='address')<textarea name="{{ $field }}" required class="w-full rounded-lg border p-2">{{ old($field,$contact?->$field) }}</textarea>@else<input name="{{ $field }}" type="{{ $field==='email'?'email':'text' }}" value="{{ old($field,$contact?->$field) }}" {{ $field==='company_name'?'required':'' }} class="w-full rounded-lg border p-2">@endif</div>@endforeach
+<div class="flex gap-3"><a href="{{ url('/'.$type) }}" class="inline-flex items-center rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">← Kembali</a><button class="rounded-lg bg-brand-500 px-5 py-2.5 font-medium text-white transition hover:bg-brand-600">Simpan</button></div></form>
+@endsection
