@@ -292,6 +292,33 @@ Route::post('/sebut-harga', function (\Illuminate\Http\Request $request) {
     });
 })->middleware('auth')->name('sebut-harga.store');
 
+Route::delete('/sebut-harga/{id}', function ($id) {
+    $quotation = DB::table('sebutharga_master')
+        ->where('quotation_id', $id)
+        ->first();
+
+    abort_unless($quotation, 404);
+
+    if (DB::table('purchase_order_master')->where('quotation_id', $id)->exists()) {
+        return redirect()->route('sebut-harga')->with('error', 'Sebut harga ini tidak boleh dipadam kerana sudah digunakan dalam Purchase Order.');
+    }
+
+    DB::transaction(function () use ($id) {
+        $detailIds = DB::table('sebutharga_detail')
+            ->where('quotation_id', $id)
+            ->pluck('quotation_detail_id');
+
+        if ($detailIds->isNotEmpty()) {
+            DB::table('sebutharga_item')->whereIn('quotation_detail_id', $detailIds)->delete();
+            DB::table('sebutharga_detail')->whereIn('quotation_detail_id', $detailIds)->delete();
+        }
+
+        DB::table('sebutharga_master')->where('quotation_id', $id)->delete();
+    });
+
+    return redirect()->route('sebut-harga')->with('success', 'Sebut harga berjaya dipadam.');
+})->middleware('auth')->name('sebut-harga.destroy');
+
 Route::get('/sebut-harga/{id}', function ($id) {
     return view('pages.sebut-harga.show', [
         'title' => 'Detail Sebut Harga',
