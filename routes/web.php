@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\AuthController;
+use Illuminate\Support\Facades\DB;
 
 // Locale Switch Route
 Route::get('/locale/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
@@ -120,8 +121,14 @@ Route::post('/logout', [AuthController::class, 'logout'])
 
 // add sebut harga
 Route::get('/sebut-harga/create', function () {
+    $customers = DB::table('customer_supplier')
+        ->where('jenis_customer', 1)
+        ->orderBy('company_name')
+        ->get();
+
     return view('pages.sebut-harga.create', [
-        'title' => 'Tambah Sebut Harga'
+        'title' => 'Tambah Sebut Harga',
+        'customers' => $customers,
     ]);
 })->middleware('auth')->name('sebut-harga.create');
 
@@ -131,15 +138,5 @@ Route::get('/sebut-harga/{id}', function ($id) {
         'quotationId' => $id,
     ]);
 })->middleware('auth')->name('sebut-harga.show');
-
-
-
-
-
-
-
-
-
-
 
 
