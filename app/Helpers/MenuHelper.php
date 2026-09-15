@@ -20,6 +20,11 @@ class MenuHelper
                 'path' => '/sebut-harga',
             ],
             [
+                'icon' => 'tables',
+                'name' => 'Pesanan Belian (PO)',
+                'path' => '/purchase-order',
+            ],
+            [
                 'icon' => 'user-profile',
                 'name' => 'Invoice',
                 'path' => '/invoice',

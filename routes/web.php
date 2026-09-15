@@ -96,6 +96,14 @@ Route::get('/videos', function () {
 })->name('videos');
 
 // sebut harga pages
+Route::get('/purchase-order/create', function () {
+    return view('pages.purchase-order.create', ['title' => 'Tambah PO']);
+})->middleware('auth')->name('purchase-order.create');
+
+Route::get('/purchase-order', function () {
+    return view('pages.purchase-order.index', ['title' => 'Pesanan Belian (PO)']);
+})->middleware('auth')->name('purchase-order.index');
+
 Route::get('/sebut-harga', function () {
     return view('pages.sebut-harga', [
         'title' => 'Sebut Harga'
@@ -138,5 +146,3 @@ Route::get('/sebut-harga/{id}', function ($id) {
         'quotationId' => $id,
     ]);
 })->middleware('auth')->name('sebut-harga.show');
-
-

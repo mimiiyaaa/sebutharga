@@ -1,0 +1,47 @@
+@props([])
+
+<div class="overflow-hidden rounded-2xl border border-gray-200 bg-white pt-4 dark:border-white/[0.05] dark:bg-white/[0.03]">
+    <div class="mb-4 flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+            {{ __('Pesanan Belian (PO)') }}
+        </h3>
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{{ route('purchase-order.create') }}"
+                class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-3 text-theme-sm font-medium text-white hover:bg-brand-600 dark:bg-brand-500 dark:text-white dark:hover:bg-brand-600">
+                {{ __('+ Tambah PO') }}
+            </a>
+            <button type="button" disabled title="{{ __('Akan datang') }}"
+                class="inline-flex cursor-not-allowed items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-theme-sm font-medium text-gray-700 opacity-50 shadow-theme-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+                <svg class="h-5 w-5 stroke-current" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <path d="M3 6h14M3 14h14M12 3v6M8 11v6" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+                {{ __('Tapis') }}
+            </button>
+            <button type="button" disabled title="{{ __('Akan datang') }}"
+                class="inline-flex cursor-not-allowed items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-theme-sm font-medium text-gray-700 opacity-50 shadow-theme-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+                {{ __('Lihat semua') }}
+            </button>
+        </div>
+    </div>
+
+    <div class="max-w-full overflow-x-auto">
+        <table class="w-full">
+            <thead class="border-y border-gray-100 bg-gray-50 dark:border-white/[0.05] dark:bg-gray-900">
+                <tr>
+                    @foreach (['No. PO', 'Sebut Harga', 'Pembekal', 'Tarikh', 'Jumlah (RM)', 'Status', 'Tindakan'] as $heading)
+                        <th scope="col" class="whitespace-nowrap px-6 py-3 text-start text-theme-xs font-medium text-gray-500 dark:text-gray-400">
+                            {{ __($heading) }}
+                        </th>
+                    @endforeach
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="7" class="px-6 py-12 text-center text-theme-sm text-gray-500 dark:text-gray-400">
+                        {{ __('Tiada pesanan belian untuk dipaparkan.') }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
