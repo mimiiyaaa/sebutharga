@@ -90,6 +90,31 @@ class PurchaseOrderController extends Controller
         $gross = collect($items)->sum(fn($i)=>round((int)$i['quantity']*(float)$i['price'],2));
         $discount = round($gross * (float)($data['discount_percent'] ?? 0) / 100, 2);
         $request->merge(['discount_amount'=>$discount,'net_amount'=>round($gross-$discount,2)]);
+        if ($request->input('_intent') === 'pdf') {
+            $supplier = DB::table('customer_supplier')->where('customer_id',$data['customer_id'])->first();
+            $order = (object) [
+                'po_no'=>$existing?->po_no ?? $this->nextPoNumber($data['po_date']),
+                'po_date'=>$data['po_date'], 'company_name'=>$supplier->company_name,
+                'supplier_address'=>$supplier->address, 'supplier_phone'=>$supplier->phone_no,
+                'attention_supplier'=>$request->attention_supplier, 'delivery_address'=>$request->delivery_address,
+                'attention_delivery'=>$request->attention_delivery, 'gross_amount'=>$gross,
+                'discount_percent'=>$data['discount_percent'] ?? 0, 'discount_amount'=>$discount,
+                'net_amount'=>round($gross-$discount,2), 'terms_conditions'=>$request->terms_conditions,
+                'prepared_by'=>$request->prepared_by, 'approved_by'=>$request->approved_by,
+            ];
+            $document = $request->validate([
+                'issuer_name'=>'nullable|string|max:255','issuer_address'=>'nullable|string|max:2000',
+                'issuer_phone'=>'nullable|string|max:50','issuer_email'=>'nullable|email|max:255',
+                'delivery_company'=>'nullable|string|max:255','delivery_phone'=>'nullable|string|max:50',
+                'prepared_role'=>'nullable|string|max:255','approved_role'=>'nullable|string|max:255',
+            ]);
+            $items = collect($items)->map(fn ($item) => (object) [
+                'item_description'=>$item['description'], 'quantity'=>$item['quantity'], 'unit'=>$item['unit'],
+                'unit_price'=>$item['price'], 'subtotal'=>round($item['quantity']*$item['price'],2),
+            ]);
+            return \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.purchase-order.pdf',compact('order','items','document'))
+                ->setPaper('a4')->setOption('isRemoteEnabled',false)->download($order->po_no.'.pdf');
+        }
         return DB::transaction(function () use ($request,$data,$items,$gross,$existing,$id) {
         DB::table('sebutharga_master')->where('quotation_id',$data['quotation_id'])->lockForUpdate()->first();
         $poNo = $existing ? $existing->po_no : $this->nextPoNumber($data['po_date']);

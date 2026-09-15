@@ -184,7 +184,6 @@
         </div>
     </x-common.component-card>
     <div class="flex flex-wrap justify-end gap-3">
-        <button type="button" disabled title="{{ __('Akan datang') }}" class="cursor-not-allowed rounded-lg border border-brand-300 bg-white px-5 py-3 text-sm font-medium text-brand-600 opacity-50 dark:border-brand-700 dark:bg-gray-800 dark:text-brand-400">{{ __('Muat Turun PDF') }}</button>
         <a href="{{ route('purchase-order.index') }}" class="rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">{{ __('Kembali ke Senarai PO') }}</a>
         <button type="submit" class="rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white hover:bg-brand-600 dark:bg-brand-500 dark:text-white">{{ __('Simpan PO') }}</button>
     </div>
