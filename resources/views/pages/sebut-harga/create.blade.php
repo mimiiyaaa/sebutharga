@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-    <x-form.form-elements.sebutharga-inputs :customers="$customers" />
+    <x-common.page-breadcrumb pageTitle="Tambah Sebut Harga" />
+
+    <x-sebut-harga.create-form :customers="$customers" />
 @endsection

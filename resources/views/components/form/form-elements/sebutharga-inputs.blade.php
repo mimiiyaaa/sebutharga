@@ -1,9 +1,9 @@
 @props(['customers' => collect()])
 
 <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-    <div class="space-y-6">
+    <div class="space-y-8">
         <x-common.component-card title="Maklumat Sebut Harga">
-    <div class="space-y-5">
+    <div class="space-y-6">
         <div>
             <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
                 No. Sebut Harga
@@ -54,7 +54,7 @@
 
     <div>
         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-            Select Input
+            Nama Pelanggan / Syarikat
         </label>
         <div x-data="{ isOptionSelected: false }" class="relative z-20 bg-transparent">
             <select
@@ -72,6 +72,7 @@
         </option>
     @endforeach
 </select>
+        </div>
         </div>
 
         <div>

@@ -140,6 +140,83 @@ Route::get('/sebut-harga/create', function () {
     ]);
 })->middleware('auth')->name('sebut-harga.create');
 
+Route::post('/sebut-harga', function (\Illuminate\Http\Request $request) {
+    $validated = $request->validate([
+        'quotation_date' => ['required', 'date'],
+        'customer_id' => ['required', 'integer', 'exists:customer_supplier,customer_id'],
+        'quotation_title' => ['nullable', 'string', 'max:255'],
+        'no_rujukan_pelanggan' => ['nullable', 'string', 'max:100'],
+        'terma_syarat' => ['nullable', 'string'],
+        'disediakan_oleh' => ['nullable', 'string', 'max:255'],
+        'diterima_oleh' => ['nullable', 'string', 'max:255'],
+        'items' => ['required', 'array', 'min:1'],
+        'items.*.description' => ['required', 'string'],
+        'items.*.quantity' => ['required', 'integer', 'min:1'],
+        'items.*.unit' => ['required', 'string', 'max:50'],
+        'items.*.price' => ['required', 'numeric', 'min:0'],
+    ]);
+
+    return DB::transaction(function () use ($validated, $request) {
+        $grossAmount = collect($validated['items'])->sum(
+            fn ($item) => (int) $item['quantity'] * (float) $item['price']
+        );
+        $quotationPrefix = 'SQ-' . now()->format('Ymd') . '-';
+        $quotationSequence = DB::table('sebutharga_master')
+            ->where('quotation_no', 'like', $quotationPrefix . '%')
+            ->count() + 1;
+        $quotationNo = $quotationPrefix . str_pad((string) $quotationSequence, 4, '0', STR_PAD_LEFT);
+        $userId = $request->user()?->id;
+
+        $quotationId = DB::table('sebutharga_master')->insertGetId([
+            'quotation_no' => $quotationNo,
+            'customer_id' => $validated['customer_id'],
+            'quotation_date' => $validated['quotation_date'],
+            'quotation_title' => $validated['quotation_title'] ?? null,
+            'no_rujukan_pelanggan' => $validated['no_rujukan_pelanggan'] ?? null,
+            'status_quotation' => null,
+            'created_by' => $userId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $quotationDetailId = DB::table('sebutharga_detail')->insertGetId([
+            'quotation_id' => $quotationId,
+            'draft_no' => 1,
+            'jumlah_total' => $grossAmount,
+            'terma_syarat' => $validated['terma_syarat'] ?? null,
+            'disediakan_oleh' => $validated['disediakan_oleh'] ?? null,
+            'diterima_oleh' => $validated['diterima_oleh'] ?? null,
+            'status_draft' => 'Draf',
+            'created_by' => $userId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('sebutharga_master')
+            ->where('quotation_id', $quotationId)
+            ->update(['quotation_detail_id' => $quotationDetailId]);
+
+        foreach ($validated['items'] as $item) {
+            $quantity = (int) $item['quantity'];
+            $unitPrice = (float) $item['price'];
+
+            DB::table('sebutharga_item')->insert([
+                'quotation_detail_id' => $quotationDetailId,
+                'item_description' => $item['description'],
+                'quantity' => $quantity,
+                'unit' => $item['unit'],
+                'unit_price' => $unitPrice,
+                'subtotal' => round($quantity * $unitPrice, 2),
+                'created_by' => $userId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        return redirect()->route('sebut-harga')->with('success', "Sebut harga {$quotationNo} berjaya disimpan sebagai draf.");
+    });
+})->middleware('auth')->name('sebut-harga.store');
+
 Route::get('/sebut-harga/{id}', function ($id) {
     return view('pages.sebut-harga.show', [
         'title' => 'Detail Sebut Harga',
