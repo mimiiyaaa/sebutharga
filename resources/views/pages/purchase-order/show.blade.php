@@ -3,7 +3,7 @@
 <x-common.page-breadcrumb pageTitle="Butiran PO" />
 <div class="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 text-gray-800 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-200">
     <h2 class="text-xl font-semibold">{{ $order->po_no }}</h2>
-    <p>{{ __('No. Rujukan Sebut Harga') }}: {{ $order->quotation_detail_id }}</p>
+    <p>{{ __('No. Rujukan Sebut Harga') }}: {{ $order->quotation_reference_no }}</p>
     <p>{{ __('Pembekal') }}: {{ $order->company_name }}</p>
     <p>{{ __('Tarikh') }}: {{ $order->po_date }}</p>
     <p>{{ __('Alamat Penghantaran') }}: {{ $order->delivery_address }}</p>

@@ -15,6 +15,8 @@ class PurchaseOrderController extends Controller
             ->join('customer_supplier as customer', 'customer.customer_id', '=', 'master.customer_id')
             ->where('customer.jenis_customer', 1)
             ->whereRaw('LOWER(TRIM(detail.status_draft)) = ?', ['final'])
+            ->where('detail.status_quotation', 1)
+            ->whereColumn('detail.quotation_detail_id', 'master.quotation_detail_id')
             ->orderByDesc('master.quotation_date')
             ->orderByDesc('master.quotation_id')
             ->orderByDesc('detail.draft_no')
@@ -25,9 +27,10 @@ class PurchaseOrderController extends Controller
 
     public function selectQuotation()
     {
+        $quotations = $this->finalQuotations()->get()->unique('customer_id')->values();
         return view('pages.purchase-order.select-quotation', [
-            'customers' => DB::table('customer_supplier')->where('jenis_customer', 1)->orderBy('company_name')->get(['customer_id', 'company_name']),
-            'quotations' => $this->finalQuotations()->get()->unique('customer_id')->values(),
+            'customers' => $quotations->sortBy('company_name')->values(),
+            'quotations' => $quotations,
         ]);
     }
 
@@ -38,7 +41,7 @@ class PurchaseOrderController extends Controller
         ]);
         $quotation = $this->finalQuotations()->where('master.customer_id', $validated['customer_id'])->first();
         if (!$quotation) {
-            return redirect()->route('purchase-order.create')->withErrors(['customer_id' => __('Pelanggan ini belum mempunyai sebutharga Final.')]);
+            return redirect()->route('purchase-order.create')->withErrors(['customer_id' => __('Tiada sebut harga Final yang dipersetujui untuk pelanggan ini.')]);
         }
 
         return view('pages.purchase-order.create', [
@@ -82,6 +85,9 @@ class PurchaseOrderController extends Controller
             'prepared_by'=>'nullable|string|max:255','approved_by'=>'nullable|string|max:255',
         ]);
         $items = json_decode($data['items_json'], true);
+        if (! $existing) {
+            abort_unless($this->finalQuotations()->where('detail.quotation_detail_id', $data['quotation_detail_id'])->exists(), 422, __('Sila pilih sebut harga Final yang dipersetujui.'));
+        }
         validator(['items'=>$items], [
             'items'=>'required|array|min:1', 'items.*'=>'required|array',
             'items.*.description'=>'required|string','items.*.quantity'=>'required|integer|min:1|max:1000000',

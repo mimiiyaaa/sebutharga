@@ -28,7 +28,7 @@
         <table class="w-full">
             <thead class="border-y border-gray-100 bg-gray-50 dark:border-white/[0.05] dark:bg-gray-900">
                 <tr>
-                    @foreach (['No. PO', 'Sebut Harga', 'Pembekal', 'Tarikh', 'Jumlah (RM)', 'Status', 'Tindakan'] as $heading)
+                    @foreach (['No. PO', 'Sebut Harga', 'Pembekal', 'Tarikh', 'Jumlah (RM)', 'Tindakan'] as $heading)
                         <th scope="col" class="whitespace-nowrap px-6 py-3 text-start text-theme-xs font-medium text-gray-500 dark:text-gray-400">
                             {{ __($heading) }}
                         </th>
@@ -39,11 +39,10 @@
                 @forelse($orders as $order)
                 <tr class="border-b border-gray-100 font-outfit text-theme-sm text-gray-600 dark:border-white/[0.05] dark:text-gray-300">
                     <td class="whitespace-nowrap px-6 py-4 font-medium text-gray-800 dark:text-white/90">{{ $order->po_no }}</td>
-                    <td class="px-6 py-4">{{ $order->quotation_detail_id }}</td>
+                    <td class="px-6 py-4">{{ $order->quotation_reference_no ?: $order->quotation_detail_id }}</td>
                     <td class="min-w-52 px-6 py-4 leading-relaxed">{{ $order->company_name ?: '—' }}</td>
                     <td class="whitespace-nowrap px-6 py-4">{{ \Carbon\Carbon::parse($order->po_date)->format('d/m/Y') }}</td>
                     <td class="whitespace-nowrap px-6 py-4 font-medium tabular-nums">{{ number_format($order->net_amount,2) }}</td>
-                    <td class="px-6 py-4"><span class="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-theme-xs font-medium dark:bg-gray-800">{{ $order->status_po }}</span></td>
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-2">
                             <a href="{{ route('purchase-order.show',$order->purchase_order_id) }}" class="rounded-lg border border-gray-200 px-3 py-2 text-theme-xs font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">{{ __('Lihat') }}</a>
@@ -58,7 +57,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="7" class="px-6 py-12 text-center text-theme-sm text-gray-500 dark:text-gray-400">{{ __('Tiada pesanan belian untuk dipaparkan.') }}</td></tr>
+                <tr><td colspan="6" class="px-6 py-12 text-center text-theme-sm text-gray-500 dark:text-gray-400">{{ __('Tiada pesanan belian untuk dipaparkan.') }}</td></tr>
                 @endforelse
             </tbody>
         </table>

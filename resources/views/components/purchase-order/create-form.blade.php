@@ -1,7 +1,7 @@
 @props(['suppliers' => collect(), 'quotation', 'nextPoNo', 'order' => null, 'initialItems' => []])
 
 @php
-    $inputClass = 'w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90';
+    $inputClass = 'w-full min-h-11 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90';
     $labelClass = 'mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400';
 @endphp
 
@@ -38,7 +38,7 @@
     @endif
 
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <x-common.component-card :title="__('Maklumat Syarikat Pengeluar PO')">
+        <x-common.document-card :title="__('Maklumat Syarikat Pengeluar PO')">
             @foreach (['issuer_name' => 'Nama Syarikat', 'issuer_phone' => 'Nombor Telefon', 'issuer_email' => 'E-mel'] as $field => $label)
                 <div>
                     <label for="{{ $field }}" class="{{ $labelClass }}">{{ __($label) }}</label>
@@ -49,8 +49,8 @@
                 <label for="issuer_address" class="{{ $labelClass }}">{{ __('Alamat Syarikat') }}</label>
                 <textarea id="issuer_address" name="issuer_address" rows="3" class="{{ $inputClass }}">{{ old('issuer_address', config('purchase_order.issuer_address')) }}</textarea>
             </div>
-        </x-common.component-card>
-        <x-common.component-card :title="__('Maklumat PO')">
+        </x-common.document-card>
+        <x-common.document-card :title="__('Maklumat PO')">
             <div>
                 <label for="po_no" class="{{ $labelClass }}">{{ __('No. PO') }}</label>
                 <input id="po_no" readonly value="{{ $nextPoNo }}" class="{{ $inputClass }}">
@@ -67,12 +67,12 @@
                     <option>{{ __('Pilihan LO / Inden belum tersedia') }}</option>
                 </select>
             </div>
-        </x-common.component-card>
+        </x-common.document-card>
 
     </div>
 
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <x-common.component-card :title="__('Kepada: Pembekal')">
+        <x-common.document-card :title="__('Kepada: Pembekal')">
             <div>
                 <label for="customer_id" class="{{ $labelClass }}">{{ __('Pilih Pembekal') }}</label>
                 <select id="customer_id" name="customer_id" x-model="supplierId" @change="selectSupplier()" required class="{{ $inputClass }}">
@@ -97,8 +97,8 @@
                 <label for="supplier_address" class="{{ $labelClass }}">{{ __('Alamat Pembekal') }}</label>
                 <textarea id="supplier_address" name="supplier_address" rows="3" readonly :value="supplier.address || ''" class="{{ $inputClass }}"></textarea>
             </div>
-        </x-common.component-card>
-    <x-common.component-card :title="__('Maklumat Penghantaran')">
+        </x-common.document-card>
+    <x-common.document-card :title="__('Maklumat Penghantaran')">
         <div>
             <label for="delivery_company" class="{{ $labelClass }}">{{ __('Nama Syarikat Penerima') }}</label>
             <input id="delivery_company" name="delivery_company" x-model="delivery.company_name" class="{{ $inputClass }}">
@@ -119,10 +119,10 @@
                 </div>
             @endforeach
         </div>
-    </x-common.component-card>
+    </x-common.document-card>
     </div>
 
-    <x-common.component-card :title="__('Item PO')">
+    <x-common.document-card :title="__('Item PO')">
         <div class="overflow-x-auto">
             <table class="w-full text-start text-sm text-gray-700 dark:text-gray-300">
                 <thead class="bg-error-800 text-white dark:bg-error-900 dark:text-white">
@@ -157,33 +157,33 @@
             <div class="flex justify-between gap-4"><span>{{ __('Jumlah Diskaun') }}</span><span x-text="money(discountAmount)"></span></div>
             <div class="flex justify-between gap-4 border-t border-gray-200 pt-4 text-lg font-semibold dark:border-gray-700"><span>{{ __('Jumlah Bersih') }}</span><span x-text="money(net)"></span></div>
         </div>
-    </x-common.component-card>
+    </x-common.document-card>
 
-    <x-common.component-card :title="__('Terma dan Syarat Pembelian')">
+    <x-common.document-card :title="__('Terma dan Syarat Pembelian')">
         <div>
             <label for="terms_conditions" class="{{ $labelClass }}">{{ __('Terma dan Syarat') }}</label>
             <textarea id="terms_conditions" name="terms_conditions" rows="6" class="{{ $inputClass }}">{{ old('terms_conditions', $order?->terms_conditions ?? config('purchase_order.terms')) }}</textarea>
         </div>
-    </x-common.component-card>
-    <x-common.component-card :title="__('Pengesahan PO')">
+    </x-common.document-card>
+    <x-common.document-card :title="__('Pengesahan PO')">
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
                 <label for="prepared_by" class="{{ $labelClass }}">{{ __('Disediakan Oleh') }}</label>
                 <input id="prepared_by" name="prepared_by" value="{{ old('prepared_by', $order?->prepared_by ?? auth()->user()?->name) }}" class="{{ $inputClass }}">
                 <label for="prepared_role" class="{{ $labelClass }} mt-4">{{ __('Jawatan / Unit Penyedia') }}</label>
-                <input id="prepared_role" name="prepared_role" value="{{ old('prepared_role', config('purchase_order.prepared_role')) }}" class="{{ $inputClass }}">
+                <input id="prepared_role" name="prepared_role" value="{{ old('prepared_role', $order?->prepared_role ?? '') }}" class="{{ $inputClass }}">
                 <div class="mt-10 border-t border-dashed border-gray-400 pt-2 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">{{ __('Ruang Tandatangan') }}</div>
             </div>
             <div>
                 <label for="approved_by" class="{{ $labelClass }}">{{ __('Diluluskan Oleh') }}</label>
                 <input id="approved_by" name="approved_by" value="{{ old('approved_by', $order?->approved_by) }}" class="{{ $inputClass }}">
                 <label for="approved_role" class="{{ $labelClass }} mt-4">{{ __('Jawatan Pelulus') }}</label>
-                <input id="approved_role" name="approved_role" value="{{ old('approved_role', config('purchase_order.approved_role')) }}" class="{{ $inputClass }}">
+                <input id="approved_role" name="approved_role" value="{{ old('approved_role', $order?->approved_role ?? '') }}" class="{{ $inputClass }}">
                 <div class="mt-10 border-t border-dashed border-gray-400 pt-2 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">{{ __('Ruang Tandatangan') }}</div>
             </div>
         </div>
-    </x-common.component-card>
-    <div class="flex flex-wrap justify-end gap-3">
+    </x-common.document-card>
+    <div class="flex flex-wrap items-center justify-end gap-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-gray-900">
         <a href="{{ route('purchase-order.index') }}" class="rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">{{ __('Kembali ke Senarai PO') }}</a>
         <button type="submit" class="rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white hover:bg-brand-600 dark:bg-brand-500 dark:text-white">{{ __('Simpan PO') }}</button>
     </div>

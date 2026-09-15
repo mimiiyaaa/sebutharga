@@ -4,33 +4,34 @@
     <meta charset="utf-8">
     <title>{{ $order->po_no }}</title>
     <style>
-        @page { margin: 32pt; }
-        body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color: #111; }
+        @page { margin: 40pt 42pt; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #000; line-height: 1.3; }
         table { width: 100%; border-collapse: collapse; }
         td, th { vertical-align: top; }
-        .header td { padding-bottom: 14px; }
-        .company, .title { color: #800000; font-size: 15px; font-weight: bold; }
+        .header td { vertical-align: top; padding: 0 0 15pt; }
+        .company, .title { color: #800000; font-size: 16pt; font-weight: bold; }
         .right { text-align: right; }
-        .rule { border-top: 1px solid #800000; margin: 0 0 24px; }
+        .rule { border-top: 1pt solid #800000; }
         .addresses { margin-bottom: 20px; }
         .addresses td { width: 50%; padding-right: 16px; }
         .lines { white-space: pre-line; }
-        .items th { background: #800000; color: white; padding: 7px 4px; font-size: 8px; text-align: center; }
-        .items td { border: 1px solid #ccc; padding: 5px 4px; }
+        .items th { background: #800000; color: white; padding: 5pt 3pt; font-size: 10pt; text-align: center; }
+        .items td { border: .5pt solid #ccc; padding: 5pt 3pt; }
         .items tr { page-break-inside: avoid; }
         thead { display: table-header-group; }
         .center { text-align: center; }
         .totals { margin-top: 3px; }
         .totals td { padding: 3px 4px; font-weight: bold; }
         .net { border-top: 1px solid #111; border-bottom: 3px double #111; }
-        .terms { margin-top: 20px; line-height: 1.6; }
-        .terms h3 { font-size: 9px; margin-bottom: 4px; }
+        .terms { margin-top: 16pt; font-size: 10pt; line-height: 1.3; }
+        .terms h3 { font-size: 10pt; margin: 0 0 4pt; }
         .signatures { margin-top: 28px; page-break-inside: avoid; }
         .signatures td { width: 50%; padding-right: 35px; }
         .signature { margin-top: 42px; border-top: 1px dashed #333; padding-top: 5px; }
     </style>
 </head>
 <body>
+    @php($document = $document ?? [])
     <table class="header"><tr>
         <td><div class="company">{{ $document['issuer_name'] ?? config('purchase_order.issuer_name') }}</div>
             <div class="lines">{{ $document['issuer_address'] ?? config('purchase_order.issuer_address') }}</div>
@@ -49,6 +50,12 @@
     </table>
     <table class="totals"><tr><td class="right">JUMLAH KASAR:</td><td width="18%" class="right">{{ number_format($order->gross_amount,2) }}</td></tr><tr><td class="right">DISKAUN PUKAL ({{ (float)$order->discount_percent }}%):</td><td class="right">{{ number_format($order->discount_amount,2) }}</td></tr><tr><td class="right">JUMLAH BERSIH:</td><td class="right net">{{ number_format($order->net_amount,2) }}</td></tr></table>
     <div class="terms"><h3>TERMA &amp; SYARAT PEMBELIAN (TERMS &amp; CONDITIONS):</h3><div class="lines">{{ $order->terms_conditions }}</div></div>
-    <table class="signatures"><tr><td><strong>Disediakan Oleh:</strong><div class="signature">{{ $order->prepared_by }}<br>{{ $document['prepared_role'] ?? config('purchase_order.prepared_role') }}</div></td><td><strong>Diluluskan Oleh:</strong><div class="signature">{{ $order->approved_by }}<br>{{ $document['approved_role'] ?? config('purchase_order.approved_role') }}</div></td></tr></table>
+        <table class="signatures"><tr><td><strong>Disediakan Oleh:</strong><div class="signature">
+            @if($order->prepared_by){{ $order->prepared_by }}<br>@endif
+            @if(!empty($document['prepared_role'])){{ $document['prepared_role'] }}@endif
+        </div></td><td><strong>Diluluskan Oleh:</strong><div class="signature">
+            @if($order->approved_by){{ $order->approved_by }}<br>@endif
+            @if(!empty($document['approved_role'])){{ $document['approved_role'] }}@endif
+        </div></td></tr></table>
 </body>
 </html>
