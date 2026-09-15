@@ -115,6 +115,9 @@ Route::get('/purchase-order/{id}/pdf', function ($id) {
         ->setPaper('a4')->setOption('isRemoteEnabled', false)->stream($order->po_no.'.pdf');
 })->middleware('auth')->name('purchase-order.pdf');
 
+Route::get('/purchase-order/{id}/edit', [\App\Http\Controllers\PurchaseOrderController::class, 'edit'])->whereNumber('id')->middleware('auth')->name('purchase-order.edit');
+Route::put('/purchase-order/{id}', [\App\Http\Controllers\PurchaseOrderController::class, 'store'])->whereNumber('id')->middleware('auth')->name('purchase-order.update');
+
 Route::get('/purchase-order/{id}', function ($id) {
     $order = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier','supplier.customer_id','=','po.customer_id')->where('po.purchase_order_id',$id)->select('po.*','supplier.company_name','supplier.address as supplier_address','supplier.phone_no as supplier_phone')->first();
     abort_unless($order,404);

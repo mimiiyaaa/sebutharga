@@ -37,7 +37,26 @@
             </thead>
             <tbody>
                 @forelse($orders as $order)
-                <tr class="border-b border-gray-100 dark:border-white/[0.05]"><td class="px-6 py-4 font-medium">{{ $order->po_no }}</td><td class="px-6 py-4">{{ $order->quotation_detail_id }}</td><td class="px-6 py-4">{{ $order->company_name ?: '—' }}</td><td class="px-6 py-4">{{ $order->po_date }}</td><td class="px-6 py-4">RM {{ number_format($order->net_amount,2) }}</td><td class="px-6 py-4">{{ $order->status_po }}</td><td class="px-6 py-4"><div class="flex items-center gap-2"><a href="{{ route('purchase-order.show',$order->purchase_order_id) }}" class="text-brand-600">{{ __('Lihat') }}</a><a href="{{ route('purchase-order.show',$order->purchase_order_id) }}" class="text-gray-600">{{ __('Edit') }}</a><form method="POST" action="{{ route('purchase-order.delete',$order->purchase_order_id) }}" onsubmit="return confirm('Padam PO ini?')">@csrf @method('DELETE')<button class="text-error-600">{{ __('Padam') }}</button></form></div></td></tr>
+                <tr class="border-b border-gray-100 font-outfit text-theme-sm text-gray-600 dark:border-white/[0.05] dark:text-gray-300">
+                    <td class="whitespace-nowrap px-6 py-4 font-medium text-gray-800 dark:text-white/90">{{ $order->po_no }}</td>
+                    <td class="px-6 py-4">{{ $order->quotation_detail_id }}</td>
+                    <td class="min-w-52 px-6 py-4 leading-relaxed">{{ $order->company_name ?: '—' }}</td>
+                    <td class="whitespace-nowrap px-6 py-4">{{ \Carbon\Carbon::parse($order->po_date)->format('d/m/Y') }}</td>
+                    <td class="whitespace-nowrap px-6 py-4 font-medium tabular-nums">{{ number_format($order->net_amount,2) }}</td>
+                    <td class="px-6 py-4"><span class="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-theme-xs font-medium dark:bg-gray-800">{{ $order->status_po }}</span></td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-2">
+                            <a href="{{ route('purchase-order.show',$order->purchase_order_id) }}" class="rounded-lg border border-gray-200 px-3 py-2 text-theme-xs font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">{{ __('Lihat') }}</a>
+                            <a href="{{ route('purchase-order.edit',$order->purchase_order_id) }}" class="rounded-lg bg-brand-500 px-3 py-2 text-theme-xs font-medium text-white hover:bg-brand-600 dark:bg-brand-500 dark:text-white dark:hover:bg-brand-600">{{ __('Edit') }}</a>
+                            <form method="POST" action="{{ route('purchase-order.delete',$order->purchase_order_id) }}" onsubmit="return confirm('Padam PO ini?')">
+                                @csrf @method('DELETE')
+                                <button type="submit" title="{{ __('Padam') }}" aria-label="{{ __('Padam') }}" class="inline-flex rounded-lg border border-error-200 p-2 text-error-600 hover:bg-error-50 dark:border-error-700 dark:text-error-400 dark:hover:bg-error-500/10">
+                                    <svg class="h-4 w-4 stroke-current" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5m4-5v5" /></svg>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
                 @empty
                 <tr><td colspan="7" class="px-6 py-12 text-center text-theme-sm text-gray-500 dark:text-gray-400">{{ __('Tiada pesanan belian untuk dipaparkan.') }}</td></tr>
                 @endforelse

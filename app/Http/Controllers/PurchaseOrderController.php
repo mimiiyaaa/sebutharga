@@ -52,8 +52,25 @@ class PurchaseOrderController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function edit(int $id)
     {
+        $order = DB::table('purchase_order_master')->where('purchase_order_id', $id)->first();
+        abort_unless($order, 404);
+        $items = DB::table('purchase_order_item')->where('purchase_order_id', $id)->orderBy('po_item_id')
+            ->get()->map(fn ($item, $index) => ['id'=>$index+1, 'description'=>$item->item_description, 'quantity'=>$item->quantity, 'unit'=>$item->unit, 'price'=>$item->unit_price])->all();
+        return view('pages.purchase-order.edit', [
+            'order'=>$order, 'items'=>$items,
+            'suppliers'=>DB::table('customer_supplier')->where('jenis_customer',2)->orderBy('company_name')->get(),
+        ]);
+    }
+
+    public function store(Request $request, ?int $id = null)
+    {
+        $existing = $id ? DB::table('purchase_order_master')->where('purchase_order_id',$id)->first() : null;
+        if ($id) {
+            abort_unless($existing,404);
+            $request->merge(['quotation_id'=>$existing->quotation_id,'quotation_detail_id'=>$existing->quotation_detail_id]);
+        }
         $data = $request->validate([
             'quotation_id'=>['required','integer','exists:sebutharga_master,quotation_id'],
             'quotation_detail_id'=>['required','integer',Rule::exists('sebutharga_detail','quotation_detail_id')->where('quotation_id',$request->quotation_id)],
@@ -73,10 +90,17 @@ class PurchaseOrderController extends Controller
         $gross = collect($items)->sum(fn($i)=>round((int)$i['quantity']*(float)$i['price'],2));
         $discount = round($gross * (float)($data['discount_percent'] ?? 0) / 100, 2);
         $request->merge(['discount_amount'=>$discount,'net_amount'=>round($gross-$discount,2)]);
-        return DB::transaction(function () use ($request,$data,$items,$gross) {
+        return DB::transaction(function () use ($request,$data,$items,$gross,$existing,$id) {
         DB::table('sebutharga_master')->where('quotation_id',$data['quotation_id'])->lockForUpdate()->first();
-        $poNo = $this->nextPoNumber($data['po_date']);
-        $id = DB::table('purchase_order_master')->insertGetId(['po_no'=>$poNo,'quotation_id'=>$data['quotation_id'],'quotation_detail_id'=>$data['quotation_detail_id'],'customer_id'=>$data['customer_id'],'po_date'=>$data['po_date'],'delivery_address'=>$request->delivery_address,'attention_supplier'=>$request->attention_supplier,'attention_delivery'=>$request->attention_delivery,'gross_amount'=>$gross,'discount_percent'=>$request->discount_percent ?? 0,'discount_amount'=>$request->discount_amount ?? 0,'net_amount'=>$request->net_amount ?? $gross,'terms_conditions'=>$request->terms_conditions,'prepared_by'=>$request->prepared_by,'approved_by'=>$request->approved_by,'status_po'=>'Draf','created_at'=>now(),'updated_at'=>now(),'created_by'=>$request->user()?->id]);
+        $poNo = $existing ? $existing->po_no : $this->nextPoNumber($data['po_date']);
+        $record = ['po_no'=>$poNo,'quotation_id'=>$data['quotation_id'],'quotation_detail_id'=>$data['quotation_detail_id'],'customer_id'=>$data['customer_id'],'po_date'=>$data['po_date'],'delivery_address'=>$request->delivery_address,'attention_supplier'=>$request->attention_supplier,'attention_delivery'=>$request->attention_delivery,'gross_amount'=>$gross,'discount_percent'=>$request->discount_percent ?? 0,'discount_amount'=>$request->discount_amount ?? 0,'net_amount'=>$request->net_amount ?? $gross,'terms_conditions'=>$request->terms_conditions,'prepared_by'=>$request->prepared_by,'approved_by'=>$request->approved_by,'updated_at'=>now()];
+        if ($existing) {
+            $record['updated_by']=$request->user()?->id;
+            DB::table('purchase_order_master')->where('purchase_order_id',$id)->update($record);
+            DB::table('purchase_order_item')->where('purchase_order_id',$id)->delete();
+        } else {
+            $id=DB::table('purchase_order_master')->insertGetId($record+['status_po'=>'Draf','created_at'=>now(),'created_by'=>$request->user()?->id]);
+        }
         foreach($items as $item) DB::table('purchase_order_item')->insert(['purchase_order_id'=>$id,'item_description'=>$item['description']??'','quantity'=>$item['quantity']??0,'unit'=>$item['unit']??'','unit_price'=>$item['price']??0,'subtotal'=>($item['quantity']??0)*($item['price']??0),'created_at'=>now(),'updated_at'=>now()]);
         return redirect()->route('purchase-order.index')->with('success', "PO {$poNo} berjaya disimpan.");
         });

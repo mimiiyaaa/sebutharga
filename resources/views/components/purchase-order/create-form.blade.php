@@ -1,23 +1,24 @@
-@props(['suppliers' => collect(), 'quotation', 'nextPoNo'])
+@props(['suppliers' => collect(), 'quotation', 'nextPoNo', 'order' => null, 'initialItems' => []])
 
 @php
     $inputClass = 'w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90';
     $labelClass = 'mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400';
 @endphp
 
-<form method="POST" action="{{ route('purchase-order.store') }}" class="space-y-6" x-data="{
+<form method="POST" action="{{ $order ? route('purchase-order.update', $order->purchase_order_id) : route('purchase-order.store') }}" class="space-y-6" x-data="{
     suppliers: {{ Illuminate\Support\Js::from($suppliers) }},
-    supplierId: '',
+    supplierId: {{ Illuminate\Support\Js::from((string) old('customer_id', $order?->customer_id ?? '')) }},
     supplier: {},
-    attentionSupplier: '',
-    delivery: {{ Illuminate\Support\Js::from(['company_name' => config('purchase_order.issuer_name'), 'address' => config('purchase_order.issuer_address'), 'phone_no' => config('purchase_order.issuer_phone'), 'attention' => config('purchase_order.delivery_attention')]) }},
+    attentionSupplier: {{ Illuminate\Support\Js::from(old('attention_supplier', $order?->attention_supplier ?? '')) }},
+    delivery: {{ Illuminate\Support\Js::from(['company_name' => config('purchase_order.issuer_name'), 'address' => old('delivery_address', $order?->delivery_address ?? config('purchase_order.issuer_address')), 'phone_no' => config('purchase_order.issuer_phone'), 'attention' => old('attention_delivery', $order?->attention_delivery ?? config('purchase_order.delivery_attention'))]) }},
+    init() { this.supplier = this.suppliers.find(row => String(row.customer_id) === this.supplierId) || {}; },
     selectSupplier() {
         this.supplier = this.suppliers.find(row => String(row.customer_id) === String(this.supplierId)) || {};
         this.attentionSupplier = this.supplier.customer_name || '';
     },
-    nextId: 2,
-    items: [{ id: 1, description: '', quantity: 1, unit: '', price: 0 }],
-    discount: 0,
+    nextId: {{ count($initialItems) + 2 }},
+    items: {{ Illuminate\Support\Js::from($initialItems ?: [['id'=>1, 'description'=>'', 'quantity'=>1, 'unit'=>'', 'price'=>0]]) }},
+    discount: {{ Illuminate\Support\Js::from(old('discount_percent', $order?->discount_percent ?? 0)) }},
     subtotal(item) { return Math.round(Math.max(0, Number(item.quantity) || 0) * Math.max(0, Number(item.price) || 0) * 100) / 100 },
     get gross() { return this.items.reduce((sum, item) => sum + this.subtotal(item), 0) },
     get discountAmount() { return Math.round(this.gross * Math.min(100, Math.max(0, Number(this.discount) || 0))) / 100 },
@@ -26,6 +27,7 @@
     addItem() { this.items.push({ id: this.nextId++, description: '', quantity: 1, unit: '', price: 0 }) }
 }">
     @csrf
+    @if ($order) @method('PUT') @endif
     <input type="hidden" name="quotation_id" value="{{ $quotation->quotation_id }}">
     <input type="hidden" name="quotation_detail_id" value="{{ $quotation->quotation_detail_id }}">
     <input type="hidden" name="items_json" :value="JSON.stringify(items)">
@@ -34,9 +36,6 @@
             @foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach
         </ul>
     @endif
-    <p class="rounded-lg border border-warning-200 bg-warning-50 p-4 text-sm text-warning-700 dark:border-warning-500/30 dark:bg-warning-500/10 dark:text-warning-400">
-        {{ __('Pratonton borang sahaja. Rekod belum disimpan.') }}
-    </p>
 
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <x-common.component-card :title="__('Maklumat Syarikat Pengeluar PO')">
@@ -58,7 +57,7 @@
             </div>
             <div>
                 <label for="po_date" class="{{ $labelClass }}">{{ __('Tarikh PO') }}</label>
-                <input id="po_date" name="po_date" type="date" value="{{ now()->format('Y-m-d') }}" required class="{{ $inputClass }}">
+                <input id="po_date" name="po_date" type="date" value="{{ old('po_date', $order?->po_date ?? now()->format('Y-m-d')) }}" required class="{{ $inputClass }}">
             </div>
 <input type="hidden" name="quotation_id" value="{{ $quotation->quotation_id }}">
 <input type="hidden" name="quotation_detail_id" value="{{ $quotation->quotation_detail_id }}">
@@ -163,21 +162,21 @@
     <x-common.component-card :title="__('Terma dan Syarat Pembelian')">
         <div>
             <label for="terms_conditions" class="{{ $labelClass }}">{{ __('Terma dan Syarat') }}</label>
-            <textarea id="terms_conditions" name="terms_conditions" rows="6" class="{{ $inputClass }}">{{ old('terms_conditions', config('purchase_order.terms')) }}</textarea>
+            <textarea id="terms_conditions" name="terms_conditions" rows="6" class="{{ $inputClass }}">{{ old('terms_conditions', $order?->terms_conditions ?? config('purchase_order.terms')) }}</textarea>
         </div>
     </x-common.component-card>
     <x-common.component-card :title="__('Pengesahan PO')">
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
                 <label for="prepared_by" class="{{ $labelClass }}">{{ __('Disediakan Oleh') }}</label>
-                <input id="prepared_by" name="prepared_by" value="{{ auth()->user()?->name }}" class="{{ $inputClass }}">
+                <input id="prepared_by" name="prepared_by" value="{{ old('prepared_by', $order?->prepared_by ?? auth()->user()?->name) }}" class="{{ $inputClass }}">
                 <label for="prepared_role" class="{{ $labelClass }} mt-4">{{ __('Jawatan / Unit Penyedia') }}</label>
                 <input id="prepared_role" name="prepared_role" value="{{ old('prepared_role', config('purchase_order.prepared_role')) }}" class="{{ $inputClass }}">
                 <div class="mt-10 border-t border-dashed border-gray-400 pt-2 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">{{ __('Ruang Tandatangan') }}</div>
             </div>
             <div>
                 <label for="approved_by" class="{{ $labelClass }}">{{ __('Diluluskan Oleh') }}</label>
-                <input id="approved_by" name="approved_by" class="{{ $inputClass }}">
+                <input id="approved_by" name="approved_by" value="{{ old('approved_by', $order?->approved_by) }}" class="{{ $inputClass }}">
                 <label for="approved_role" class="{{ $labelClass }} mt-4">{{ __('Jawatan Pelulus') }}</label>
                 <input id="approved_role" name="approved_role" value="{{ old('approved_role', config('purchase_order.approved_role')) }}" class="{{ $inputClass }}">
                 <div class="mt-10 border-t border-dashed border-gray-400 pt-2 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">{{ __('Ruang Tandatangan') }}</div>
