@@ -21,6 +21,18 @@
     </p>
 
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <x-common.component-card :title="__('Maklumat Syarikat Pengeluar PO')">
+            @foreach (['issuer_name' => 'Nama Syarikat', 'issuer_phone' => 'Nombor Telefon', 'issuer_email' => 'E-mel'] as $field => $label)
+                <div>
+                    <label for="{{ $field }}" class="{{ $labelClass }}">{{ __($label) }}</label>
+                    <input id="{{ $field }}" name="{{ $field }}" type="{{ $field === 'issuer_email' ? 'email' : ($field === 'issuer_phone' ? 'tel' : 'text') }}" class="{{ $inputClass }}">
+                </div>
+            @endforeach
+            <div>
+                <label for="issuer_address" class="{{ $labelClass }}">{{ __('Alamat Syarikat') }}</label>
+                <textarea id="issuer_address" name="issuer_address" rows="3" class="{{ $inputClass }}"></textarea>
+            </div>
+        </x-common.component-card>
         <x-common.component-card :title="__('Maklumat PO')">
             <div>
                 <label for="po_no" class="{{ $labelClass }}">{{ __('No. PO') }}</label>
@@ -44,8 +56,11 @@
             </div>
         </x-common.component-card>
 
-        <x-common.component-card :title="__('Maklumat Pembekal')">
-            @foreach (['supplier_name' => 'Nama Pembekal', 'company_name' => 'Nama Syarikat', 'phone_no' => 'Nombor Telefon', 'email' => 'E-mel', 'reference_no' => 'No. Rujukan Pembekal'] as $field => $label)
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <x-common.component-card :title="__('Kepada: Pembekal')">
+            @foreach (['attention_supplier' => 'Untuk Perhatian Pembekal', 'supplier_name' => 'Nama Pembekal', 'company_name' => 'Nama Syarikat', 'phone_no' => 'Nombor Telefon', 'email' => 'E-mel', 'reference_no' => 'No. Rujukan Pembekal'] as $field => $label)
                 <div>
                     <label for="{{ $field }}" class="{{ $labelClass }}">{{ __($label) }}</label>
                     <input id="{{ $field }}" name="{{ $field }}" type="{{ $field === 'email' ? 'email' : ($field === 'phone_no' ? 'tel' : 'text') }}" class="{{ $inputClass }}">
@@ -56,15 +71,21 @@
                 <textarea id="supplier_address" name="supplier_address" rows="3" class="{{ $inputClass }}"></textarea>
             </div>
         </x-common.component-card>
-    </div>
-
     <x-common.component-card :title="__('Maklumat Penghantaran')">
+        <div>
+            <label for="delivery_company" class="{{ $labelClass }}">{{ __('Nama Syarikat Penerima') }}</label>
+            <input id="delivery_company" name="delivery_company" class="{{ $inputClass }}">
+        </div>
+        <div>
+            <label for="delivery_phone" class="{{ $labelClass }}">{{ __('Nombor Telefon Penerima') }}</label>
+            <input id="delivery_phone" name="delivery_phone" type="tel" class="{{ $inputClass }}">
+        </div>
         <div>
             <label for="delivery_address" class="{{ $labelClass }}">{{ __('Alamat Penghantaran') }}</label>
             <textarea id="delivery_address" name="delivery_address" rows="3" class="{{ $inputClass }}"></textarea>
         </div>
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            @foreach (['attention_supplier' => 'Untuk Perhatian Pembekal', 'attention_delivery' => 'Untuk Perhatian Penerima'] as $field => $label)
+            @foreach (['attention_delivery' => 'Untuk Perhatian Penerima'] as $field => $label)
                 <div>
                     <label for="{{ $field }}" class="{{ $labelClass }}">{{ __($label) }}</label>
                     <input id="{{ $field }}" name="{{ $field }}" class="{{ $inputClass }}">
@@ -72,13 +93,14 @@
             @endforeach
         </div>
     </x-common.component-card>
+    </div>
 
     <x-common.component-card :title="__('Item PO')">
         <div class="overflow-x-auto">
             <table class="w-full text-start text-sm text-gray-700 dark:text-gray-300">
-                <thead class="bg-gray-50 dark:bg-gray-900">
+                <thead class="bg-error-800 text-white dark:bg-error-900 dark:text-white">
                     <tr>
-                        @foreach (['Keterangan', 'Kuantiti', 'Unit', 'Harga Seunit (RM)', 'Jumlah Kecil', 'Tindakan'] as $heading)
+                        @foreach (['Bil.', 'Perihal Barangan', 'Kuantiti', 'Unit', 'Harga Seunit (RM)', 'Jumlah (RM)', 'Tindakan'] as $heading)
                             <th scope="col" class="whitespace-nowrap px-3 py-3 text-start font-medium">{{ __($heading) }}</th>
                         @endforeach
                     </tr>
@@ -86,7 +108,8 @@
                 <tbody>
                     <template x-for="(item, index) in items" :key="item.id">
                         <tr class="border-b border-gray-100 dark:border-gray-800">
-                            <td class="min-w-60 p-3"><input x-model="item.description" aria-label="{{ __('Keterangan') }}" class="{{ $inputClass }}"></td>
+                            <td class="p-3 text-center" x-text="index + 1"></td>
+                            <td class="min-w-60 p-3"><textarea rows="3" x-model="item.description" aria-label="{{ __('Perihal Barangan') }}" class="{{ $inputClass }}"></textarea></td>
                             <td class="min-w-32 p-3"><input type="number" min="1" step="1" x-model.number="item.quantity" aria-label="{{ __('Kuantiti') }}" class="{{ $inputClass }}"></td>
                             <td class="min-w-32 p-3"><input x-model="item.unit" aria-label="{{ __('Unit') }}" class="{{ $inputClass }}"></td>
                             <td class="min-w-40 p-3"><input type="number" min="0" step="0.01" x-model.number="item.price" aria-label="{{ __('Harga Seunit (RM)') }}" class="{{ $inputClass }}"></td>
@@ -109,23 +132,32 @@
         </div>
     </x-common.component-card>
 
-    <x-common.component-card :title="__('Maklumat Tambahan')">
+    <x-common.component-card :title="__('Terma dan Syarat Pembelian')">
         <div>
             <label for="terms_conditions" class="{{ $labelClass }}">{{ __('Terma dan Syarat') }}</label>
-            <textarea id="terms_conditions" name="terms_conditions" rows="4" class="{{ $inputClass }}"></textarea>
+            <textarea id="terms_conditions" name="terms_conditions" rows="6" class="{{ $inputClass }}" placeholder="{{ __('Masukkan satu terma pada setiap baris, bermula dengan 1., 2., 3. dan seterusnya.') }}"></textarea>
         </div>
+    </x-common.component-card>
+    <x-common.component-card :title="__('Pengesahan PO')">
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
                 <label for="prepared_by" class="{{ $labelClass }}">{{ __('Disediakan Oleh') }}</label>
                 <input id="prepared_by" name="prepared_by" value="{{ auth()->user()?->name }}" class="{{ $inputClass }}">
+                <label for="prepared_role" class="{{ $labelClass }} mt-4">{{ __('Jawatan / Unit Penyedia') }}</label>
+                <input id="prepared_role" name="prepared_role" class="{{ $inputClass }}">
+                <div class="mt-10 border-t border-dashed border-gray-400 pt-2 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">{{ __('Ruang Tandatangan') }}</div>
             </div>
             <div>
                 <label for="approved_by" class="{{ $labelClass }}">{{ __('Diluluskan Oleh') }}</label>
                 <input id="approved_by" name="approved_by" class="{{ $inputClass }}">
+                <label for="approved_role" class="{{ $labelClass }} mt-4">{{ __('Jawatan Pelulus') }}</label>
+                <input id="approved_role" name="approved_role" class="{{ $inputClass }}">
+                <div class="mt-10 border-t border-dashed border-gray-400 pt-2 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">{{ __('Ruang Tandatangan') }}</div>
             </div>
         </div>
     </x-common.component-card>
     <div class="flex flex-wrap justify-end gap-3">
+        <button type="button" disabled title="{{ __('Akan datang') }}" class="cursor-not-allowed rounded-lg border border-brand-300 bg-white px-5 py-3 text-sm font-medium text-brand-600 opacity-50 dark:border-brand-700 dark:bg-gray-800 dark:text-brand-400">{{ __('Muat Turun PDF') }}</button>
         <a href="{{ route('purchase-order.index') }}" class="rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">{{ __('Kembali ke Senarai PO') }}</a>
         <button type="button" disabled title="{{ __('Akan datang') }}" class="cursor-not-allowed rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white opacity-50 dark:bg-brand-500 dark:text-white">{{ __('Simpan PO') }}</button>
     </div>
