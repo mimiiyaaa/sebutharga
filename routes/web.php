@@ -129,25 +129,35 @@ Route::delete('/purchase-order/{id}', function ($id) { DB::table('purchase_order
 Route::get('/sebut-harga', function () {
     $quotations = DB::table('sebutharga_master as quotation')
         ->leftJoin('customer_supplier as customer', 'customer.customer_id', '=', 'quotation.customer_id')
-        ->leftJoin('sebutharga_detail as detail', 'detail.quotation_detail_id', '=', 'quotation.quotation_detail_id')
         ->select([
             'quotation.quotation_id',
             'quotation.quotation_no',
             'quotation.quotation_date',
             'quotation.quotation_title',
             'quotation.status_quotation',
+            'quotation.quotation_detail_id',
             'customer.company_name',
             'customer.customer_name',
             'customer.email',
-            'detail.draft_no',
-            'detail.status_draft',
-            'detail.jumlah_total',
         ])
         ->orderByDesc('quotation.quotation_date')
         ->orderByDesc('quotation.quotation_id')
+        ->get();
+
+    $drafts = DB::table('sebutharga_detail')
+        ->whereIn('quotation_id', $quotations->pluck('quotation_id'))
+        ->orderBy('draft_no')
         ->get()
-        ->map(function ($quotation) {
+        ->groupBy('quotation_id');
+
+    $quotations = $quotations->map(function ($quotation) use ($drafts) {
             $name = $quotation->company_name ?: ($quotation->customer_name ?: 'Tiada nama');
+            $quotationDrafts = $drafts->get($quotation->quotation_id, collect());
+            $selectedDraft = $quotationDrafts->firstWhere('quotation_detail_id', $quotation->quotation_detail_id)
+                ?: $quotationDrafts->first();
+            $versionStatus = fn ($status) => $status === 1
+                ? 'Setuju'
+                : ($status === 0 ? 'Tidak Setuju' : 'Menunggu Keputusan');
             $initials = collect(preg_split('/\s+/', trim($name)))
                 ->filter()
                 ->take(2)
@@ -162,11 +172,19 @@ Route::get('/sebut-harga', function () {
                 'initials' => $initials ?: '?',
                 'avatarBg' => 'bg-brand-50',
                 'avatarColor' => 'text-brand-500',
-                'product' => $quotation->quotation_title ?: '-',
-                'value' => 'RM ' . number_format((float) ($quotation->jumlah_total ?? 0), 2),
-                'version' => $quotation->draft_no ?: 1,
-                'closeDate' => $quotation->quotation_date,
-                'status' => $quotation->status_draft ?: ($quotation->status_quotation === 1 ? 'Diluluskan' : 'Draf'),
+                'product' => $selectedDraft?->quotation_title ?: ($quotation->quotation_title ?: '-'),
+                'version' => $selectedDraft?->quotation_detail_id ?: 1,
+                'versions' => $quotationDrafts->map(fn ($draft) => [
+                    'id' => $draft->quotation_detail_id,
+                    'name' => 'Versi ' . $draft->draft_no,
+                    'draftNo' => $draft->draft_no,
+                    'title' => $draft->quotation_title ?: ($quotation->quotation_title ?: '-'),
+                    'date' => $draft->quotation_date ?: $quotation->quotation_date,
+                    'status' => $versionStatus($draft->status_quotation ?? $quotation->status_quotation),
+                    'selected' => $quotation->quotation_detail_id === $draft->quotation_detail_id,
+                ])->values(),
+                'closeDate' => $selectedDraft?->quotation_date ?: $quotation->quotation_date,
+                'status' => $versionStatus($selectedDraft?->status_quotation),
             ];
         });
 
@@ -220,6 +238,7 @@ Route::post('/sebut-harga', function (\Illuminate\Http\Request $request) {
         'customer_id' => ['required', 'integer', 'exists:customer_supplier,customer_id'],
         'quotation_title' => ['nullable', 'string', 'max:255'],
         'no_rujukan_pelanggan' => ['nullable', 'string', 'max:100'],
+        'draft_name' => ['nullable', 'string', 'max:100'],
         'terma_syarat' => ['nullable', 'string'],
         'disediakan_oleh' => ['nullable', 'string', 'max:255'],
         'diterima_oleh' => ['nullable', 'string', 'max:255'],
@@ -234,11 +253,12 @@ Route::post('/sebut-harga', function (\Illuminate\Http\Request $request) {
         $grossAmount = collect($validated['items'])->sum(
             fn ($item) => (int) $item['quantity'] * (float) $item['price']
         );
-        $quotationPrefix = 'SQ-' . now()->format('Ymd') . '-';
+        $quotationYear = date('Y', strtotime($validated['quotation_date']));
+        $quotationPrefix = 'K1R-QT-' . $quotationYear . '-';
         $quotationSequence = DB::table('sebutharga_master')
             ->where('quotation_no', 'like', $quotationPrefix . '%')
             ->count() + 1;
-        $quotationNo = $quotationPrefix . str_pad((string) $quotationSequence, 4, '0', STR_PAD_LEFT);
+        $quotationNo = $quotationPrefix . str_pad((string) $quotationSequence, 3, '0', STR_PAD_LEFT);
         $userId = $request->user()?->id;
 
         $quotationId = DB::table('sebutharga_master')->insertGetId([
@@ -256,6 +276,12 @@ Route::post('/sebut-harga', function (\Illuminate\Http\Request $request) {
         $quotationDetailId = DB::table('sebutharga_detail')->insertGetId([
             'quotation_id' => $quotationId,
             'draft_no' => 1,
+            'quotation_date' => $validated['quotation_date'],
+            'customer_id' => $validated['customer_id'],
+            'quotation_title' => $validated['quotation_title'] ?? null,
+            'no_rujukan_pelanggan' => $validated['no_rujukan_pelanggan'] ?? null,
+            'status_quotation' => null,
+            'draft_name' => null,
             'jumlah_total' => $grossAmount,
             'terma_syarat' => $validated['terma_syarat'] ?? null,
             'disediakan_oleh' => $validated['disediakan_oleh'] ?? null,
@@ -291,6 +317,171 @@ Route::post('/sebut-harga', function (\Illuminate\Http\Request $request) {
     });
 })->middleware('auth')->name('sebut-harga.store');
 
+Route::post('/sebut-harga/{id}/draft', function (\Illuminate\Http\Request $request, $id) {
+    $validated = $request->validate([
+        'quotation_date' => ['required', 'date'],
+        'customer_id' => ['required', 'integer', 'exists:customer_supplier,customer_id'],
+        'quotation_title' => ['nullable', 'string', 'max:255'],
+        'no_rujukan_pelanggan' => ['nullable', 'string', 'max:100'],
+        'terma_syarat' => ['nullable', 'string'],
+        'disediakan_oleh' => ['nullable', 'string', 'max:255'],
+        'diterima_oleh' => ['nullable', 'string', 'max:255'],
+        'items' => ['required', 'array', 'min:1'],
+        'items.*.description' => ['required', 'string'],
+        'items.*.quantity' => ['required', 'integer', 'min:1'],
+        'items.*.unit' => ['required', 'string', 'max:50'],
+        'items.*.price' => ['required', 'numeric', 'min:0'],
+    ]);
+
+    $quotation = DB::table('sebutharga_master')->where('quotation_id', $id)->first();
+    abort_unless($quotation, 404);
+
+    DB::transaction(function () use ($validated, $request, $id) {
+        $total = collect($validated['items'])->sum(fn ($item) => (int) $item['quantity'] * (float) $item['price']);
+        $userId = $request->user()?->id;
+        $draftNo = ((int) DB::table('sebutharga_detail')->where('quotation_id', $id)->max('draft_no')) + 1;
+
+        DB::table('sebutharga_master')->where('quotation_id', $id)->update([
+            'customer_id' => $validated['customer_id'],
+            'quotation_date' => $validated['quotation_date'],
+            'quotation_title' => $validated['quotation_title'] ?? null,
+            'no_rujukan_pelanggan' => $validated['no_rujukan_pelanggan'] ?? null,
+            'status_quotation' => null,
+            'updated_by' => $userId,
+            'updated_at' => now(),
+        ]);
+
+        $draftId = DB::table('sebutharga_detail')->insertGetId([
+            'quotation_id' => $id,
+            'draft_no' => $draftNo,
+            'quotation_date' => $validated['quotation_date'],
+            'customer_id' => $validated['customer_id'],
+            'quotation_title' => $validated['quotation_title'] ?? null,
+            'no_rujukan_pelanggan' => $validated['no_rujukan_pelanggan'] ?? null,
+            'status_quotation' => null,
+            'draft_name' => null,
+            'jumlah_total' => $total,
+            'terma_syarat' => $validated['terma_syarat'] ?? null,
+            'disediakan_oleh' => $validated['disediakan_oleh'] ?? null,
+            'diterima_oleh' => $validated['diterima_oleh'] ?? null,
+            'status_draft' => 'Draf',
+            'created_by' => $userId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        foreach ($validated['items'] as $item) {
+            $quantity = (int) $item['quantity'];
+            $unitPrice = (float) $item['price'];
+            DB::table('sebutharga_item')->insert([
+                'quotation_detail_id' => $draftId,
+                'item_description' => $item['description'],
+                'quantity' => $quantity,
+                'unit' => $item['unit'],
+                'unit_price' => $unitPrice,
+                'subtotal' => round($quantity * $unitPrice, 2),
+                'created_by' => $userId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    });
+
+    return redirect()->route('sebut-harga')->with('success', 'Draft baru berjaya disimpan.');
+})->middleware('auth')->name('sebut-harga.draft.store');
+
+Route::get('/sebut-harga/{id}/edit', function ($id) {
+    $quotation = DB::table('sebutharga_master as quotation')
+        ->leftJoin('customer_supplier as customer', 'customer.customer_id', '=', 'quotation.customer_id')
+        ->where('quotation.quotation_id', $id)
+        ->select('quotation.*', 'customer.company_name', 'customer.customer_name')
+        ->first();
+    abort_unless($quotation, 404);
+
+    $draftId = request('draft') ?: ($quotation->quotation_detail_id ?: DB::table('sebutharga_detail')->where('quotation_id', $id)->value('quotation_detail_id'));
+    $draft = DB::table('sebutharga_detail')->where('quotation_detail_id', $draftId)->where('quotation_id', $id)->first();
+    abort_unless($draft, 404);
+    $quotation->quotation_date = $draft->quotation_date ?: $quotation->quotation_date;
+    $quotation->quotation_title = $draft->quotation_title ?: $quotation->quotation_title;
+    $quotation->customer_id = $draft->customer_id ?: $quotation->customer_id;
+    $quotation->no_rujukan_pelanggan = $draft->no_rujukan_pelanggan ?: $quotation->no_rujukan_pelanggan;
+    $draft->items = DB::table('sebutharga_item')->where('quotation_detail_id', $draft->quotation_detail_id)->get();
+    $customers = DB::table('customer_supplier')->where('jenis_customer', 1)->orderBy('company_name')->get();
+
+    return view('pages.sebut-harga.edit', [
+        'title' => 'Edit Sebut Harga',
+        'quotation' => $quotation,
+        'draft' => $draft,
+        'customers' => $customers,
+    ]);
+})->middleware('auth')->name('sebut-harga.edit');
+
+Route::patch('/sebut-harga/{id}', function (\Illuminate\Http\Request $request, $id) {
+    $validated = $request->validate([
+        'quotation_date' => ['required', 'date'],
+        'customer_id' => ['required', 'integer', 'exists:customer_supplier,customer_id'],
+        'quotation_title' => ['nullable', 'string', 'max:255'],
+        'no_rujukan_pelanggan' => ['nullable', 'string', 'max:100'],
+        'terma_syarat' => ['nullable', 'string'],
+        'disediakan_oleh' => ['nullable', 'string', 'max:255'],
+        'diterima_oleh' => ['nullable', 'string', 'max:255'],
+        'items' => ['required', 'array', 'min:1'],
+        'items.*.description' => ['required', 'string'],
+        'items.*.quantity' => ['required', 'integer', 'min:1'],
+        'items.*.unit' => ['required', 'string', 'max:50'],
+        'items.*.price' => ['required', 'numeric', 'min:0'],
+    ]);
+
+    $quotation = DB::table('sebutharga_master')->where('quotation_id', $id)->first();
+    abort_unless($quotation, 404);
+    $draftId = $quotation->quotation_detail_id ?: DB::table('sebutharga_detail')->where('quotation_id', $id)->value('quotation_detail_id');
+    abort_unless($draftId, 404);
+    $draftNo = DB::table('sebutharga_detail')->where('quotation_detail_id', $draftId)->value('draft_no');
+
+    DB::transaction(function () use ($validated, $request, $id, $draftId, $draftNo) {
+        $total = collect($validated['items'])->sum(fn ($item) => (int) $item['quantity'] * (float) $item['price']);
+        $userId = $request->user()?->id;
+
+        DB::table('sebutharga_master')->where('quotation_id', $id)->update([
+            'customer_id' => $validated['customer_id'],
+            'quotation_date' => $validated['quotation_date'],
+            'quotation_title' => $validated['quotation_title'] ?? null,
+            'no_rujukan_pelanggan' => $validated['no_rujukan_pelanggan'] ?? null,
+            'updated_by' => $userId,
+            'updated_at' => now(),
+        ]);
+
+        DB::table('sebutharga_detail')->where('quotation_detail_id', $draftId)->update([
+            'draft_name' => null,
+            'jumlah_total' => $total,
+            'terma_syarat' => $validated['terma_syarat'] ?? null,
+            'disediakan_oleh' => $validated['disediakan_oleh'] ?? null,
+            'diterima_oleh' => $validated['diterima_oleh'] ?? null,
+            'updated_by' => $userId,
+            'updated_at' => now(),
+        ]);
+
+        DB::table('sebutharga_item')->where('quotation_detail_id', $draftId)->delete();
+        foreach ($validated['items'] as $item) {
+            $quantity = (int) $item['quantity'];
+            $unitPrice = (float) $item['price'];
+            DB::table('sebutharga_item')->insert([
+                'quotation_detail_id' => $draftId,
+                'item_description' => $item['description'],
+                'quantity' => $quantity,
+                'unit' => $item['unit'],
+                'unit_price' => $unitPrice,
+                'subtotal' => round($quantity * $unitPrice, 2),
+                'updated_by' => $userId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    });
+
+    return redirect()->route('sebut-harga')->with('success', 'Sebut harga berjaya dikemaskini.');
+})->middleware('auth')->name('sebut-harga.update');
+
 Route::delete('/sebut-harga/{id}', function ($id) {
     $quotation = DB::table('sebutharga_master')
         ->where('quotation_id', $id)
@@ -318,9 +509,72 @@ Route::delete('/sebut-harga/{id}', function ($id) {
     return redirect()->route('sebut-harga')->with('success', 'Sebut harga berjaya dipadam.');
 })->middleware('auth')->name('sebut-harga.destroy');
 
-Route::get('/sebut-harga/{id}', function ($id) {
-    return view('pages.sebut-harga.show', [
-        'title' => 'Detail Sebut Harga',
-        'quotationId' => $id,
+Route::patch('/sebut-harga/{id}/draft/{draftId}', function (\Illuminate\Http\Request $request, $id, $draftId) {
+    $request->validate([
+        'draft_name' => ['required', 'string', 'max:100'],
     ]);
-})->middleware('auth')->name('sebut-harga.show');
+
+    $updated = DB::table('sebutharga_detail')
+        ->where('quotation_detail_id', $draftId)
+        ->where('quotation_id', $id)
+        ->update([
+            'draft_name' => $request->string('draft_name')->trim()->toString(),
+            'updated_at' => now(),
+        ]);
+
+    abort_unless($updated, 404);
+
+    return redirect()->route('sebut-harga')->with('success', 'Nama draft berjaya dikemaskini.');
+})->middleware('auth')->name('sebut-harga.draft.update');
+
+Route::post('/sebut-harga/{id}/draft/{draftId}/approve', function ($id, $draftId) {
+    $draft = DB::table('sebutharga_detail')
+        ->where('quotation_detail_id', $draftId)
+        ->where('quotation_id', $id)
+        ->first();
+
+    abort_unless($draft, 404);
+
+    DB::transaction(function () use ($id, $draftId) {
+        DB::table('sebutharga_detail')
+            ->where('quotation_id', $id)
+            ->update(['status_draft' => 'Draf', 'updated_at' => now()]);
+
+        DB::table('sebutharga_detail')
+            ->where('quotation_detail_id', $draftId)
+            ->update(['status_draft' => 'Final', 'updated_at' => now()]);
+
+        DB::table('sebutharga_master')
+            ->where('quotation_id', $id)
+            ->update([
+                'quotation_detail_id' => $draftId,
+                'status_quotation' => 1,
+                'updated_at' => now(),
+            ]);
+    });
+
+    return redirect()->route('sebut-harga')->with('success', 'Draft berjaya dipersetujui.');
+})->middleware('auth')->name('sebut-harga.draft.approve');
+
+Route::post('/sebut-harga/{id}/draft/{draftId}/reject', function ($id, $draftId) {
+    $draft = DB::table('sebutharga_detail')
+        ->where('quotation_detail_id', $draftId)
+        ->where('quotation_id', $id)
+        ->first();
+
+    abort_unless($draft, 404);
+
+    DB::table('sebutharga_master')
+        ->where('quotation_id', $id)
+        ->update([
+            'quotation_detail_id' => $draftId,
+            'status_quotation' => 0,
+            'updated_at' => now(),
+        ]);
+
+    DB::table('sebutharga_detail')
+        ->where('quotation_detail_id', $draftId)
+        ->update(['status_quotation' => 0, 'updated_at' => now()]);
+
+    return redirect()->route('sebut-harga.edit', [$id, 'draft' => $draftId])->with('success', 'Sebut harga ditandakan sebagai tidak setuju.');
+})->middleware('auth')->name('sebut-harga.draft.reject');

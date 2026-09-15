@@ -21,9 +21,9 @@
     },
     getStatusClass(status) {
         const classes = {
-            'Diluluskan': 'bg-green-50 text-green-700 dark:bg-green-500/15 dark:text-green-500',
-            'Draf': 'bg-yellow-50 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400',
-            'Batal': 'bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-500',
+            'Setuju': 'bg-green-50 text-green-700 dark:bg-green-500/15 dark:text-green-500',
+            'Menunggu Keputusan': 'bg-yellow-50 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400',
+            'Tidak Setuju': 'bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-500',
         };
         return classes[status] || '';
     },
@@ -89,10 +89,10 @@
                 </thead>
                 <tbody>
                     <template x-for="row in tableRowData" :key="row.id">
-                        <tr class="border-b border-gray-100 dark:border-white/[0.05]">
+                        <tr @click="window.location.href = '/sebut-harga/' + row.id + '/edit?draft=' + row.version" class="cursor-pointer border-b border-gray-100 dark:border-white/[0.05] hover:bg-gray-50 dark:hover:bg-white/[0.03]">
                             <td class="px-4 sm:px-6 py-3.5">
                                 <div class="flex items-center gap-3">
-                                    <div @click="handleRowSelect(row.id)"
+                                    <div @click.stop="handleRowSelect(row.id)"
                                         class="flex h-5 w-5 cursor-pointer items-center justify-center rounded-md border-[1.25px]"
                                         :class="selectedRows.includes(row.id) ? 'border-blue-500 dark:border-blue-500 bg-blue-500' : 'bg-white dark:bg-white/0 border-gray-300 dark:border-gray-700'">
                                         <svg :class="selectedRows.includes(row.id) ? 'block' : 'hidden'" width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -111,8 +111,8 @@
                                         <span x-text="row.initials"></span>
                                     </div>
                                     <div>
-                                        <a
-    :href="'/sebut-harga/' + row.id"
+                                        <a @click.stop
+    :href="'/sebut-harga/' + row.id + '/edit?draft=' + row.version"
     class="mb-0.5 block text-theme-sm font-medium text-brand-500 hover:text-brand-600"
     x-text="row.customerName">
 </a>
@@ -124,7 +124,12 @@
                                 <p class="text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.product"></p>
                             </td>
                             <td class="px-4 sm:px-6 py-3.5">
-                                <p class="text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.version"></p>
+                                <select @click.stop class="h-10 min-w-40 rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                                    @change="const version = row.versions.find(item => String(item.id) === String($event.target.value)); if (version) { row.version = version.id; row.product = version.title; row.closeDate = version.date; row.status = version.status; }">
+                                    <template x-for="version in row.versions" :key="version.id">
+                                        <option :value="version.id" :selected="version.selected" x-text="version.name" ></option>
+                                    </template>
+                                </select>
                             </td>
                             <td class="px-4 sm:px-6 py-3.5">
                                 <span class="text-theme-xs inline-block rounded-full px-2 py-0.5 font-medium"
@@ -135,16 +140,19 @@
                                 <p class="text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.closeDate"></p>
                             </td>
                             <td class="px-4 sm:px-6 py-3.5">
-                                <form :action="'{{ url('/sebut-harga') }}/' + row.id" method="POST" @submit="if (!confirm('Padam sebut harga ini?')) $event.preventDefault()">
+                                <div class="flex items-center gap-2">
+                                    <form @click.stop :action="'{{ url('/sebut-harga') }}/' + row.id" method="POST" @submit="if (!confirm('Padam sebut harga ini?')) $event.preventDefault()">
                                     <input type="hidden" name="_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="_method" value="DELETE">
-                                    <button type="submit" title="Padam sebut harga">
+                                    <button type="submit" title="Padam sebut harga" class="rounded-md border border-error-200 px-2.5 py-1.5 text-xs font-medium text-error-600 hover:bg-error-50 dark:border-error-500/30 dark:text-error-400 dark:hover:bg-error-500/10">
                                     <svg class="text-gray-700 cursor-pointer size-5 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-500" 
                                         fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                     </svg>
+                                        Delete
                                     </button>
-                                </form>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     </template>
