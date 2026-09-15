@@ -155,10 +155,12 @@ Route::get('/sebut-harga', function () {
 })->middleware('auth')->name('sebut-harga');
 
 Route::get('/pelanggan', function () {
-    return view('pages.pelanggan', [
-        'title' => 'Pelanggan'
-    ]);
+    return view('pages.pelanggan', ['title' => 'Pelanggan', 'contacts' => DB::table('customer_supplier')->where('jenis_customer', 1)->orderBy('company_name')->get()]);
 })->middleware('auth')->name('pelanggan');
+
+Route::get('/pembekal', function () {
+    return view('pages.pembekal', ['title' => 'Pembekal', 'contacts' => DB::table('customer_supplier')->where('jenis_customer', 2)->orderBy('company_name')->get()]);
+})->middleware('auth')->name('pembekal');
 
 // mimi try invoice pages
 Route::get('/invoice', function () {

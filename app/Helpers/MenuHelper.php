@@ -20,6 +20,16 @@ class MenuHelper
                 'path' => '/sebut-harga',
             ],
             [
+                'icon' => 'user-profile',
+                'name' => 'Pelanggan',
+                'path' => '/pelanggan',
+            ],
+            [
+                'icon' => 'user-profile',
+                'name' => 'Pembekal',
+                'path' => '/pembekal',
+            ],
+            [
                 'icon' => 'tables',
                 'name' => 'Pesanan Belian (PO)',
                 'path' => '/purchase-order',
