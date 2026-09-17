@@ -290,12 +290,7 @@ Route::post('/sebut-harga', function (\Illuminate\Http\Request $request) {
         );
         $quotationNo = \App\Helpers\QuotationNumber::next($validated['quotation_date']);
         $userId = $request->user()?->id;
-        $customerReference = $validated['no_rujukan_pelanggan'] ?? null;
-        if (! $customerReference) {
-            $customerReference = DB::table('customer_supplier')
-                ->where('customer_id', $validated['customer_id'])
-                ->value('customer_code');
-        }
+        $customerReference = DB::table('customer_supplier')->where('customer_id', $validated['customer_id'])->value('customer_code');
 
         $quotationId = DB::table('sebutharga_master')->insertGetId([
             'quotation_no' => $quotationNo,
@@ -314,7 +309,8 @@ Route::post('/sebut-harga', function (\Illuminate\Http\Request $request) {
             'draft_no' => 1,
             'draft_name' => null,
             'jumlah_total' => $grossAmount,
-            'terma_syarat' => $validated['terma_syarat'] ?? null,
+            'terma_syarat' => \App\Helpers\QuotationTerms::fromRequest($request),
+            'document_data' => \App\Helpers\QuotationDocument::capture($request),
             'disediakan_oleh' => $validated['disediakan_oleh'] ?? null,
             'diterima_oleh' => $validated['diterima_oleh'] ?? null,
             'status_draft' => 'Draf',
@@ -380,10 +376,7 @@ Route::post('/sebut-harga/{id}/draft', function (\Illuminate\Http\Request $reque
         $validated['status_quotation'] = null;
         $total = collect($validated['items'])->sum(fn ($item) => (int) $item['quantity'] * (float) $item['price']);
         $userId = $request->user()?->id;
-        $customerReference = $validated['no_rujukan_pelanggan'] ?? null;
-        if (! $customerReference) {
-            $customerReference = DB::table('customer_supplier')->where('customer_id', $validated['customer_id'])->value('customer_code');
-        }
+        $customerReference = DB::table('customer_supplier')->where('customer_id', $validated['customer_id'])->value('customer_code');
         $draftNo = ((int) DB::table('sebutharga_detail')->where('quotation_id', $id)->max('draft_no')) + 1;
 
         DB::table('sebutharga_master')->where('quotation_id', $id)->update([
@@ -401,7 +394,8 @@ Route::post('/sebut-harga/{id}/draft', function (\Illuminate\Http\Request $reque
             'draft_no' => $draftNo,
             'draft_name' => null,
             'jumlah_total' => $total,
-            'terma_syarat' => $validated['terma_syarat'] ?? null,
+            'terma_syarat' => \App\Helpers\QuotationTerms::fromRequest($request),
+            'document_data' => \App\Helpers\QuotationDocument::capture($request),
             'disediakan_oleh' => $validated['disediakan_oleh'] ?? null,
             'diterima_oleh' => $validated['diterima_oleh'] ?? null,
             'status_draft' => 'Draf',
@@ -508,7 +502,7 @@ Route::patch('/sebut-harga/{id}', function (\Illuminate\Http\Request $request, $
     DB::transaction(function () use ($validated, $request, $id, $draftId, $draftNo) {
         $total = collect($validated['items'])->sum(fn ($item) => (int) $item['quantity'] * (float) $item['price']);
         $userId = $request->user()?->id;
-        $customerReference = $validated['no_rujukan_pelanggan'] ?? DB::table('customer_supplier')->where('customer_id', $validated['customer_id'])->value('customer_code');
+        $customerReference = DB::table('customer_supplier')->where('customer_id', $validated['customer_id'])->value('customer_code');
 
         DB::table('sebutharga_master')->where('quotation_id', $id)->update([
             'customer_id' => $validated['customer_id'],
@@ -523,7 +517,8 @@ Route::patch('/sebut-harga/{id}', function (\Illuminate\Http\Request $request, $
         DB::table('sebutharga_detail')->where('quotation_detail_id', $draftId)->update([
             'draft_name' => null,
             'jumlah_total' => $total,
-            'terma_syarat' => $validated['terma_syarat'] ?? null,
+            'terma_syarat' => \App\Helpers\QuotationTerms::fromRequest($request),
+            'document_data' => \App\Helpers\QuotationDocument::capture($request),
             'disediakan_oleh' => $validated['disediakan_oleh'] ?? null,
             'diterima_oleh' => $validated['diterima_oleh'] ?? null,
             'updated_by' => $userId,

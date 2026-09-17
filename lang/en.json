@@ -124,7 +124,6 @@
   "Pilih Sebut Harga untuk PO": "Pilih Sebut Harga untuk PO",
   "Pilih Sebut Harga dan Versi": "Pilih Sebut Harga dan Versi",
   "Pilih versi yang telah dipersetujui di luar sistem. Item dan harga PO akan diisi secara manual pada langkah seterusnya.": "Pilih versi yang telah dipersetujui di luar sistem. Item dan harga PO akan diisi secara manual pada langkah seterusnya.",
-  "Pilih Sebut Harga": "Pilih Sebut Harga",
   "Versi Sebut Harga": "Versi Sebut Harga",
   "Pilih Versi": "Pilih Versi",
   "Sebutharga ini belum mempunyai versi.": "Sebutharga ini belum mempunyai versi.",
@@ -170,5 +169,13 @@
   "Pilih Sebut Harga": "Pilih Sebut Harga",
   "Pilih nombor sebut harga sebelum meneruskan.": "Pilih nombor sebut harga sebelum meneruskan.",
   "Semua sebut harga Final berkeputusan Setuju disenaraikan mengikut nombor sebut harga.": "Semua sebut harga Final berkeputusan Setuju disenaraikan mengikut nombor sebut harga.",
-  "Belum ada sebut harga Final yang dipersetujui.": "Belum ada sebut harga Final yang dipersetujui."
+  "Belum ada sebut harga Final yang dipersetujui.": "Belum ada sebut harga Final yang dipersetujui.",
+  "Alamat Pelanggan": "Alamat Pelanggan",
+  "Tempoh Sah (Hari)": "Tempoh Sah (Hari)",
+  "Penghantaran Minimum (Hari)": "Penghantaran Minimum (Hari)",
+  "Penghantaran Maksimum (Hari)": "Penghantaran Maksimum (Hari)",
+  "Tempoh sah dikira dari Tarikh Sebut Harga. Tempoh penghantaran dikira selepas penerimaan PO rasmi.": "Tempoh sah dikira dari Tarikh Sebut Harga. Tempoh penghantaran dikira selepas penerimaan PO rasmi.",
+  "Tempoh sah sebutharga adalah selama tempoh hari yang dipilih dari tarikh sebutharga dikeluarkan.": "Tempoh sah sebutharga adalah selama tempoh hari yang dipilih dari tarikh sebutharga dikeluarkan.",
+  "Tempoh penghantaran mengikut julat hari yang dipilih selepas penerimaan Pesanan Belian (PO) rasmi.": "Tempoh penghantaran mengikut julat hari yang dipilih selepas penerimaan Pesanan Belian (PO) rasmi.",
+  "Sila tandatangan di bawah untuk pengesahan persetujuan sebutharga ini.": "Sila tandatangan di bawah untuk pengesahan persetujuan sebutharga ini."
 }

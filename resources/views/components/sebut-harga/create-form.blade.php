@@ -10,6 +10,12 @@
     $inputClass = 'w-full min-h-11 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90';
     $labelClass = 'mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400';
     $isEditing = $editing && $quotation && $draft;
+    $document = App\Helpers\QuotationDocument::data($draft);
+    $recipient = $customers->firstWhere('customer_id', old('customer_id', $quotation->customer_id ?? null));
+    $recipientValues = [];
+    foreach (['customer_name', 'company_name', 'phone_no', 'email', 'address'] as $field) {
+        $recipientValues[$field] = old($field, array_key_exists($field, $document) ? $document[$field] : ($recipient->$field ?? ''));
+    }
     $formAction = $isEditing ? route('sebut-harga.draft.store', $quotation->quotation_id) : route('sebut-harga.store');
     $initialItems = $isEditing
         ? $draft->items->map(fn ($item, $index) => [
@@ -25,6 +31,10 @@
 <form method="POST" action="{{ $formAction }}" class="font-outfit space-y-6" x-data="{
     quotationDate: {{ Illuminate\Support\Js::from(old('quotation_date', $isEditing ? $quotation->quotation_date : now()->format('Y-m-d'))) }},
     sequences: {{ Illuminate\Support\Js::from((object) App\Helpers\QuotationNumber::sequences()) }},
+    customers: {{ Illuminate\Support\Js::from($customers) }},
+    customerId: {{ Illuminate\Support\Js::from((string) old('customer_id', $isEditing ? $quotation->customer_id : '')) }},
+    get selectedCustomer() { return this.customers.find(row => String(row.customer_id) === String(this.customerId)); },
+    recipient: {{ Illuminate\Support\Js::from($recipientValues) }},
     customerName: {{ Illuminate\Support\Js::from($isEditing ? ($quotation->customer_name ?? '') : '') }},
     customerCompany: {{ Illuminate\Support\Js::from($isEditing ? ($quotation->company_name ?? '') : '') }},
     get nextQuotationNo() {
@@ -51,19 +61,19 @@
         <x-common.document-card title="Maklumat Syarikat Pengeluar">
             <div>
                 <label class="{{ $labelClass }}">Nama Syarikat</label>
-                <input id="issuer_name" name="issuer_name" value="{{ old('issuer_name', config('purchase_order.issuer_name')) }}" class="{{ $inputClass }}">
+                <input id="issuer_name" name="issuer_name" value="{{ old('issuer_name', array_key_exists('issuer_name', $document) ? $document['issuer_name'] : config('purchase_order.issuer_name')) }}" class="{{ $inputClass }}">
             </div>
             <div>
                 <label class="{{ $labelClass }}">Nombor Telefon</label>
-                <input id="issuer_phone" name="issuer_phone" value="{{ old('issuer_phone', config('purchase_order.issuer_phone')) }}" type="tel" class="{{ $inputClass }}">
+                <input id="issuer_phone" name="issuer_phone" value="{{ old('issuer_phone', array_key_exists('issuer_phone', $document) ? $document['issuer_phone'] : config('purchase_order.issuer_phone')) }}" type="tel" class="{{ $inputClass }}">
             </div>
             <div>
                 <label class="{{ $labelClass }}">E-mel</label>
-                <input id="issuer_email" name="issuer_email" value="{{ old('issuer_email', config('purchase_order.issuer_email')) }}" type="email" class="{{ $inputClass }}">
+                <input id="issuer_email" name="issuer_email" value="{{ old('issuer_email', array_key_exists('issuer_email', $document) ? $document['issuer_email'] : config('purchase_order.issuer_email')) }}" type="email" class="{{ $inputClass }}">
             </div>
             <div>
                 <label class="{{ $labelClass }}">Alamat Syarikat</label>
-                <textarea id="issuer_address" name="issuer_address" rows="3" class="{{ $inputClass }} h-auto">{{ old('issuer_address', config('purchase_order.issuer_address')) }}</textarea>
+                <textarea id="issuer_address" name="issuer_address" rows="3" class="{{ $inputClass }} h-auto">{{ old('issuer_address', array_key_exists('issuer_address', $document) ? $document['issuer_address'] : config('purchase_order.issuer_address')) }}</textarea>
             </div>
         </x-common.document-card>
 
@@ -78,7 +88,7 @@
             </div>
             <div>
                 <label for="customer_id" class="{{ $labelClass }}">Pilih Pelanggan</label>
-                <select id="customer_id" name="customer_id" required class="{{ $inputClass }}" @change="customerName = $event.target.selectedOptions[0]?.dataset.name || ''; customerCompany = $event.target.selectedOptions[0]?.dataset.company || ''; $refs.customerReference.value = $event.target.selectedOptions[0]?.dataset.code || ''">
+                <select id="customer_id" name="customer_id" x-model="customerId" required class="{{ $inputClass }}" @change="recipient = { customer_name: selectedCustomer?.customer_name || '', company_name: selectedCustomer?.company_name || '', phone_no: selectedCustomer?.phone_no || '', email: selectedCustomer?.email || '', address: selectedCustomer?.address || '' }; customerName = $event.target.selectedOptions[0]?.dataset.name || ''; customerCompany = $event.target.selectedOptions[0]?.dataset.company || ''; $refs.customerReference.value = $event.target.selectedOptions[0]?.dataset.code || ''">
                     <option value="">Pilih pelanggan</option>
                     @foreach ($customers as $customer)
                         <option value="{{ $customer->customer_id }}" data-code="{{ $customer->customer_code }}" data-name="{{ $customer->customer_name }}" data-company="{{ $customer->company_name }}" @selected($isEditing && $quotation->customer_id == $customer->customer_id)>
@@ -89,16 +99,6 @@
                         </option>
                     @endforeach
                 </select>
-                <div x-cloak x-show="customerName || customerCompany" class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                        <label class="{{ $labelClass }}">Nama Pelanggan</label>
-                        <div class="flex min-h-11 items-center rounded-lg border border-gray-200 bg-gray-100 px-4 text-sm font-medium text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200" x-text="customerName || '—'"></div>
-                    </div>
-                    <div>
-                        <label class="{{ $labelClass }}">Nama Syarikat</label>
-                        <div class="flex min-h-11 items-center rounded-lg border border-gray-200 bg-gray-100 px-4 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300" x-text="customerCompany || '—'"></div>
-                    </div>
-                </div>
             </div>
             <div>
                 <label for="quotation_title" class="{{ $labelClass }}">Tajuk Sebut Harga</label>
@@ -122,42 +122,20 @@
 
     </div>
 
-    <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <x-common.document-card title="Kepada: Pelanggan">
-            <div class="rounded-lg border border-brand-200 bg-brand-50 p-4 text-sm text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-400">
-                Pelanggan dipilih melalui medan Nama Pelanggan dalam Maklumat Sebut Harga.
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Jenis Dokumen</label>
-                <input readonly value="Sebut Harga" class="{{ $inputClass }} bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-            </div>
-            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                <div>
-                    <label for="disediakan_oleh" class="{{ $labelClass }}">Disediakan Oleh</label>
-                    <input id="disediakan_oleh" name="disediakan_oleh" value="{{ $isEditing ? $draft->disediakan_oleh : auth()->user()?->name }}" maxlength="255" class="{{ $inputClass }}">
+    <x-common.document-card title="Kepada: Pelanggan">
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            @foreach (['customer_name' => 'Nama Pelanggan', 'company_name' => 'Nama Syarikat', 'phone_no' => 'Nombor Telefon', 'email' => 'E-mel', 'address' => 'Alamat Pelanggan'] as $field => $label)
+                <div @class(['sm:col-span-2' => $field === 'address'])>
+                    <label for="recipient_{{ $field }}" class="{{ $labelClass }}">{{ __($label) }}</label>
+                    @if ($field === 'address')
+                        <textarea id="recipient_{{ $field }}" name="{{ $field }}" rows="3" x-model="recipient.{{ $field }}" class="{{ $inputClass }}"></textarea>
+                    @else
+                        <input id="recipient_{{ $field }}" name="{{ $field }}" type="{{ $field === 'email' ? 'email' : ($field === 'phone_no' ? 'tel' : 'text') }}" x-model="recipient.{{ $field }}" class="{{ $inputClass }}">
+                    @endif
                 </div>
-                <div>
-                    <label for="diterima_oleh" class="{{ $labelClass }}">Diterima Oleh</label>
-                    <input id="diterima_oleh" name="diterima_oleh" value="{{ $isEditing ? $draft->diterima_oleh : '' }}" maxlength="255" class="{{ $inputClass }}">
-                </div>
-            </div>
-            <div>
-                <label for="terma_syarat" class="{{ $labelClass }}">Terma dan Syarat</label>
-                <textarea id="terma_syarat" name="terma_syarat" rows="5" placeholder="Masukkan terma dan syarat jika ada" class="{{ $inputClass }} h-auto">{{ $isEditing ? $draft->terma_syarat : '' }}</textarea>
-            </div>
-        </x-common.document-card>
-        <x-common.document-card title="Maklumat Tambahan">
-            <div>
-                <label for="maklumat_tambahan" class="{{ $labelClass }}">Maklumat Tambahan</label>
-                <textarea id="maklumat_tambahan" name="maklumat_tambahan" rows="5" class="{{ $inputClass }} h-auto" placeholder="Masukkan maklumat tambahan jika ada">{{ old('maklumat_tambahan', $isEditing ? ($draft->maklumat_tambahan ?? '') : '') }}</textarea>
-            </div>
-            <div>
-                <label for="catatan" class="{{ $labelClass }}">Catatan</label>
-                <textarea id="catatan" name="catatan" rows="3" class="{{ $inputClass }} h-auto" placeholder="Masukkan catatan atau arahan khas">{{ old('catatan', $isEditing ? ($draft->catatan ?? '') : '') }}</textarea>
-            </div>
-        </x-common.document-card>
-    </div>
-
+            @endforeach
+        </div>
+    </x-common.document-card>
     <x-common.document-card title="Item Sebut Harga">
         <div class="overflow-x-auto">
             <table class="w-full min-w-[900px] text-start text-theme-sm text-gray-700 dark:text-gray-300">
@@ -192,24 +170,65 @@
         </div>
     </x-common.document-card>
 
+    @php($periods = App\Helpers\QuotationTerms::periods($isEditing ? $draft->terma_syarat : null))
+    <x-common.document-card :title="__('Terma dan Syarat')" x-data="{ periods: {{ Illuminate\Support\Js::from(collect($periods)->mapWithKeys(fn ($value, $key) => [$key => old($key, $value)])) }} }">
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
+            @foreach (['validity_days' => 'Tempoh Sah (Hari)', 'delivery_min_days' => 'Penghantaran Minimum (Hari)', 'delivery_max_days' => 'Penghantaran Maksimum (Hari)'] as $field => $label)
+                <div>
+                    <label for="{{ $field }}" class="{{ $labelClass }}">{{ __($label) }}</label>
+                    <input id="{{ $field }}" name="{{ $field }}" x-model="periods.{{ $field }}" type="number" min="1" max="3650" required value="{{ old($field, $periods[$field]) }}" class="{{ $inputClass }}">
+                </div>
+            @endforeach
+        </div>
+        <p class="text-sm text-gray-600 dark:text-gray-300">{{ __('Tempoh sah dikira dari Tarikh Sebut Harga. Tempoh penghantaran dikira selepas penerimaan PO rasmi.') }}</p>
+        <div class="space-y-2 text-sm leading-6 text-gray-700 dark:text-gray-300">
+            <p>1. Tempoh sah sebutharga adalah selama <span class="font-semibold" x-text="periods.validity_days || '—'"></span> hari dari tarikh sebutharga dikeluarkan.</p>
+            <p>2. Tempoh penghantaran: <span class="font-semibold" x-text="periods.delivery_min_days || '—'"></span> - <span class="font-semibold" x-text="periods.delivery_max_days || '—'"></span> hari selepas penerimaan Pesanan Belian (PO) rasmi.</p>
+            <p>3. {{ __('Sila tandatangan di bawah untuk pengesahan persetujuan sebutharga ini.') }}</p>
+        </div>
+        <div>
+            <label for="additional_terms" class="{{ $labelClass }}">{{ __('Terma Tambahan') }}</label>
+            <textarea id="additional_terms" name="additional_terms" rows="4" maxlength="10000" class="{{ $inputClass }}">{{ old('additional_terms', $document['additional_terms'] ?? '') }}</textarea>
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('Satu terma setiap baris. Nombor bermula daripada 4 dijana secara automatik dalam PDF.') }}</p>
+        </div>
+    </x-common.document-card>
     <x-common.document-card title="Pengesahan Sebut Harga">
-        <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <div>
-                <label class="{{ $labelClass }}">Disediakan Oleh</label>
-                <input id="disediakan_oleh_confirmation" name="disediakan_oleh" value="{{ old('disediakan_oleh', $isEditing ? ($draft->disediakan_oleh ?? '') : '') }}" class="{{ $inputClass }}">
-                <label class="{{ $labelClass }} mt-4">Jawatan / Unit Penyedia</label>
-                <input id="disediakan_role" name="disediakan_role" value="{{ old('disediakan_role', $isEditing ? ($draft->disediakan_role ?? '') : '') }}" class="{{ $inputClass }}">
-                <div class="mt-10 border-t border-dashed border-gray-400 pt-2 text-sm text-gray-500 dark:border-gray-600">Ruang Tandatangan</div>
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div class="flex flex-col rounded-xl border border-gray-200 bg-gray-50/50 p-5 dark:border-gray-700 dark:bg-gray-800/30 sm:p-6">
+                <div class="space-y-5">
+                    <div>
+                        <label for="disediakan_oleh_confirmation" class="{{ $labelClass }}">{{ __('Disediakan Oleh') }}</label>
+                        <input id="disediakan_oleh_confirmation" name="disediakan_oleh" value="{{ old('disediakan_oleh', $isEditing ? ($draft->disediakan_oleh ?? '') : '') }}" class="{{ $inputClass }}">
+                    </div>
+                    <div>
+                        <label for="disediakan_role" class="{{ $labelClass }}">{{ __('Jawatan / Unit Penyedia') }}</label>
+                        <input id="disediakan_role" name="disediakan_role" value="{{ old('disediakan_role', $document['disediakan_role'] ?? ($draft->disediakan_role ?? '')) }}" class="{{ $inputClass }}">
+                    </div>
+                </div>
+                <div class="h-16" aria-hidden="true"></div>
+                <div class="min-h-16 border-t border-dashed border-gray-400 pt-3 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">{{ __('Ruang Tandatangan') }}</div>
             </div>
-            <div>
-                <label class="{{ $labelClass }}">Diterima / Disahkan Oleh</label>
-                <input id="diterima_oleh_confirmation" name="diterima_oleh" value="{{ old('diterima_oleh', $isEditing ? ($draft->diterima_oleh ?? '') : '') }}" class="{{ $inputClass }}">
-                <label class="{{ $labelClass }} mt-4">Jawatan Penerima</label>
-                <input id="diterima_role" name="diterima_role" value="{{ old('diterima_role', $isEditing ? ($draft->diterima_role ?? '') : '') }}" class="{{ $inputClass }}">
-                <div class="mt-10 border-t border-dashed border-gray-400 pt-2 text-sm text-gray-500 dark:border-gray-600">Ruang Tandatangan &amp; Cop</div>
+            <div class="flex min-h-80 flex-col rounded-xl border border-gray-200 bg-gray-50/50 p-5 dark:border-gray-700 dark:bg-gray-800/30 sm:p-6">
+                <p class="text-sm font-medium text-gray-700 dark:text-gray-400">{{ __('Diterima / Disahkan Oleh') }}</p>
+                <div class="min-h-40 flex-1" aria-hidden="true"></div>
+                <div class="mx-auto min-h-16 w-full max-w-xs border-t border-dotted border-gray-400 pt-3 text-center text-sm leading-6 dark:border-gray-600">
+                    <p class="font-semibold text-gray-800 dark:text-gray-200">{{ __('Tandatangan & Cop') }}</p>
+                    <p class="text-gray-500 dark:text-gray-400">{{ __('Tarikh') }}</p>
+                </div>
             </div>
         </div>
     </x-common.document-card>
+
+        <x-common.document-card title="Maklumat Tambahan">
+            <div>
+                <label for="maklumat_tambahan" class="{{ $labelClass }}">Maklumat Tambahan</label>
+                <textarea id="maklumat_tambahan" name="maklumat_tambahan" rows="5" class="{{ $inputClass }} h-auto" placeholder="Masukkan maklumat tambahan jika ada">{{ old('maklumat_tambahan', $document['maklumat_tambahan'] ?? ($draft->maklumat_tambahan ?? '')) }}</textarea>
+            </div>
+            <div>
+                <label for="catatan" class="{{ $labelClass }}">Catatan</label>
+                <textarea id="catatan" name="catatan" rows="3" class="{{ $inputClass }} h-auto" placeholder="Masukkan catatan atau arahan khas">{{ old('catatan', $document['catatan'] ?? ($draft->catatan ?? '')) }}</textarea>
+            </div>
+        </x-common.document-card>
 
     <div class="flex flex-wrap items-center justify-end gap-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-gray-900">
         <a href="{{ route('sebut-harga') }}" class="rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">Kembali ke Senarai</a>

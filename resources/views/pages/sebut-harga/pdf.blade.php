@@ -1,3 +1,14 @@
+@php
+    $document = App\Helpers\QuotationDocument::data($detail);
+    $quotation = clone $quotation;
+    $detail = clone $detail;
+    foreach (['customer_name', 'company_name', 'phone_no', 'email', 'address'] as $field) {
+        if (array_key_exists($field, $document)) $quotation->$field = $document[$field];
+    }
+    foreach (['disediakan_role', 'diterima_role'] as $field) {
+        if (array_key_exists($field, $document)) $detail->$field = $document[$field];
+    }
+@endphp
 <!doctype html>
 <html lang="ms">
 <head>
@@ -42,9 +53,17 @@ table { width: 100%; border-collapse: collapse; }
 <body>
 <table class="header"><tr>
 <td>
-<div class="company">{{ config('purchase_order.issuer_name') }}</div>
-<div class="contact address">{{ config('purchase_order.issuer_address') }}</div>
-<div class="contact">No. Tel: {{ config('purchase_order.issuer_phone') }} | E-mel: {{ config('purchase_order.issuer_email') }}</div>
+<div class="company">{{ (array_key_exists('issuer_name', $document) ? $document['issuer_name'] : config('purchase_order.issuer_name')) }}</div>
+<div class="contact address">{{ (array_key_exists('issuer_address', $document) ? $document['issuer_address'] : config('purchase_order.issuer_address')) }}</div>
+@php
+    $issuerPhone = array_key_exists('issuer_phone', $document) ? $document['issuer_phone'] : config('purchase_order.issuer_phone');
+    $issuerEmail = array_key_exists('issuer_email', $document) ? $document['issuer_email'] : config('purchase_order.issuer_email');
+@endphp
+<div class="contact">
+    @if ($issuerPhone)No. Tel: {{ $issuerPhone }}@endif
+    @if ($issuerPhone && $issuerEmail) | @endif
+    @if ($issuerEmail)E-mel: {{ $issuerEmail }}@endif
+</div>
 </td>
 <td class="document-meta"><div class="document-title">SEBUTHARGA</div>
 <strong>No: {{ $quotation->quotation_no }}</strong>
@@ -54,6 +73,8 @@ table { width: 100%; border-collapse: collapse; }
 <div class="recipient"><strong>Kepada:</strong><br>
 <span>{{ $quotation->customer_name ?: $quotation->company_name }}</span>@if ($quotation->customer_name && $quotation->company_name && $quotation->customer_name !== $quotation->company_name)<br><span>{{ $quotation->company_name }}</span>@endif
 <div class="address">{{ $quotation->address ?? '' }}</div>
+@if (!empty($quotation->phone_no))<div>No. Tel: {{ $quotation->phone_no }}</div>@endif
+@if (!empty($quotation->email))<div>E-mel: {{ $quotation->email }}</div>@endif
 </div>
 <table class="items">
 <thead><tr><th class="bil">BIL</th><th class="description">KETERANGAN / DESCRIPTION</th><th class="quantity">KUANTITI</th><th class="unit">UNIT</th><th class="price">HARGA<br>SEUNIT<br>(RM)</th><th class="amount">JUMLAH<br>(RM)</th></tr></thead>
@@ -71,5 +92,5 @@ table { width: 100%; border-collapse: collapse; }
 <table class="signatures"><tr><td>Disediakan oleh,</td><td class="signature-right">Diterima / Disahkan oleh,</td></tr>
 <tr><td class="signature-space"></td><td></td></tr>
 <tr><td><div class="signature-block">@if ($detail->disediakan_oleh){{ $detail->disediakan_oleh }}<br>@endif @if (property_exists($detail, 'disediakan_role') && $detail->disediakan_role){{ $detail->disediakan_role }}<br>@endif</div></td>
-<td class="signature-right"><div class="signature-block">@if ($detail->diterima_oleh){{ $detail->diterima_oleh }}<br>@endif @if (property_exists($detail, 'diterima_role') && $detail->diterima_role){{ $detail->diterima_role }}<br>@endif</div></td></tr></table>
+<td class="signature-right"><div class="signature-block">Tandatangan &amp; Cop<br>Tarikh</div></td></tr></table>
 </body></html>
