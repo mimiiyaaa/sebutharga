@@ -235,7 +235,7 @@
         </x-common.document-card>
 
     <div class="flex flex-wrap items-center justify-end gap-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-gray-900">
-        <a href="{{ route('sebut-harga') }}" class="rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">Kembali ke Senarai</a>
+        <a @if ($isEditing) href="#" @click.prevent="editing = false" @else href="{{ route('sebut-harga') }}" @endif class="rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">{{ __($isEditing ? 'Batal Kemaskini' : 'Kembali ke Senarai Draf') }}</a>
         @if (! $submitAtTop)
             <button type="submit" class="rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white hover:bg-brand-600 dark:bg-brand-500 dark:hover:bg-brand-600">{{ $isEditing ? 'Kemaskini' : 'Simpan Sebut Harga' }}</button>
         @endif

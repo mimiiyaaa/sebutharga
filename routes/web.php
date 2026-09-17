@@ -660,6 +660,9 @@ Route::patch('/sebut-harga/{id}/draft/{draftId}', function (\Illuminate\Http\Req
     return redirect()->route('sebut-harga')->with('success', 'Nama draft berjaya dikemaskini.');
 })->middleware('auth')->name('sebut-harga.draft.update');
 
+Route::get('/sebut-harga-final', [\App\Http\Controllers\FinalQuotationController::class, 'index'])->middleware('auth')->name('sebut-harga.final');
+Route::post('/sebut-harga/{id}/draft/{draftId}/undo', [\App\Http\Controllers\FinalQuotationController::class, 'undo'])->middleware('auth')->name('sebut-harga.draft.undo');
+
 Route::post('/sebut-harga/{id}/draft/{draftId}/approve', function ($id, $draftId) {
     $draft = DB::table('sebutharga_detail')
         ->where('quotation_detail_id', $draftId)
@@ -690,7 +693,7 @@ Route::post('/sebut-harga/{id}/draft/{draftId}/approve', function ($id, $draftId
             ]);
     });
 
-    return redirect()->route('sebut-harga')->with('success', 'Draf berjaya dimuktamadkan.');
+    return redirect()->route('sebut-harga.final')->with('success', 'Draf berjaya dimuktamadkan.');
 })->middleware('auth')->name('sebut-harga.draft.approve');
 
 Route::post('/sebut-harga/{id}/draft/{draftId}/reject', function ($id, $draftId) {

@@ -3,14 +3,14 @@
 @section('content')
 
     <x-common.document-workspace :title="__('Maklumat Sebut Harga')" :subtitle="$quotation->quotation_no" :reference="__('Draf') . ' ' . $draft->draft_no">
-    <a href="{{ route('sebut-harga') }}" class="mb-5 inline-flex rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">{{ __('Kembali ke Senarai') }}</a>
+    <a href="{{ route(request('from') === 'final' ? 'sebut-harga.final' : 'sebut-harga') }}" class="mb-5 inline-flex rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">{{ __(request('from') === 'final' ? 'Kembali ke Final Sebut Harga' : 'Kembali ke Senarai Draf') }}</a>
     <div x-data="{ editing: false, editMode: 'existing' }">
         <div x-show="!editing" x-cloak class="mb-6 shadow-theme-xs rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="flex items-center justify-between border-b border-gray-100 px-6 py-5 dark:border-gray-800">
                 <div class="flex w-full flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                     <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Maklumat Sebut Harga</h3>
                     <div class="flex flex-wrap items-center gap-3">
-                        <a href="{{ route('sebut-harga.preview', [$quotation->quotation_id, 'draft' => $draft->quotation_detail_id]) }}" class="rounded-lg border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 dark:border-gray-700 dark:text-gray-300">{{ __('Pratonton Dokumen') }}</a>
+                        <a href="{{ route('sebut-harga.preview', [$quotation->quotation_id, 'draft' => $draft->quotation_detail_id, 'from' => request('from') === 'final' ? 'final' : 'draft', 'via' => 'detail']) }}" class="rounded-lg border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 dark:border-gray-700 dark:text-gray-300">{{ __('Pratonton Dokumen') }}</a>
                         @if ($draft->status_draft !== 'Final')
                             <button type="button" @click="editMode = 'existing'; editing = true" class="rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white hover:bg-brand-600">Edit</button>
                             <button type="button" @click="editMode = 'new'; editing = true" class="rounded-lg border border-brand-300 px-4 py-3 text-sm font-medium text-brand-600 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10">Draf Baharu</button>
@@ -19,7 +19,10 @@
                                 <button type="submit" class="rounded-lg bg-success-600 px-4 py-3 text-sm font-medium text-white hover:bg-success-700">{{ __('Muktamadkan Draf') }}</button>
                             </form>
                         @else
-                            <span class="rounded-lg bg-success-50 px-4 py-3 text-sm font-medium text-success-700 dark:bg-success-500/15 dark:text-success-400">{{ __('Draf Dimuktamadkan') }}</span>
+                            <form method="POST" action="{{ route('sebut-harga.draft.undo', [$quotation->quotation_id, $draft->quotation_detail_id]) }}">
+                                @csrf
+                                <button class="rounded-lg bg-success-50 px-4 py-3 text-sm font-medium text-success-700 hover:bg-success-100 dark:bg-success-500/15 dark:text-success-400">{{ __('Draf Dimuktamadkan') }} — {{ __('Batalkan Muktamad') }}</button>
+                            </form>
                         @endif
                     </div>
                 </div>
