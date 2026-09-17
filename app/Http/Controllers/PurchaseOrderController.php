@@ -27,9 +27,8 @@ class PurchaseOrderController extends Controller
 
     public function selectQuotation()
     {
-        $quotations = $this->finalQuotations()->get()->unique('customer_id')->values();
+        $quotations = $this->finalQuotations()->get();
         return view('pages.purchase-order.select-quotation', [
-            'customers' => $quotations->sortBy('company_name')->values(),
             'quotations' => $quotations,
         ]);
     }
@@ -37,11 +36,11 @@ class PurchaseOrderController extends Controller
     public function create(Request $request)
     {
         $validated = $request->validate([
-            'customer_id' => ['required', 'integer', Rule::exists('customer_supplier', 'customer_id')->where('jenis_customer', 1)],
+            'quotation_detail_id' => ['required', 'integer'],
         ]);
-        $quotation = $this->finalQuotations()->where('master.customer_id', $validated['customer_id'])->first();
+        $quotation = $this->finalQuotations()->where('detail.quotation_detail_id', $validated['quotation_detail_id'])->first();
         if (!$quotation) {
-            return redirect()->route('purchase-order.create')->withErrors(['customer_id' => __('Tiada sebut harga Final yang dipersetujui untuk pelanggan ini.')]);
+            return redirect()->route('purchase-order.create')->withErrors(['quotation_detail_id' => __('Sila pilih sebut harga Final yang dipersetujui.')]);
         }
 
         return view('pages.purchase-order.create', [
