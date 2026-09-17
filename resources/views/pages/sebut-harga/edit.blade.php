@@ -2,9 +2,9 @@
 
 @section('content')
 
-    <x-common.document-workspace :title="__('Maklumat Sebut Harga')" :subtitle="$quotation->quotation_no" :reference="__('Draf') . ' ' . $draft->draft_no">
+    <x-common.document-workspace :title="__('Maklumat Sebut Harga')" :subtitle="$quotation->quotation_no" :reference="($draft->status_draft === 'Final' ? __('Versi') . ' ' . ($draft->final_no ?? $draft->draft_no) : __('Draf') . ' ' . $draft->draft_no)">
     <a href="{{ route(request('from') === 'final' ? 'sebut-harga.final' : 'sebut-harga') }}" class="mb-5 inline-flex rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">{{ __(request('from') === 'final' ? 'Kembali ke Final Sebut Harga' : 'Kembali ke Senarai Draf') }}</a>
-    <div x-data="{ editing: false, editMode: 'existing' }">
+    <div x-data="{ editing: {{ request('edit') ? 'true' : 'false' }}, editMode: 'existing' }">
         <div x-show="!editing" x-cloak class="mb-6 shadow-theme-xs rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="flex items-center justify-between border-b border-gray-100 px-6 py-5 dark:border-gray-800">
                 <div class="flex w-full flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -19,10 +19,12 @@
                                 <button type="submit" class="rounded-lg bg-success-600 px-4 py-3 text-sm font-medium text-white hover:bg-success-700">{{ __('Muktamadkan Draf') }}</button>
                             </form>
                         @else
-                            <form method="POST" action="{{ route('sebut-harga.draft.undo', [$quotation->quotation_id, $draft->quotation_detail_id]) }}">
+                            <button type="button" @click="editMode = 'existing'; editing = true" class="rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white hover:bg-brand-600">{{ __('Edit') }}</button>
+                            <form method="POST" action="{{ route('sebut-harga.final.new', [$quotation->quotation_id, $draft->quotation_detail_id]) }}">
                                 @csrf
-                                <button class="rounded-lg bg-success-50 px-4 py-3 text-sm font-medium text-success-700 hover:bg-success-100 dark:bg-success-500/15 dark:text-success-400">{{ __('Draf Dimuktamadkan') }} — {{ __('Batalkan Muktamad') }}</button>
+                                <button type="submit" class="rounded-lg border border-brand-300 px-4 py-3 text-sm font-medium text-brand-600 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10">{{ __('Final Baharu') }}</button>
                             </form>
+                            <span class="rounded-lg bg-success-50 px-4 py-3 text-sm font-medium text-success-700 dark:bg-success-500/15 dark:text-success-400">{{ __('Final') }} {{ $draft->final_no ?? $draft->draft_no }}</span>
                         @endif
                     </div>
                 </div>
@@ -31,7 +33,7 @@
                 <div><p class="text-sm text-gray-500 dark:text-gray-400">No. Sebut Harga</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $quotation->quotation_no }}</p></div>
                 <div><p class="text-sm text-gray-500 dark:text-gray-400">Tarikh</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $quotation->quotation_date }}</p></div>
                 <div><p class="text-sm text-gray-500 dark:text-gray-400">Pelanggan / Syarikat</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $quotation->company_name ?: $quotation->customer_name }}</p></div>
-                <div><p class="text-sm text-gray-500 dark:text-gray-400">Draf</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">Draf {{ $draft->draft_no }}</p></div>
+                <div><p class="text-sm text-gray-500 dark:text-gray-400">{{ $draft->status_draft === 'Final' ? __('Versi') : __('Draf') }}</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $draft->status_draft === 'Final' ? __('Versi') . ' ' . ($draft->final_no ?? $draft->draft_no) : __('Draf') . ' ' . $draft->draft_no }}</p></div>
                 <div><p class="text-sm text-gray-500 dark:text-gray-400">Kemaskini Terakhir</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $draft->updated_at ? \Carbon\Carbon::parse($draft->updated_at)->format('d/m/Y H:i') : '-' }}</p></div>
             </div>
             <div class="border-t border-gray-100 px-6 py-5 dark:border-gray-800"><p class="text-sm text-gray-500 dark:text-gray-400">Tajuk</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $quotation->quotation_title ?: '-' }}</p></div>

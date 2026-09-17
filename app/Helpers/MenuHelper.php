@@ -49,6 +49,11 @@ class MenuHelper
                 'path' => '/invoice',
             ],
             [
+                'icon' => 'user-profile',
+                'name' => 'Syarikat',
+                'path' => '/syarikat',
+            ],
+            [
                 'icon' => 'calendar',
                 'name' => 'Calendar',
                 'path' => '/calendar',

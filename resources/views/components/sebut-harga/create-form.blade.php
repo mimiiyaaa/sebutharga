@@ -92,7 +92,7 @@
             </div>
             <div>
                 <label for="customer_id" class="{{ $labelClass }}">Pilih Pelanggan</label>
-                <select id="customer_id" name="customer_id" x-model="customerId" required class="{{ $inputClass }}" @change="recipient = { customer_name: selectedCustomer?.customer_name || '', company_name: selectedCustomer?.company_name || '', phone_no: selectedCustomer?.phone_no || '', email: selectedCustomer?.email || '', address: selectedCustomer?.address || '' }; customerName = $event.target.selectedOptions[0]?.dataset.name || ''; customerCompany = $event.target.selectedOptions[0]?.dataset.company || ''; $refs.customerReference.value = $event.target.selectedOptions[0]?.dataset.code || ''">
+                <select id="customer_id" name="customer_id" x-model="customerId" required class="{{ $inputClass }}" @change="recipient = { customer_name: selectedCustomer?.customer_name || '', company_name: selectedCustomer?.company_name || '', phone_no: selectedCustomer?.phone_no || '', email: selectedCustomer?.email || '', address: selectedCustomer?.address || '' }; customerName = $event.target.selectedOptions[0]?.dataset.name || ''; customerCompany = $event.target.selectedOptions[0]?.dataset.company || ''">
                     <option value="">Pilih pelanggan</option>
                     @foreach ($customers as $customer)
                         <option value="{{ $customer->customer_id }}" data-code="{{ $customer->customer_code }}" data-name="{{ $customer->customer_name }}" data-company="{{ $customer->company_name }}" @selected($isEditing && $quotation->customer_id == $customer->customer_id)>
@@ -107,20 +107,6 @@
             <div>
                 <label for="quotation_title" class="{{ $labelClass }}">Tajuk Sebut Harga</label>
                 <input id="quotation_title" name="quotation_title" value="{{ $isEditing ? $quotation->quotation_title : '' }}" maxlength="255" placeholder="Contoh: Pembekalan peralatan pejabat" class="{{ $inputClass }}">
-            </div>
-            <div>
-                <label for="no_rujukan_pelanggan" class="{{ $labelClass }}">No. Rujukan Pelanggan</label>
-                <input id="no_rujukan_pelanggan" name="no_rujukan_pelanggan" x-ref="customerReference" readonly value="{{ $isEditing ? ($quotation->no_rujukan_pelanggan ?: $customers->firstWhere('customer_id', $quotation->customer_id)?->customer_code) : '' }}" maxlength="100" placeholder="Dijana automatik berdasarkan pelanggan" class="{{ $inputClass }} bg-gray-100 dark:bg-gray-800">
-            </div>
-            <div>
-                @unless ($isEditing)
-                <label for="status_quotation" class="{{ $labelClass }}">Keputusan Sebut Harga</label>
-                <select id="status_quotation" name="status_quotation" class="{{ $inputClass }}">
-                    <option value="">Menunggu Keputusan</option>
-                    <option value="1" @selected($isEditing && (int) ($quotation->status_quotation ?? 0) === 1)>Setuju</option>
-                    <option value="0" @selected($isEditing && $quotation->status_quotation !== null && (int) $quotation->status_quotation === 0)>Tidak Setuju</option>
-                </select>
-                @endunless
             </div>
         </x-common.document-card>
 

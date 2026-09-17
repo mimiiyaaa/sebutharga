@@ -221,6 +221,18 @@ Route::get('/invoice', function () {
     return view('pages.invoice', ['title' => 'Invoice']);
 })->name('invoice');
 
+Route::get('/syarikat', function () {
+    $companies = DB::table('sebutharga_master')
+        ->select('nama_syarikat', 'no_telefon', 'emel', 'person_in_charge')
+        ->whereNotNull('nama_syarikat')
+        ->where('nama_syarikat', '<>', '')
+        ->distinct()
+        ->orderBy('nama_syarikat')
+        ->get();
+
+    return view('pages.syarikat', ['title' => 'Syarikat', 'companies' => $companies]);
+})->middleware('auth')->name('syarikat');
+
 Route::post('/signin', [AuthController::class, 'login'])
     ->name('signin.store');
 
@@ -297,6 +309,10 @@ Route::post('/sebut-harga', function (\Illuminate\Http\Request $request) {
             'customer_id' => $validated['customer_id'],
             'quotation_date' => $validated['quotation_date'],
             'quotation_title' => $validated['quotation_title'] ?? null,
+            'nama_syarikat' => $request->input('issuer_name'),
+            'no_telefon' => $request->input('issuer_phone'),
+            'emel' => $request->input('issuer_email'),
+            'person_in_charge' => $validated['disediakan_oleh'] ?? null,
             'no_rujukan_pelanggan' => $customerReference,
             'status_quotation' => $validated['status_quotation'] ?? null,
             'created_by' => $userId,
@@ -381,11 +397,15 @@ Route::post('/sebut-harga/{id}/draft', function (\Illuminate\Http\Request $reque
         if (! empty($validated['update_draft_id'])) {
             $draftId = (int) $validated['update_draft_id'];
             $draft = DB::table('sebutharga_detail')->where('quotation_detail_id', $draftId)->where('quotation_id', $id)->lockForUpdate()->first();
-            abort_unless($draft && $draft->status_draft !== 'Final', 422, 'Draf ini tidak boleh dikemaskini.');
+            abort_unless($draft, 404, 'Rekod sebut harga tidak ditemui.');
 
             DB::table('sebutharga_master')->where('quotation_id', $id)->update([
                 'customer_id' => $validated['customer_id'],
                 'quotation_title' => $validated['quotation_title'] ?? null,
+                'nama_syarikat' => $request->input('issuer_name'),
+                'no_telefon' => $request->input('issuer_phone'),
+                'emel' => $request->input('issuer_email'),
+                'person_in_charge' => $validated['disediakan_oleh'] ?? null,
                 'no_rujukan_pelanggan' => $customerReference,
                 'updated_by' => $userId,
                 'updated_at' => now(),
@@ -424,6 +444,10 @@ Route::post('/sebut-harga/{id}/draft', function (\Illuminate\Http\Request $reque
             'customer_id' => $validated['customer_id'],
             'quotation_date' => $validated['quotation_date'],
             'quotation_title' => $validated['quotation_title'] ?? null,
+            'nama_syarikat' => $request->input('issuer_name'),
+            'no_telefon' => $request->input('issuer_phone'),
+            'emel' => $request->input('issuer_email'),
+            'person_in_charge' => $validated['disediakan_oleh'] ?? null,
             'no_rujukan_pelanggan' => $customerReference,
             'status_quotation' => $validated['status_quotation'] ?? null,
             'updated_by' => $userId,
@@ -470,7 +494,10 @@ Route::post('/sebut-harga/{id}/draft', function (\Illuminate\Http\Request $reque
         }
     });
 
-    return redirect()->route('sebut-harga')->with('success', $request->filled('update_draft_id') ? 'Draf berjaya dikemaskini.' : 'Draft baru berjaya disimpan.');
+    $isFinalUpdate = $request->filled('update_draft_id')
+        && DB::table('sebutharga_detail')->where('quotation_detail_id', $request->input('update_draft_id'))->value('status_draft') === 'Final';
+    return redirect()->route($isFinalUpdate ? 'sebut-harga.final' : 'sebut-harga')
+        ->with('success', $request->filled('update_draft_id') ? ($isFinalUpdate ? 'Versi Final berjaya dikemaskini.' : 'Draf berjaya dikemaskini.') : 'Draft baru berjaya disimpan.');
 })->middleware('auth')->name('sebut-harga.draft.store');
 
 Route::get('/sebut-harga/{id}/edit', function ($id) {
@@ -661,6 +688,7 @@ Route::patch('/sebut-harga/{id}/draft/{draftId}', function (\Illuminate\Http\Req
 })->middleware('auth')->name('sebut-harga.draft.update');
 
 Route::get('/sebut-harga-final', [\App\Http\Controllers\FinalQuotationController::class, 'index'])->middleware('auth')->name('sebut-harga.final');
+Route::post('/sebut-harga-final/{id}/{draftId}/new', [\App\Http\Controllers\FinalQuotationController::class, 'newVersion'])->whereNumber(['id', 'draftId'])->middleware('auth')->name('sebut-harga.final.new');
 Route::post('/sebut-harga/{id}/draft/{draftId}/undo', [\App\Http\Controllers\FinalQuotationController::class, 'undo'])->middleware('auth')->name('sebut-harga.draft.undo');
 
 Route::post('/sebut-harga/{id}/draft/{draftId}/approve', function ($id, $draftId) {
@@ -676,13 +704,17 @@ Route::post('/sebut-harga/{id}/draft/{draftId}/approve', function ($id, $draftId
         // Finalising a draft confirms it as the active quotation decision.
         // Older drafts may have a null decision; treat the final action as approved.
         $decision = $draft->status_quotation ?? $master?->status_quotation ?? 1;
+        $finalNo = ((int) DB::table('sebutharga_detail')
+            ->where('quotation_id', $id)
+            ->whereRaw('LOWER(TRIM(status_draft)) = ?', ['final'])
+            ->max('final_no')) + 1;
         DB::table('sebutharga_detail')
             ->where('quotation_id', $id)
             ->update(['status_draft' => 'Draf', 'updated_at' => now()]);
 
         DB::table('sebutharga_detail')
             ->where('quotation_detail_id', $draftId)
-            ->update(['status_draft' => 'Final', 'status_quotation' => $decision, 'updated_at' => now()]);
+            ->update(['status_draft' => 'Final', 'final_no' => $finalNo, 'status_quotation' => $decision, 'updated_at' => now()]);
 
         DB::table('sebutharga_master')
             ->where('quotation_id', $id)

@@ -11,22 +11,24 @@
                 @endforeach
             </tr></thead>
             <tbody>
-                @forelse ($drafts as $draft)
+                @forelse ($finals as $draft)
                     @php($document = App\Helpers\QuotationDocument::data($draft))
                     <tr class="border-b border-gray-100 dark:border-gray-700">
                         <td class="whitespace-nowrap px-4 py-4 font-medium">{{ $draft->quotation_no }}</td>
                         <td class="px-4 py-4">{{ $document['company_name'] ?? $draft->company_name }}</td>
-                        <td class="whitespace-nowrap px-4 py-4">{{ __('Draf') }} {{ $draft->draft_no }}</td>
+                        <td class="whitespace-nowrap px-4 py-4">
+                            <select aria-label="{{ __('Versi Final') }}" onchange="window.location.href='{{ url('/sebut-harga') }}/{{ $draft->quotation_id }}/edit?draft=' + this.value + '&from=final'" class="h-10 min-w-32 rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                                @foreach ($draft->final_versions as $version)
+                                    <option value="{{ $version->quotation_detail_id }}" @selected($version->quotation_detail_id === $draft->quotation_detail_id)>{{ __('Versi') }} {{ $version->final_no ?? $version->draft_no }}</option>
+                                @endforeach
+                            </select>
+                        </td>
                         <td class="px-4 py-4">{{ $draft->quotation_title }}</td>
                         <td class="whitespace-nowrap px-4 py-4">{{ $draft->quotation_date }}</td>
                         <td class="whitespace-nowrap px-4 py-4 tabular-nums">{{ number_format($draft->jumlah_total, 2) }}</td>
                         <td class="px-4 py-4"><div class="flex items-center gap-2 whitespace-nowrap">
                             <a href="{{ route('sebut-harga.edit', [$draft->quotation_id, 'draft'=>$draft->quotation_detail_id, 'from'=>'final']) }}" class="rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600">{{ __('Lihat') }}</a>
                             <a href="{{ route('sebut-harga.preview', [$draft->quotation_id, 'draft'=>$draft->quotation_detail_id, 'from'=>'final']) }}" class="rounded-lg border border-brand-200 px-3 py-2 text-brand-600 dark:border-brand-700 dark:text-brand-400">{{ __('Pratonton Dokumen') }}</a>
-                            <form method="POST" action="{{ route('sebut-harga.draft.undo', [$draft->quotation_id, $draft->quotation_detail_id]) }}">
-                                @csrf
-                                <button class="rounded-lg border border-warning-200 px-3 py-2 text-warning-700 dark:border-warning-700 dark:text-warning-400">{{ __('Batalkan Muktamad') }}</button>
-                            </form>
                         </div></td>
                     </tr>
                 @empty
@@ -35,6 +37,5 @@
             </tbody>
         </table>
     </div>
-    {{ $drafts->links() }}
 </x-common.document-card>
 @endsection
