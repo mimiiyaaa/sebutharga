@@ -4,15 +4,16 @@
 
     <x-common.document-workspace :title="__('Maklumat Sebut Harga')" :subtitle="$quotation->quotation_no" :reference="__('Draf') . ' ' . $draft->draft_no">
     <a href="{{ route('sebut-harga') }}" class="mb-5 inline-flex rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">{{ __('Kembali ke Senarai') }}</a>
-    <div x-data="{ editing: false }">
+    <div x-data="{ editing: false, editMode: 'existing' }">
         <div x-show="!editing" x-cloak class="mb-6 shadow-theme-xs rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="flex items-center justify-between border-b border-gray-100 px-6 py-5 dark:border-gray-800">
                 <div class="flex w-full flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                     <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Maklumat Sebut Harga</h3>
                     <div class="flex flex-wrap items-center gap-3">
                         <a href="{{ route('sebut-harga.preview', [$quotation->quotation_id, 'draft' => $draft->quotation_detail_id]) }}" class="rounded-lg border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 dark:border-gray-700 dark:text-gray-300">{{ __('Pratonton Dokumen') }}</a>
-                        <button type="button" @click="editing = true"  class="rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white hover:bg-brand-600">Kemaskini</button>
                         @if ($draft->status_draft !== 'Final')
+                            <button type="button" @click="editMode = 'existing'; editing = true" class="rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white hover:bg-brand-600">Edit</button>
+                            <button type="button" @click="editMode = 'new'; editing = true" class="rounded-lg border border-brand-300 px-4 py-3 text-sm font-medium text-brand-600 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10">Draf Baharu</button>
                             <form method="POST" action="{{ route('sebut-harga.draft.approve', [$quotation->quotation_id, $draft->quotation_detail_id]) }}" onsubmit="return confirm('Muktamadkan draf ini? Draf lain akan kekal sebagai draf.')">
                                 @csrf
                                 <button type="submit" class="rounded-lg bg-success-600 px-4 py-3 text-sm font-medium text-white hover:bg-success-700">{{ __('Muktamadkan Draf') }}</button>
@@ -28,6 +29,7 @@
                 <div><p class="text-sm text-gray-500 dark:text-gray-400">Tarikh</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $quotation->quotation_date }}</p></div>
                 <div><p class="text-sm text-gray-500 dark:text-gray-400">Pelanggan / Syarikat</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $quotation->company_name ?: $quotation->customer_name }}</p></div>
                 <div><p class="text-sm text-gray-500 dark:text-gray-400">Draf</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">Draf {{ $draft->draft_no }}</p></div>
+                <div><p class="text-sm text-gray-500 dark:text-gray-400">Kemaskini Terakhir</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $draft->updated_at ? \Carbon\Carbon::parse($draft->updated_at)->format('d/m/Y H:i') : '-' }}</p></div>
             </div>
             <div class="border-t border-gray-100 px-6 py-5 dark:border-gray-800"><p class="text-sm text-gray-500 dark:text-gray-400">Tajuk</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $quotation->quotation_title ?: '-' }}</p></div>
         </div>
@@ -76,10 +78,24 @@
             </div>
         </div>
 
-        <div x-show="editing" x-cloak class="space-y-6">
+        <div x-show="editing && editMode === 'existing'" x-cloak class="space-y-6">
             <div class="flex items-center justify-between gap-4">
                 <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ __('Kemaskini Sebut Harga') }}</h2>
                 <button type="button" @click="editing = false" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</button>
+            </div>
+            <x-sebut-harga.create-form
+                :customers="$customers"
+                :quotation="$quotation"
+                :draft="$draft"
+                :editing="true"
+                :submit-at-top="false"
+                :update-draft="true"
+            />
+        </div>
+        <div x-show="editing && editMode === 'new'" x-cloak class="space-y-6">
+            <div class="flex items-center justify-between gap-4">
+                <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">Draf Baharu</h2>
+                <button type="button" @click="editing = false" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">Kembali</button>
             </div>
             <x-sebut-harga.create-form
                 :customers="$customers"

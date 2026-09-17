@@ -32,7 +32,11 @@ class MenuHelper
             [
                 'icon' => 'pages',
                 'name' => 'Sebut Harga',
-                'path' => '/sebut-harga',
+                'subItems' => [
+                    ['name' => 'Draf Sebut Harga', 'path' => '/sebut-harga'],
+                    ['name' => 'Sebut Harga Pembekal', 'path' => '/sebut-harga-pembekal'],
+                    ['name' => 'Final Sebut Harga', 'path' => '/sebut-harga-final'],
+                ],
             ],
             [
                 'icon' => 'task',

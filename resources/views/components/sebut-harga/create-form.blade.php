@@ -4,6 +4,7 @@
     'draft' => null,
     'editing' => false,
     'submitAtTop' => false,
+    'updateDraft' => false,
 ])
 
 @php
@@ -49,6 +50,9 @@
     addItem() { this.items.push({ id: this.nextId++, description: '', quantity: 1, unit: '', price: 0 }) }
 }">
     @csrf
+    @if ($updateDraft && $isEditing)
+        <input type="hidden" name="update_draft_id" value="{{ $draft->quotation_detail_id }}">
+    @endif
     <input type="hidden" name="status_draft" value="Draf">
 
     @if ($submitAtTop)
