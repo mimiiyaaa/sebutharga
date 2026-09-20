@@ -2,6 +2,22 @@
 
 <div class="font-outfit" x-data="{
     tableRowData: @js($quotations),
+    filterOpen: false,
+    filters: { status: '', customer: '', date: '', title: '' },
+    get filteredRows() {
+        return this.tableRowData.filter(row => {
+            const customer = (row.customerName || '').toLowerCase();
+            const title = (row.product || '').toLowerCase();
+            return (!this.filters.status || row.status === this.filters.status)
+                && (!this.filters.customer || customer.includes(this.filters.customer.toLowerCase()))
+                && (!this.filters.date || row.closeDate === this.filters.date)
+                && (!this.filters.title || title.includes(this.filters.title.toLowerCase()));
+        });
+    },
+    resetFilters() {
+        this.filters = { status: '', customer: '', date: '', title: '' };
+        this.filterOpen = false;
+    },
     selectedDraft(row) {
         return row.versions.find(draft => String(draft.id) === String(row.version)) || {};
     },
@@ -19,26 +35,22 @@
     <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white pt-4 dark:border-white/[0.05] dark:bg-white/[0.03]">
         <!-- Header -->
         <div class="flex flex-col gap-4 px-6 mb-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                    Sebut Harga
-                </h3>
+            <div class="flex flex-wrap items-center gap-2">
+                <select id="draft_filter_status" x-model="filters.status" aria-label="Status" class="h-12 min-w-36 rounded-lg border border-gray-300 bg-white px-3 text-theme-sm text-gray-700 shadow-theme-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                    <option value="">Semua status</option>
+                    <option value="Draf">Draf</option>
+                    <option value="Final">Final</option>
+                </select>
+                <input id="draft_filter_customer" x-model="filters.customer" type="search" placeholder="Cari pelanggan" aria-label="Pelanggan / Syarikat" class="h-12 w-44 rounded-lg border border-gray-300 bg-white px-3 text-theme-sm text-gray-700 shadow-theme-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                <input id="draft_filter_date" x-model="filters.date" type="date" aria-label="Tarikh" class="h-12 rounded-lg border border-gray-300 bg-white px-3 text-theme-sm text-gray-700 shadow-theme-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                <input id="draft_filter_title" x-model="filters.title" type="search" placeholder="Cari tajuk" aria-label="Tajuk" class="h-12 w-36 rounded-lg border border-gray-300 bg-white px-3 text-theme-sm text-gray-700 shadow-theme-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center justify-end gap-3">
                 <a href="{{ route('sebut-harga.create') }}"
-                    class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-3 text-theme-sm font-medium text-white hover:bg-brand-600">
+                    class="inline-flex h-12 items-center gap-2 rounded-lg bg-brand-500 px-4 text-theme-sm font-medium text-white hover:bg-brand-600">
                     + Tambah Sebut Harga
                 </a>
-                <button class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
-                    <svg class="stroke-current fill-white dark:fill-gray-800" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M2.29004 5.90393H17.7067" stroke="" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M17.7075 14.0961H2.29085" stroke="" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M12.0826 3.33331C13.5024 3.33331 14.6534 4.48431 14.6534 5.90414C14.6534 7.32398 13.5024 8.47498 12.0826 8.47498C10.6627 8.47498 9.51172 7.32398 9.51172 5.90415C9.51172 4.48432 10.6627 3.33331 12.0826 3.33331Z" fill="" stroke="" stroke-width="1.5"/>
-                        <path d="M7.91745 11.525C6.49762 11.525 5.34662 12.676 5.34662 14.0959C5.34661 15.5157 6.49762 16.6667 7.91745 16.6667C9.33728 16.6667 10.4883 15.5157 10.4883 14.0959C10.4883 12.676 9.33728 11.525 7.91745 11.525Z" fill="" stroke="" stroke-width="1.5"/>
-                    </svg>
-                    Filter
-                </button>
-                <button class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
+                <button type="button" @click="resetFilters()" class="inline-flex h-12 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
                     See all
                 </button>
             </div>
@@ -59,7 +71,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <template x-for="row in tableRowData" :key="row.id">
+                    <template x-for="row in filteredRows" :key="row.id">
                         <tr class="border-b border-gray-100 dark:border-white/[0.05] hover:bg-gray-50 dark:hover:bg-white/[0.03]">
                             <td class="px-4 sm:px-6 py-3.5">
                                 <div>
@@ -110,6 +122,9 @@
                                 </div>
                             </td>
                         </tr>
+                    </template>
+                    <template x-if="filteredRows.length === 0">
+                        <tr><td colspan="7" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">Tiada sebut harga sepadan dengan filter.</td></tr>
                     </template>
                 </tbody>
             </table>

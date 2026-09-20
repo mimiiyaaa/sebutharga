@@ -5,7 +5,7 @@ use Illuminate\Http\Request;
 
 class QuotationDocument
 {
-    public const FIELDS = ['issuer_name', 'issuer_phone', 'issuer_email', 'issuer_person_in_charge', 'issuer_address', 'customer_name', 'company_name', 'phone_no', 'email', 'address', 'additional_terms', 'maklumat_tambahan', 'catatan', 'disediakan_role', 'diterima_role'];
+    public const FIELDS = ['issuer_name', 'issuer_phone', 'issuer_email', 'issuer_person_in_charge', 'issuer_address', 'customer_name', 'company_name', 'phone_no', 'email', 'address', 'additional_terms', 'maklumat_tambahan', 'catatan', 'disediakan_role', 'disediakan_company_name', 'diterima_role'];
 
     public static function capture(Request $request): string
     {

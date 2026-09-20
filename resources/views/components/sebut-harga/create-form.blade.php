@@ -24,6 +24,7 @@
     $issuerEmail = old('issuer_email', array_key_exists('issuer_email', $document) ? $document['issuer_email'] : ($quotation->emel ?? ''));
     $issuerPersonInCharge = old('issuer_person_in_charge', $document['issuer_person_in_charge'] ?? ($quotation->person_in_charge ?? ''));
     $issuerAddress = old('issuer_address', array_key_exists('issuer_address', $document) ? $document['issuer_address'] : ($quotation->alamat_syarikat ?? ''));
+    $confirmationCompany = old('disediakan_company_name', $document['disediakan_company_name'] ?? $issuerName);
     $formAction = $isEditing ? route('sebut-harga.draft.store', $quotation->quotation_id) : route('sebut-harga.store');
     $initialItems = $isEditing
         ? $draft->items->map(fn ($item, $index) => [
@@ -49,6 +50,7 @@
         personInCharge: {{ Illuminate\Support\Js::from($issuerPersonInCharge) }},
         address: {{ Illuminate\Support\Js::from($issuerAddress) }},
     },
+    confirmationCompany: {{ Illuminate\Support\Js::from($confirmationCompany) }},
     get selectedCompany() { return this.companies.find(row => String(row.company_id) === String(this.companyId)); },
     selectCompany() {
         const company = this.selectedCompany;
@@ -58,6 +60,7 @@
         this.issuer.email = company.emel || '';
         this.issuer.personInCharge = company.person_in_charge || '';
         this.issuer.address = company.alamat_syarikat || '';
+        this.confirmationCompany = company.nama_syarikat || '';
     },
     customerId: {{ Illuminate\Support\Js::from((string) old('customer_id', $isEditing ? $quotation->customer_id : '')) }},
     get selectedCustomer() { return this.customers.find(row => String(row.customer_id) === String(this.customerId)); },
@@ -197,7 +200,7 @@
     </x-common.document-card>
 
     @php($periods = App\Helpers\QuotationTerms::periods($isEditing ? $draft->terma_syarat : null))
-    <x-common.document-card :title="__('Terma dan Syarat')" x-data="{ periods: {{ Illuminate\Support\Js::from(collect($periods)->mapWithKeys(fn ($value, $key) => [$key => old($key, $value)])) }} }">
+    <x-common.document-card :title="__('Terma dan Syarat')" x-data="{ periods: {{ Illuminate\Support\Js::from(collect($periods)->mapWithKeys(fn ($value, $key) => [$key => old($key, $value)])) }}, insertNextTerm(event) { const field = event.target; const before = field.value.slice(0, field.selectionStart); const after = field.value.slice(field.selectionEnd); const nextNumber = 4 + before.split(/\r?\n/).length; const insertion = `\n${nextNumber}. `; field.value = before + insertion + after; field.dispatchEvent(new Event('input', { bubbles: true })); requestAnimationFrame(() => { const cursor = before.length + insertion.length; field.setSelectionRange(cursor, cursor); }); } }">
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
             @foreach (['validity_days' => 'Tempoh Sah (Hari)', 'delivery_min_days' => 'Penghantaran Minimum (Hari)', 'delivery_max_days' => 'Penghantaran Maksimum (Hari)'] as $field => $label)
                 <div>
@@ -214,8 +217,8 @@
         </div>
         <div>
             <label for="additional_terms" class="{{ $labelClass }}">{{ __('Terma Tambahan') }}</label>
-            <textarea id="additional_terms" name="additional_terms" rows="4" maxlength="10000" class="{{ $inputClass }}">{{ old('additional_terms', array_key_exists('additional_terms', $document) && trim($document['additional_terms']) !== '' ? $document['additional_terms'] : '4. ') }}</textarea>
-            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('Satu terma setiap baris. Nombor bermula daripada 4 dijana secara automatik dalam PDF.') }}</p>
+            <textarea id="additional_terms" name="additional_terms" rows="4" maxlength="10000" @keydown.enter.prevent="insertNextTerm($event)" class="{{ $inputClass }}">{{ old('additional_terms', array_key_exists('additional_terms', $document) && trim($document['additional_terms']) !== '' ? $document['additional_terms'] : '4. ') }}</textarea>
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('Tekan Enter untuk sambung nombor terma secara automatik bermula daripada 4.') }}</p>
         </div>
     </x-common.document-card>
     <x-common.document-card title="Pengesahan Sebut Harga">
@@ -223,12 +226,12 @@
             <div class="flex flex-col rounded-xl border border-gray-200 bg-gray-50/50 p-5 dark:border-gray-700 dark:bg-gray-800/30 sm:p-6">
                 <div class="space-y-5">
                     <div>
-                        <label for="disediakan_oleh_confirmation" class="{{ $labelClass }}">{{ __('Disediakan Oleh') }}</label>
+                        <label for="disediakan_oleh_confirmation" class="{{ $labelClass }}">{{ __('Disediakan Oleh (Jawatan)') }}</label>
                         <input id="disediakan_oleh_confirmation" name="disediakan_oleh" value="{{ old('disediakan_oleh', $isEditing ? ($draft->disediakan_oleh ?? '') : '') }}" class="{{ $inputClass }}">
                     </div>
                     <div>
-                        <label for="disediakan_role" class="{{ $labelClass }}">{{ __('Jawatan / Unit Penyedia') }}</label>
-                        <input id="disediakan_role" name="disediakan_role" value="{{ old('disediakan_role', $document['disediakan_role'] ?? ($draft->disediakan_role ?? '')) }}" class="{{ $inputClass }}">
+                        <label for="disediakan_company_name" class="{{ $labelClass }}">{{ __('Nama Syarikat') }}</label>
+                        <input id="disediakan_company_name" name="disediakan_company_name" x-model="confirmationCompany" class="{{ $inputClass }}">
                     </div>
                 </div>
                 <div class="h-16" aria-hidden="true"></div>
@@ -256,10 +259,10 @@
             </div>
         </x-common.document-card>
 
-    <div class="flex flex-wrap items-center justify-end gap-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-gray-900">
-        <a @if ($isEditing) href="#" @click.prevent="editing = false" @else href="{{ route('sebut-harga') }}" @endif class="rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">{{ __($isEditing ? 'Batal Kemaskini' : 'Kembali ke Senarai Draf') }}</a>
+    <div class="flex flex-wrap items-center justify-end gap-3">
+        <a @if ($isEditing) href="#" @click.prevent="editing = false" @else href="{{ route('sebut-harga') }}" @endif class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __($isEditing ? 'Batal Kemaskini' : 'Kembali') }}</a>
         @if (! $submitAtTop)
-            <button type="submit" class="rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white hover:bg-brand-600 dark:bg-brand-500 dark:hover:bg-brand-600">{{ $isEditing ? 'Kemaskini' : 'Simpan Sebut Harga' }}</button>
+            <button type="submit" class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600 dark:bg-brand-500 dark:hover:bg-brand-600">{{ $isEditing ? 'Kemaskini' : 'Simpan Sebut Harga' }}</button>
         @endif
     </div>
 </form>
