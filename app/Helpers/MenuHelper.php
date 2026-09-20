@@ -21,6 +21,16 @@ class MenuHelper
             ],
             [
                 'icon' => 'user-profile',
+                'name' => 'Syarikat',
+                'path' => '/syarikat',
+            ],
+            [
+                'icon' => 'authentication',
+                'name' => 'Maklumat Login',
+                'path' => '/maklumat-login',
+            ],
+            [
+                'icon' => 'user-profile',
                 'name' => 'Pelanggan',
                 'path' => '/pelanggan',
             ],
@@ -47,16 +57,6 @@ class MenuHelper
                 'icon' => 'user-profile',
                 'name' => 'Invoice',
                 'path' => '/invoice',
-            ],
-            [
-                'icon' => 'user-profile',
-                'name' => 'Syarikat',
-                'path' => '/syarikat',
-            ],
-            [
-                'icon' => 'authentication',
-                'name' => 'Maklumat Login',
-                'path' => '/maklumat-login',
             ],
             [
                 'icon' => 'calendar',
