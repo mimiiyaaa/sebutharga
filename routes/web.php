@@ -210,6 +210,13 @@ Route::get('/pembekal', function () {
     return view('pages.pembekal', ['title' => 'Pembekal', 'contacts' => DB::table('customer_supplier')->where('jenis_customer', 2)->orderBy('company_name')->get()]);
 })->middleware('auth')->name('pembekal');
 
+Route::get('/sebut-harga-pembekal', [\App\Http\Controllers\SupplierQuotationController::class, 'index'])->middleware('auth')->name('sebut-harga-pembekal');
+Route::get('/sebut-harga-pembekal/tambah', [\App\Http\Controllers\SupplierQuotationController::class, 'form'])->middleware('auth')->name('sebut-harga-pembekal.create');
+Route::post('/sebut-harga-pembekal/simpan/{id?}', [\App\Http\Controllers\SupplierQuotationController::class, 'save'])->middleware('auth')->name('sebut-harga-pembekal.save');
+Route::get('/sebut-harga-pembekal/{id}/edit', [\App\Http\Controllers\SupplierQuotationController::class, 'form'])->whereNumber('id')->middleware('auth')->name('sebut-harga-pembekal.edit');
+Route::get('/sebut-harga-pembekal/{id}/download', [\App\Http\Controllers\SupplierQuotationController::class, 'download'])->whereNumber('id')->middleware('auth')->name('sebut-harga-pembekal.download');
+Route::delete('/sebut-harga-pembekal/{id}', [\App\Http\Controllers\SupplierQuotationController::class, 'delete'])->whereNumber('id')->middleware('auth')->name('sebut-harga-pembekal.delete');
+
 Route::get('/{type}/tambah', [\App\Http\Controllers\ContactController::class, 'form'])->whereIn('type', ['pelanggan','pembekal'])->middleware('auth')->name('contacts.create');
 Route::post('/{type}/simpan/{id?}', [\App\Http\Controllers\ContactController::class, 'save'])->whereIn('type', ['pelanggan','pembekal'])->middleware('auth')->name('contacts.save');
 Route::get('/{type}/{id}', [\App\Http\Controllers\ContactController::class, 'show'])->whereIn('type', ['pelanggan','pembekal'])->middleware('auth')->name('contacts.show');

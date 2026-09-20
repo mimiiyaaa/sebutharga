@@ -26,6 +26,7 @@ table { width: 100%; border-collapse: collapse; }
 .document-meta { width: 32%; text-align: right; }
 .rule { border-top: 1pt solid #800000; }
 .recipient { margin: 15pt 0; font-size: 10pt; }
+.quotation-title { margin: 0 0 8pt; font-size: 11pt; font-weight: bold; }
 .address, .terms-copy { white-space: pre-line; overflow-wrap: break-word; }
 .items { table-layout: fixed; }
 .items th { background: #800000; color: white; border: .5pt solid #000; padding: 5pt 3pt; font-size: 10pt; text-align: center; }
@@ -79,6 +80,7 @@ table { width: 100%; border-collapse: collapse; }
 @if (!empty($quotation->phone_no))<div>No. Tel: {{ $quotation->phone_no }}</div>@endif
 @if (!empty($quotation->email))<div>E-mel: {{ $quotation->email }}</div>@endif
 </div>
+@if (!empty($quotation->quotation_title))<div class="quotation-title">{{ $quotation->quotation_title }}</div>@endif
 <table class="items">
 <thead><tr><th class="bil">BIL</th><th class="description">KETERANGAN / DESCRIPTION</th><th class="quantity">KUANTITI</th><th class="unit">UNIT</th><th class="price">HARGA<br>SEUNIT<br>(RM)</th><th class="amount">JUMLAH<br>(RM)</th></tr></thead>
 <tbody>

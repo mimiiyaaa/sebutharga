@@ -19,10 +19,9 @@
                                 <button type="submit" class="rounded-lg bg-success-600 px-4 py-3 text-sm font-medium text-white hover:bg-success-700">{{ __('Muktamadkan Draf') }}</button>
                             </form>
                         @else
-                            <button type="button" @click="editMode = 'existing'; editing = true" class="rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white hover:bg-brand-600">{{ __('Edit') }}</button>
                             <form method="POST" action="{{ route('sebut-harga.final.new', [$quotation->quotation_id, $draft->quotation_detail_id]) }}">
                                 @csrf
-                                <button type="submit" class="rounded-lg border border-brand-300 px-4 py-3 text-sm font-medium text-brand-600 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10">{{ __('Final Baharu') }}</button>
+                                <button type="submit" class="rounded-lg border border-brand-300 px-4 py-3 text-sm font-medium text-brand-600 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10">{{ __('Edit Versi Baharu') }}</button>
                             </form>
                             <span class="rounded-lg bg-success-50 px-4 py-3 text-sm font-medium text-success-700 dark:bg-success-500/15 dark:text-success-400">{{ __('Final') }} {{ $draft->final_no ?? $draft->draft_no }}</span>
                         @endif
