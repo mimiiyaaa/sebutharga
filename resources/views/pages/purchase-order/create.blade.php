@@ -2,6 +2,6 @@
 
 @section('content')
     <x-common.document-workspace :title="__('Tambah PO')" :subtitle="__('Lengkapkan maklumat pembekal, penghantaran dan item pesanan.')">
-    <x-purchase-order.create-form :suppliers="$suppliers" :quotation="$quotation" :nextPoNo="$nextPoNo" />
+    <x-purchase-order.create-form :suppliers="$suppliers" :quotation="$quotation" :nextPoNo="$nextPoNo" :initialItems="$initialItems" />
     </x-common.document-workspace>
 @endsection

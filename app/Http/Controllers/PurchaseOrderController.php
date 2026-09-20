@@ -43,9 +43,22 @@ class PurchaseOrderController extends Controller
             return redirect()->route('purchase-order.create')->withErrors(['quotation_detail_id' => __('Sila pilih sebut harga Final yang dipersetujui.')]);
         }
 
+        $initialItems = DB::table('sebutharga_item')
+            ->where('quotation_detail_id', $quotation->quotation_detail_id)
+            ->orderBy('quotation_item_id')
+            ->get()
+            ->map(fn ($item, $index) => [
+                'id' => $index + 1,
+                'description' => $item->item_description,
+                'quantity' => $item->quantity,
+                'unit' => $item->unit,
+                'price' => $item->unit_price,
+            ])->values()->all();
+
         return view('pages.purchase-order.create', [
             'title' => 'Tambah PO',
             'quotation' => $quotation,
+            'initialItems' => $initialItems,
             'nextPoNo' => $this->nextPoNumber(),
             'suppliers' => DB::table('customer_supplier')->where('jenis_customer', 2)->orderBy('company_name')
                 ->get(['customer_id', 'customer_name', 'company_name', 'address', 'phone_no', 'email', 'reference_no']),

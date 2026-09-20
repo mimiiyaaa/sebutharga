@@ -54,6 +54,11 @@ class MenuHelper
                 'path' => '/syarikat',
             ],
             [
+                'icon' => 'authentication',
+                'name' => 'Maklumat Login',
+                'path' => '/maklumat-login',
+            ],
+            [
                 'icon' => 'calendar',
                 'name' => 'Calendar',
                 'path' => '/calendar',

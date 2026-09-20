@@ -229,6 +229,11 @@ Route::get('/invoice', function () {
 })->name('invoice');
 
 Route::get('/syarikat', [\App\Http\Controllers\CompanyController::class, 'index'])->middleware('auth')->name('syarikat');
+Route::get('/maklumat-login', [\App\Http\Controllers\UserManagementController::class, 'index'])->middleware('auth')->name('maklumat-login');
+Route::get('/maklumat-login/tambah', [\App\Http\Controllers\UserManagementController::class, 'form'])->middleware('auth')->name('maklumat-login.create');
+Route::post('/maklumat-login/simpan/{id?}', [\App\Http\Controllers\UserManagementController::class, 'save'])->middleware('auth')->name('maklumat-login.save');
+Route::get('/maklumat-login/{id}/edit', [\App\Http\Controllers\UserManagementController::class, 'form'])->whereNumber('id')->middleware('auth')->name('maklumat-login.edit');
+Route::delete('/maklumat-login/{id}', [\App\Http\Controllers\UserManagementController::class, 'delete'])->whereNumber('id')->middleware('auth')->name('maklumat-login.delete');
 Route::get('/syarikat/tambah', [\App\Http\Controllers\CompanyController::class, 'form'])->middleware('auth')->name('companies.create');
 Route::post('/syarikat/simpan/{id?}', [\App\Http\Controllers\CompanyController::class, 'save'])->middleware('auth')->name('companies.save');
 Route::get('/syarikat/{id}', [\App\Http\Controllers\CompanyController::class, 'show'])->whereNumber('id')->middleware('auth')->name('companies.show');
