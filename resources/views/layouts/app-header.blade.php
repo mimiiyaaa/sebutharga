@@ -50,8 +50,8 @@
 
             <!-- Logo (mobile only) -->
             <a href="/" class="xl:hidden">
-                <img class="dark:hidden" src="/images/logo/logo.svg" alt="Logo" />
-                <img class="hidden dark:block" src="/images/logo/logo-dark.svg" alt="Logo" />
+                <img class="h-auto w-36 object-contain dark:brightness-0 dark:invert"
+                    src="/images/logo/k1r-resources-dark.png" alt="K1R Resources" width="2052" height="766" />
             </a>
 
             <!-- Application Menu Toggle (mobile only) -->
