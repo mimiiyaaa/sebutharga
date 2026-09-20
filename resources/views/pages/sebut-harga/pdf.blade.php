@@ -54,12 +54,15 @@ table { width: 100%; border-collapse: collapse; }
 <table class="header"><tr>
 <td>
 <div class="company">{{ (array_key_exists('issuer_name', $document) ? $document['issuer_name'] : config('purchase_order.issuer_name')) }}</div>
-<div class="contact address">{{ (array_key_exists('issuer_address', $document) ? $document['issuer_address'] : config('purchase_order.issuer_address')) }}</div>
+<div class="contact address">{{ (array_key_exists('issuer_address', $document) ? $document['issuer_address'] : ($quotation->alamat_syarikat ?? config('purchase_order.issuer_address'))) }}</div>
 @php
     $issuerPhone = array_key_exists('issuer_phone', $document) ? $document['issuer_phone'] : config('purchase_order.issuer_phone');
     $issuerEmail = array_key_exists('issuer_email', $document) ? $document['issuer_email'] : config('purchase_order.issuer_email');
+    $issuerPersonInCharge = $document['issuer_person_in_charge'] ?? null;
 @endphp
 <div class="contact">
+    @if ($issuerPersonInCharge)U/P: {{ $issuerPersonInCharge }}@endif
+    @if ($issuerPersonInCharge && ($issuerPhone || $issuerEmail)) | @endif
     @if ($issuerPhone)No. Tel: {{ $issuerPhone }}@endif
     @if ($issuerPhone && $issuerEmail) | @endif
     @if ($issuerEmail)E-mel: {{ $issuerEmail }}@endif

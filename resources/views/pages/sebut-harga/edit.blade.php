@@ -90,6 +90,7 @@
             </div>
             <x-sebut-harga.create-form
                 :customers="$customers"
+                :companies="$companies"
                 :quotation="$quotation"
                 :draft="$draft"
                 :editing="true"
@@ -104,6 +105,7 @@
             </div>
             <x-sebut-harga.create-form
                 :customers="$customers"
+                :companies="$companies"
                 :quotation="$quotation"
                 :draft="$draft"
                 :editing="true"

@@ -1,0 +1,8 @@
+@extends('layouts.app')
+@section('content')
+<x-common.page-breadcrumb :pageTitle="$company ? __('Edit Syarikat') : __('Tambah Syarikat')" />
+<form method="POST" action="{{ route('companies.save', ['id' => $company?->company_id]) }}" class="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">@csrf
+@foreach (['nama_syarikat' => 'Nama Syarikat', 'no_telefon' => 'No. Telefon', 'emel' => 'E-mel', 'person_in_charge' => 'Person In Charge'] as $field => $label)<div><label for="{{ $field }}" class="mb-1 block text-sm text-gray-700 dark:text-gray-300">{{ __($label) }}</label><input id="{{ $field }}" name="{{ $field }}" type="{{ $field === 'emel' ? 'email' : 'text' }}" value="{{ old($field, $company?->$field) }}" {{ $field === 'nama_syarikat' ? 'required' : '' }} class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2.5 text-sm dark:border-gray-700 dark:text-white/90">@error($field)<p class="mt-1 text-sm text-error-600">{{ $message }}</p>@enderror</div>@endforeach
+<div><label for="alamat_syarikat" class="mb-1 block text-sm text-gray-700 dark:text-gray-300">{{ __('Alamat Syarikat') }}</label><textarea id="alamat_syarikat" name="alamat_syarikat" rows="3" class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2.5 text-sm dark:border-gray-700 dark:text-white/90">{{ old('alamat_syarikat', $company?->alamat_syarikat) }}</textarea></div>
+<div class="flex gap-3"><a href="{{ route('syarikat') }}" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm dark:border-gray-700 dark:text-gray-300">← {{ __('Kembali') }}</a><button class="rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white">{{ __('Simpan') }}</button></div></form>
+@endsection

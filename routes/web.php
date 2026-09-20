@@ -221,17 +221,12 @@ Route::get('/invoice', function () {
     return view('pages.invoice', ['title' => 'Invoice']);
 })->name('invoice');
 
-Route::get('/syarikat', function () {
-    $companies = DB::table('sebutharga_master')
-        ->select('nama_syarikat', 'no_telefon', 'emel', 'person_in_charge')
-        ->whereNotNull('nama_syarikat')
-        ->where('nama_syarikat', '<>', '')
-        ->distinct()
-        ->orderBy('nama_syarikat')
-        ->get();
-
-    return view('pages.syarikat', ['title' => 'Syarikat', 'companies' => $companies]);
-})->middleware('auth')->name('syarikat');
+Route::get('/syarikat', [\App\Http\Controllers\CompanyController::class, 'index'])->middleware('auth')->name('syarikat');
+Route::get('/syarikat/tambah', [\App\Http\Controllers\CompanyController::class, 'form'])->middleware('auth')->name('companies.create');
+Route::post('/syarikat/simpan/{id?}', [\App\Http\Controllers\CompanyController::class, 'save'])->middleware('auth')->name('companies.save');
+Route::get('/syarikat/{id}', [\App\Http\Controllers\CompanyController::class, 'show'])->whereNumber('id')->middleware('auth')->name('companies.show');
+Route::get('/syarikat/{id}/edit', [\App\Http\Controllers\CompanyController::class, 'form'])->whereNumber('id')->middleware('auth')->name('companies.edit');
+Route::delete('/syarikat/{id}', [\App\Http\Controllers\CompanyController::class, 'delete'])->whereNumber('id')->middleware('auth')->name('companies.delete');
 
 Route::post('/signin', [AuthController::class, 'login'])
     ->name('signin.store');
@@ -245,10 +240,12 @@ Route::get('/sebut-harga/create', function () {
         ->where('jenis_customer', 1)
         ->orderBy('company_name')
         ->get();
+    $companies = DB::table('companies')->orderBy('nama_syarikat')->get();
 
     return view('pages.sebut-harga.create', [
         'title' => 'Tambah Sebut Harga',
         'customers' => $customers,
+        'companies' => $companies,
     ]);
 })->middleware('auth')->name('sebut-harga.create');
 
@@ -282,12 +279,14 @@ Route::post('/sebut-harga', function (\Illuminate\Http\Request $request) {
     $validated = $request->validate([
         'quotation_date' => ['required', 'date'],
         'customer_id' => ['required', 'integer', 'exists:customer_supplier,customer_id'],
+        'company_id' => ['nullable', 'integer', 'exists:companies,company_id'],
         'quotation_title' => ['nullable', 'string', 'max:255'],
         'no_rujukan_pelanggan' => ['nullable', 'string', 'max:100'],
         'status_quotation' => ['nullable', 'in:0,1'],
         'draft_name' => ['nullable', 'string', 'max:100'],
         'terma_syarat' => ['nullable', 'string'],
         'disediakan_oleh' => ['nullable', 'string', 'max:255'],
+        'issuer_person_in_charge' => ['nullable', 'string', 'max:255'],
         'diterima_oleh' => ['nullable', 'string', 'max:255'],
         'items' => ['required', 'array', 'min:1'],
         'items.*.description' => ['required', 'string'],
@@ -307,12 +306,14 @@ Route::post('/sebut-harga', function (\Illuminate\Http\Request $request) {
         $quotationId = DB::table('sebutharga_master')->insertGetId([
             'quotation_no' => $quotationNo,
             'customer_id' => $validated['customer_id'],
+            'company_id' => $validated['company_id'] ?? null,
             'quotation_date' => $validated['quotation_date'],
             'quotation_title' => $validated['quotation_title'] ?? null,
             'nama_syarikat' => $request->input('issuer_name'),
             'no_telefon' => $request->input('issuer_phone'),
             'emel' => $request->input('issuer_email'),
-            'person_in_charge' => $validated['disediakan_oleh'] ?? null,
+            'person_in_charge' => $request->input('issuer_person_in_charge'),
+            'alamat_syarikat' => $request->input('issuer_address'),
             'no_rujukan_pelanggan' => $customerReference,
             'status_quotation' => $validated['status_quotation'] ?? null,
             'created_by' => $userId,
@@ -370,12 +371,14 @@ Route::post('/sebut-harga/{id}/draft', function (\Illuminate\Http\Request $reque
     $validated = $request->validate([
         'quotation_date' => ['required', 'date'],
         'customer_id' => ['required', 'integer', 'exists:customer_supplier,customer_id'],
+        'company_id' => ['nullable', 'integer', 'exists:companies,company_id'],
         'quotation_title' => ['nullable', 'string', 'max:255'],
         'no_rujukan_pelanggan' => ['nullable', 'string', 'max:100'],
         'status_quotation' => ['nullable', 'in:0,1'],
         'update_draft_id' => ['nullable', 'integer'],
         'terma_syarat' => ['nullable', 'string'],
         'disediakan_oleh' => ['nullable', 'string', 'max:255'],
+        'issuer_person_in_charge' => ['nullable', 'string', 'max:255'],
         'diterima_oleh' => ['nullable', 'string', 'max:255'],
         'items' => ['required', 'array', 'min:1'],
         'items.*.description' => ['required', 'string'],
@@ -401,11 +404,13 @@ Route::post('/sebut-harga/{id}/draft', function (\Illuminate\Http\Request $reque
 
             DB::table('sebutharga_master')->where('quotation_id', $id)->update([
                 'customer_id' => $validated['customer_id'],
+                'company_id' => $validated['company_id'] ?? null,
                 'quotation_title' => $validated['quotation_title'] ?? null,
                 'nama_syarikat' => $request->input('issuer_name'),
                 'no_telefon' => $request->input('issuer_phone'),
                 'emel' => $request->input('issuer_email'),
-                'person_in_charge' => $validated['disediakan_oleh'] ?? null,
+                'person_in_charge' => $request->input('issuer_person_in_charge'),
+                'alamat_syarikat' => $request->input('issuer_address'),
                 'no_rujukan_pelanggan' => $customerReference,
                 'updated_by' => $userId,
                 'updated_at' => now(),
@@ -442,12 +447,14 @@ Route::post('/sebut-harga/{id}/draft', function (\Illuminate\Http\Request $reque
 
         DB::table('sebutharga_master')->where('quotation_id', $id)->update([
             'customer_id' => $validated['customer_id'],
+            'company_id' => $validated['company_id'] ?? null,
             'quotation_date' => $validated['quotation_date'],
             'quotation_title' => $validated['quotation_title'] ?? null,
             'nama_syarikat' => $request->input('issuer_name'),
             'no_telefon' => $request->input('issuer_phone'),
             'emel' => $request->input('issuer_email'),
-            'person_in_charge' => $validated['disediakan_oleh'] ?? null,
+            'person_in_charge' => $request->input('issuer_person_in_charge'),
+            'alamat_syarikat' => $request->input('issuer_address'),
             'no_rujukan_pelanggan' => $customerReference,
             'status_quotation' => $validated['status_quotation'] ?? null,
             'updated_by' => $userId,
@@ -518,12 +525,14 @@ Route::get('/sebut-harga/{id}/edit', function ($id) {
     $quotation->status_quotation = $draft->status_quotation;
     $draft->items = DB::table('sebutharga_item')->where('quotation_detail_id', $draft->quotation_detail_id)->get();
     $customers = DB::table('customer_supplier')->where('jenis_customer', 1)->orderBy('company_name')->get();
+    $companies = DB::table('companies')->orderBy('nama_syarikat')->get();
 
     return view('pages.sebut-harga.edit', [
         'title' => 'Edit Sebut Harga',
         'quotation' => $quotation,
         'draft' => $draft,
         'customers' => $customers,
+        'companies' => $companies,
     ]);
 })->middleware('auth')->name('sebut-harga.edit');
 

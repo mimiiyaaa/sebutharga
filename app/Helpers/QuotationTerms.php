@@ -22,7 +22,8 @@ class QuotationTerms
         $text = "1. Tempoh sah sebutharga adalah selama {$days['validity_days']} hari dari tarikh sebutharga dikeluarkan.\n2. Tempoh penghantaran: {$days['delivery_min_days']} - {$days['delivery_max_days']} hari selepas penerimaan Pesanan Belian (PO) rasmi.\n3. Sila tandatangan di bawah untuk pengesahan persetujuan sebutharga ini.";
         $number = 4;
         foreach (preg_split('/\R/u', $days['additional_terms'] ?? '') as $line) {
-            if (trim($line) !== '') $text .= "\n" . $number++ . '. ' . trim($line);
+            $line = preg_replace('/^\s*\d+\.\s*/', '', trim($line));
+            if ($line !== '') $text .= "\n" . $number++ . '. ' . $line;
         }
         return $text;
     }

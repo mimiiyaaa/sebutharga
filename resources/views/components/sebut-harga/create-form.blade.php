@@ -1,5 +1,6 @@
 @props([
     'customers' => collect(),
+    'companies' => collect(),
     'quotation' => null,
     'draft' => null,
     'editing' => false,
@@ -17,6 +18,12 @@
     foreach (['customer_name', 'company_name', 'phone_no', 'email', 'address'] as $field) {
         $recipientValues[$field] = old($field, array_key_exists($field, $document) ? $document[$field] : ($recipient->$field ?? ''));
     }
+    $selectedCompany = $companies->firstWhere('company_id', old('company_id', $quotation->company_id ?? null));
+    $issuerName = old('issuer_name', array_key_exists('issuer_name', $document) ? $document['issuer_name'] : ($quotation->nama_syarikat ?? ''));
+    $issuerPhone = old('issuer_phone', array_key_exists('issuer_phone', $document) ? $document['issuer_phone'] : ($quotation->no_telefon ?? ''));
+    $issuerEmail = old('issuer_email', array_key_exists('issuer_email', $document) ? $document['issuer_email'] : ($quotation->emel ?? ''));
+    $issuerPersonInCharge = old('issuer_person_in_charge', $document['issuer_person_in_charge'] ?? ($quotation->person_in_charge ?? ''));
+    $issuerAddress = old('issuer_address', array_key_exists('issuer_address', $document) ? $document['issuer_address'] : ($quotation->alamat_syarikat ?? ''));
     $formAction = $isEditing ? route('sebut-harga.draft.store', $quotation->quotation_id) : route('sebut-harga.store');
     $initialItems = $isEditing
         ? $draft->items->map(fn ($item, $index) => [
@@ -33,6 +40,25 @@
     quotationDate: {{ Illuminate\Support\Js::from(old('quotation_date', $isEditing ? $quotation->quotation_date : now()->format('Y-m-d'))) }},
     sequences: {{ Illuminate\Support\Js::from((object) App\Helpers\QuotationNumber::sequences()) }},
     customers: {{ Illuminate\Support\Js::from($customers) }},
+    companies: {{ Illuminate\Support\Js::from($companies) }},
+    companyId: {{ Illuminate\Support\Js::from((string) old('company_id', $quotation->company_id ?? '')) }},
+    issuer: {
+        name: {{ Illuminate\Support\Js::from($issuerName) }},
+        phone: {{ Illuminate\Support\Js::from($issuerPhone) }},
+        email: {{ Illuminate\Support\Js::from($issuerEmail) }},
+        personInCharge: {{ Illuminate\Support\Js::from($issuerPersonInCharge) }},
+        address: {{ Illuminate\Support\Js::from($issuerAddress) }},
+    },
+    get selectedCompany() { return this.companies.find(row => String(row.company_id) === String(this.companyId)); },
+    selectCompany() {
+        const company = this.selectedCompany;
+        if (!company) return;
+        this.issuer.name = company.nama_syarikat || '';
+        this.issuer.phone = company.no_telefon || '';
+        this.issuer.email = company.emel || '';
+        this.issuer.personInCharge = company.person_in_charge || '';
+        this.issuer.address = company.alamat_syarikat || '';
+    },
     customerId: {{ Illuminate\Support\Js::from((string) old('customer_id', $isEditing ? $quotation->customer_id : '')) }},
     get selectedCustomer() { return this.customers.find(row => String(row.customer_id) === String(this.customerId)); },
     recipient: {{ Illuminate\Support\Js::from($recipientValues) }},
@@ -62,22 +88,32 @@
     @endif
 
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <x-common.document-card title="Maklumat Syarikat Pengeluar">
+        <x-common.document-card title="Maklumat Syarikat">
             <div>
-                <label class="{{ $labelClass }}">Nama Syarikat</label>
-                <input id="issuer_name" name="issuer_name" value="{{ old('issuer_name', array_key_exists('issuer_name', $document) ? $document['issuer_name'] : config('purchase_order.issuer_name')) }}" class="{{ $inputClass }}">
+                <label for="company_id" class="{{ $labelClass }}">Nama Syarikat</label>
+                <select id="company_id" name="company_id" x-model="companyId" @change="selectCompany()" class="{{ $inputClass }}">
+                    <option value="">Pilih syarikat</option>
+                    @foreach ($companies as $company)
+                        <option value="{{ $company->company_id }}">{{ $company->nama_syarikat }}</option>
+                    @endforeach
+                </select>
+                <input type="hidden" id="issuer_name" name="issuer_name" x-model="issuer.name">
             </div>
             <div>
                 <label class="{{ $labelClass }}">Nombor Telefon</label>
-                <input id="issuer_phone" name="issuer_phone" value="{{ old('issuer_phone', array_key_exists('issuer_phone', $document) ? $document['issuer_phone'] : config('purchase_order.issuer_phone')) }}" type="tel" class="{{ $inputClass }}">
+                <input id="issuer_phone" name="issuer_phone" x-model="issuer.phone" type="tel" class="{{ $inputClass }}">
             </div>
             <div>
                 <label class="{{ $labelClass }}">E-mel</label>
-                <input id="issuer_email" name="issuer_email" value="{{ old('issuer_email', array_key_exists('issuer_email', $document) ? $document['issuer_email'] : config('purchase_order.issuer_email')) }}" type="email" class="{{ $inputClass }}">
+                <input id="issuer_email" name="issuer_email" x-model="issuer.email" type="email" class="{{ $inputClass }}">
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Person In Charge</label>
+                <input id="issuer_person_in_charge" name="issuer_person_in_charge" x-model="issuer.personInCharge" class="{{ $inputClass }}">
             </div>
             <div>
                 <label class="{{ $labelClass }}">Alamat Syarikat</label>
-                <textarea id="issuer_address" name="issuer_address" rows="3" class="{{ $inputClass }} h-auto">{{ old('issuer_address', array_key_exists('issuer_address', $document) ? $document['issuer_address'] : config('purchase_order.issuer_address')) }}</textarea>
+                <textarea id="issuer_address" name="issuer_address" rows="3" x-model="issuer.address" class="{{ $inputClass }} h-auto"></textarea>
             </div>
         </x-common.document-card>
 
@@ -178,7 +214,7 @@
         </div>
         <div>
             <label for="additional_terms" class="{{ $labelClass }}">{{ __('Terma Tambahan') }}</label>
-            <textarea id="additional_terms" name="additional_terms" rows="4" maxlength="10000" class="{{ $inputClass }}">{{ old('additional_terms', $document['additional_terms'] ?? '') }}</textarea>
+            <textarea id="additional_terms" name="additional_terms" rows="4" maxlength="10000" class="{{ $inputClass }}">{{ old('additional_terms', array_key_exists('additional_terms', $document) && trim($document['additional_terms']) !== '' ? $document['additional_terms'] : '4. ') }}</textarea>
             <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('Satu terma setiap baris. Nombor bermula daripada 4 dijana secara automatik dalam PDF.') }}</p>
         </div>
     </x-common.document-card>
