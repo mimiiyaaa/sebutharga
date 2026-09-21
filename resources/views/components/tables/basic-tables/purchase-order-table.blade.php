@@ -3,7 +3,7 @@
 <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white pt-4 dark:border-white/[0.05] dark:bg-white/[0.03]">
     <div class="mb-4 flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
         <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-            {{ __('Pesanan Belian (PO)') }}
+            {{ __('Senarai Pesanan Belian (PO)') }}
         </h3>
         <div class="flex flex-wrap items-center gap-3">
             <a href="{{ route('purchase-order.create') }}"
@@ -47,7 +47,7 @@
                         <div class="flex items-center gap-2">
                             <a href="{{ route('purchase-order.show',$order->purchase_order_id) }}" class="rounded-lg border border-gray-200 px-3 py-2 text-theme-xs font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">{{ __('Lihat') }}</a>
                             <a href="{{ route('purchase-order.edit',$order->purchase_order_id) }}" class="rounded-lg bg-brand-500 px-3 py-2 text-theme-xs font-medium text-white hover:bg-brand-600 dark:bg-brand-500 dark:text-white dark:hover:bg-brand-600">{{ __('Edit') }}</a>
-                            <form method="POST" action="{{ route('purchase-order.delete',$order->purchase_order_id) }}" onsubmit="return confirm('Padam PO ini?')">
+                            <form method="POST" action="{{ route('purchase-order.delete',$order->purchase_order_id) }}" @submit.prevent="$dispatch('confirm-action', { form: $el, message: 'Padam PO ini?' })">
                                 @csrf @method('DELETE')
                                 <button type="submit" title="{{ __('Padam') }}" aria-label="{{ __('Padam') }}" class="inline-flex rounded-lg border border-error-200 p-2 text-error-600 hover:bg-error-50 dark:border-error-700 dark:text-error-400 dark:hover:bg-error-500/10">
                                     <svg class="h-4 w-4 stroke-current" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5m4-5v5" /></svg>

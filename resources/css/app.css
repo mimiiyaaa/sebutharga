@@ -2,6 +2,17 @@
 @import 'prismjs/themes/prism.min.css';
 @import 'tailwindcss';
 
+/* Keep monetary fields clean while retaining numeric validation and keyboard input. */
+input.appearance-none[type='number'] {
+  -moz-appearance: textfield;
+}
+
+input.appearance-none[type='number']::-webkit-outer-spin-button,
+input.appearance-none[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';

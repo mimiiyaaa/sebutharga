@@ -5,7 +5,11 @@
 
     <div class="space-y-6">
         <x-common.component-card title="Senarai Pelanggan">
-            <a href="{{ route('contacts.create', ['type' => 'pelanggan']) }}" class="mb-4 inline-flex rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white">+ Tambah Pelanggan</a>
+            <x-slot:header>
+                <a href="{{ route('contacts.create', ['type' => 'pelanggan']) }}" class="inline-flex h-11 items-center rounded-lg bg-brand-500 px-4 text-sm font-medium text-white transition hover:bg-brand-600">
+                    + Tambah Pelanggan
+                </a>
+            </x-slot:header>
             <x-tables.basic-tables.customer-table :contacts="$contacts" />
         </x-common.component-card>
     </div>

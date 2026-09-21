@@ -139,7 +139,7 @@
                             <td class="min-w-60 p-3"><textarea rows="3" x-model="item.description" aria-label="{{ __('Perihal Barangan') }}" class="{{ $inputClass }}"></textarea></td>
                             <td class="min-w-32 p-3"><input type="number" min="1" step="1" x-model.number="item.quantity" aria-label="{{ __('Kuantiti') }}" class="{{ $inputClass }}"></td>
                             <td class="min-w-32 p-3"><input x-model="item.unit" aria-label="{{ __('Unit') }}" class="{{ $inputClass }}"></td>
-                            <td class="min-w-40 p-3"><input type="number" min="0" step="0.01" x-model.number="item.price" aria-label="{{ __('Harga Seunit (RM)') }}" class="{{ $inputClass }}"></td>
+                            <td class="min-w-40 p-3"><input type="number" min="0" step="0.01" x-model.number="item.price" aria-label="{{ __('Harga Seunit (RM)') }}" class="{{ $inputClass }} appearance-none"></td>
                             <td class="whitespace-nowrap p-3" x-text="money(subtotal(item))"></td>
                             <td class="p-3"><button type="button" @click="items.splice(index, 1)" :disabled="items.length === 1" class="text-error-600 disabled:cursor-not-allowed disabled:opacity-40 dark:text-error-400">{{ __('Buang') }}</button></td>
                         </tr>

@@ -1,16 +1,14 @@
 @extends('layouts.app')
 @section('content')
 <x-common.page-breadcrumb :pageTitle="__('Sebut Harga Final')" />
-<x-common.document-card :title="__('Senarai Sebut Harga Final')" x-data="{ filters: { customer: '', date: '', title: '' }, matches(row) { return (!this.filters.customer || row.customer.toLowerCase().includes(this.filters.customer.toLowerCase())) && (!this.filters.date || row.date === this.filters.date) && (!this.filters.title || row.title.toLowerCase().includes(this.filters.title.toLowerCase())); }, resetFilters() { this.filters = { customer: '', date: '', title: '' }; } }">
-    @if (session('success'))<p class="rounded-lg bg-success-50 p-4 text-success-700 dark:bg-success-500/10 dark:text-success-400">{{ session('success') }}</p>@endif
+<x-common.document-card :title="__('Senarai Sebut Harga Final')" x-data="{ filters: { search: '', date: '' }, matches(row) { const search = this.filters.search.toLowerCase(); return (!search || row.customer.toLowerCase().includes(search) || row.title.toLowerCase().includes(search)) && (!this.filters.date || row.date === this.filters.date); }, resetFilters() { this.filters = { search: '', date: '' }; } }">
     <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white pt-4 dark:border-white/[0.05] dark:bg-white/[0.03]">
-        <div class="mb-4 flex flex-col gap-3 px-6 sm:flex-row sm:items-center sm:justify-between">
-            <div class="flex flex-wrap items-center gap-2">
-                <input x-model="filters.customer" type="search" placeholder="Cari pelanggan" aria-label="Pelanggan / Syarikat" class="h-12 w-44 rounded-lg border border-gray-300 bg-white px-3 text-theme-sm text-gray-700 shadow-theme-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                <input x-model="filters.date" type="date" aria-label="Tarikh" class="h-12 rounded-lg border border-gray-300 bg-white px-3 text-theme-sm text-gray-700 shadow-theme-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                <input x-model="filters.title" type="search" placeholder="Cari tajuk" aria-label="Tajuk" class="h-12 w-36 rounded-lg border border-gray-300 bg-white px-3 text-theme-sm text-gray-700 shadow-theme-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+        <div class="mb-4 px-6">
+            <div class="flex w-full flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-1.5 dark:border-gray-700 dark:bg-gray-900/50">
+                <input x-model="filters.search" type="search" placeholder="Cari pelanggan atau tajuk" aria-label="Cari pelanggan atau tajuk" class="h-11 min-w-40 flex-1 rounded-lg border-0 bg-white px-3 text-theme-sm text-gray-700 shadow-theme-xs focus:ring-2 focus:ring-brand-500/20 dark:bg-gray-800 dark:text-gray-300">
+                <input x-model="filters.date" type="date" aria-label="Tarikh" class="h-11 w-44 shrink-0 rounded-lg border-0 bg-white px-3 text-theme-sm text-gray-700 shadow-theme-xs focus:ring-2 focus:ring-brand-500/20 dark:bg-gray-800 dark:text-gray-300">
             </div>
-            <button type="button" @click="resetFilters()" class="inline-flex h-12 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">See all</button>
+            <button type="button" @click="resetFilters()" class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">See all</button>
         </div>
         <div class="max-w-full overflow-x-auto">
         <table class="w-full text-theme-sm leading-6 text-gray-700 dark:text-gray-300">

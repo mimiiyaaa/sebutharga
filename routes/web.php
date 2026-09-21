@@ -523,7 +523,7 @@ Route::get('/sebut-harga/{id}/edit', function ($id) {
     $quotation = DB::table('sebutharga_master as quotation')
         ->leftJoin('customer_supplier as customer', 'customer.customer_id', '=', 'quotation.customer_id')
         ->where('quotation.quotation_id', $id)
-        ->select('quotation.*', 'customer.company_name', 'customer.customer_name', 'customer.address')
+        ->select('quotation.*', 'customer.company_name', 'customer.customer_name', 'customer.phone_no', 'customer.email', 'customer.address')
         ->first();
     abort_unless($quotation, 404);
 
@@ -746,7 +746,7 @@ Route::post('/sebut-harga/{id}/draft/{draftId}/approve', function ($id, $draftId
             ]);
     });
 
-    return redirect()->route('sebut-harga.final')->with('success', 'Draf berjaya dimuktamadkan.');
+    return redirect()->route('sebut-harga.edit', ['id' => $id, 'draft' => $draftId])->with('success', 'Draf berjaya dimuktamadkan.');
 })->middleware('auth')->name('sebut-harga.draft.approve');
 
 Route::post('/sebut-harga/{id}/draft/{draftId}/reject', function ($id, $draftId) {
