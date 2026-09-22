@@ -19,10 +19,12 @@
     nextId: {{ count($initialItems) + 2 }},
     items: {{ Illuminate\Support\Js::from($initialItems ?: [['id'=>1, 'description'=>'', 'quantity'=>1, 'unit'=>'', 'price'=>0]]) }},
     discount: {{ Illuminate\Support\Js::from(old('discount_percent', $order?->discount_percent ?? 0)) }},
+    sst: {{ Illuminate\Support\Js::from(old('sst_percent', $order?->sst_percent ?? 0)) }},
     subtotal(item) { return Math.round(Math.max(0, Number(item.quantity) || 0) * Math.max(0, Number(item.price) || 0) * 100) / 100 },
     get gross() { return this.items.reduce((sum, item) => sum + this.subtotal(item), 0) },
     get discountAmount() { return Math.round(this.gross * Math.min(100, Math.max(0, Number(this.discount) || 0))) / 100 },
-    get net() { return this.gross - this.discountAmount },
+    get sstAmount() { return Math.round((this.gross - this.discountAmount) * Math.min(100, Math.max(0, Number(this.sst) || 0))) / 100 },
+    get net() { return this.gross - this.discountAmount + this.sstAmount },
     money(value) { return new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(value) },
     addItem() { this.items.push({ id: this.nextId++, description: '', quantity: 1, unit: '', price: 0 }) }
 }">
@@ -139,7 +141,7 @@
                             <td class="min-w-60 p-3"><textarea rows="3" x-model="item.description" aria-label="{{ __('Perihal Barangan') }}" class="{{ $inputClass }}"></textarea></td>
                             <td class="min-w-32 p-3"><input type="number" min="1" step="1" x-model.number="item.quantity" aria-label="{{ __('Kuantiti') }}" class="{{ $inputClass }}"></td>
                             <td class="min-w-32 p-3"><input x-model="item.unit" aria-label="{{ __('Unit') }}" class="{{ $inputClass }}"></td>
-                            <td class="min-w-40 p-3"><input type="number" min="0" step="0.01" x-model.number="item.price" aria-label="{{ __('Harga Seunit (RM)') }}" class="{{ $inputClass }} appearance-none"></td>
+                            <td class="min-w-40 p-3"><input type="number" min="0" step="0.01" x-model.number="item.price" aria-label="{{ __('Harga Seunit (RM)') }}" class="{{ $inputClass }} price-input"></td>
                             <td class="whitespace-nowrap p-3" x-text="money(subtotal(item))"></td>
                             <td class="p-3"><button type="button" @click="items.splice(index, 1)" :disabled="items.length === 1" class="text-error-600 disabled:cursor-not-allowed disabled:opacity-40 dark:text-error-400">{{ __('Buang') }}</button></td>
                         </tr>
@@ -155,6 +157,11 @@
                 <div class="w-32"><input id="discount_percent" name="discount_percent" type="number" min="0" max="100" step="0.01" x-model.number="discount" class="{{ $inputClass }}"></div>
             </div>
             <div class="flex justify-between gap-4"><span>{{ __('Jumlah Diskaun') }}</span><span x-text="money(discountAmount)"></span></div>
+            <div class="flex items-center justify-between gap-4">
+                <label for="sst_percent">{{ __('SST (%)') }}</label>
+                <div class="w-32"><input id="sst_percent" name="sst_percent" type="number" min="0" max="100" step="0.01" x-model.number="sst" class="{{ $inputClass }}"></div>
+            </div>
+            <div class="flex justify-between gap-4"><span>{{ __('Jumlah SST') }}</span><span x-text="money(sstAmount)"></span></div>
             <div class="flex justify-between gap-4 border-t border-gray-200 pt-4 text-lg font-semibold dark:border-gray-700"><span>{{ __('Jumlah Bersih') }}</span><span x-text="money(net)"></span></div>
         </div>
     </x-common.document-card>

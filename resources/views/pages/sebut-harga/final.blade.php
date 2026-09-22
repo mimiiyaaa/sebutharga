@@ -13,33 +13,41 @@
         <div class="max-w-full overflow-x-auto">
         <table class="w-full text-theme-sm leading-6 text-gray-700 dark:text-gray-300">
             <thead class="border-y border-gray-100 bg-gray-50 dark:border-white/[0.05] dark:bg-gray-900"><tr>
-                @foreach (['No. Sebut Harga', 'Pelanggan', 'Draf', 'Tajuk', 'Tarikh', 'Jumlah (RM)', 'Tindakan'] as $label)
+                @foreach (['No. Sebut Harga', 'Pelanggan', 'Draf', 'Tajuk', 'Tarikh', 'Jumlah (RM)', 'Keputusan', 'Tindakan'] as $label)
                     <th class="px-6 py-3 text-start text-theme-sm font-semibold text-gray-500 dark:text-gray-400">{{ __($label) }}</th>
                 @endforeach
             </tr></thead>
             <tbody>
                 @forelse ($finals as $draft)
-                    @php($document = App\Helpers\QuotationDocument::data($draft))
+                    @php
+                        $document = App\Helpers\QuotationDocument::data($draft);
+                        $decision = empty($draft->sent_at)
+                            ? 'Belum Hantar'
+                            : ($draft->status_quotation === null
+                                ? 'Menunggu Keputusan'
+                                : ((int) $draft->status_quotation === 1 ? 'Setuju' : 'Tidak Setuju'));
+                        $decisionClass = match ($decision) {
+                            'Setuju' => 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400',
+                            'Tidak Setuju' => 'bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400',
+                            'Menunggu Keputusan' => 'bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400',
+                            default => 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+                        };
+                    @endphp
                     <tr x-show="matches({ customer: @js($document['company_name'] ?? $draft->company_name), date: @js($draft->quotation_date), title: @js($draft->quotation_title ?? '') })" class="border-b border-gray-100 hover:bg-gray-50 dark:border-white/[0.05] dark:hover:bg-white/[0.03]">
                         <td class="whitespace-nowrap px-4 py-3.5 font-medium text-gray-700 sm:px-6 dark:text-gray-400">{{ $draft->quotation_no }}</td>
                         <td class="px-4 py-3.5 text-gray-800 sm:px-6 dark:text-white/90">{{ $document['company_name'] ?? $draft->company_name }}</td>
-                        <td class="whitespace-nowrap px-4 py-3.5 sm:px-6">
-                            <select aria-label="{{ __('Versi Final') }}" onchange="window.location.href='{{ url('/sebut-harga') }}/{{ $draft->quotation_id }}/edit?draft=' + this.value + '&from=final'" class="h-10 min-w-32 rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
-                                @foreach ($draft->final_versions as $version)
-                                    <option value="{{ $version->quotation_detail_id }}" @selected($version->quotation_detail_id === $draft->quotation_detail_id)>{{ __('Versi') }} {{ $version->final_no ?? $version->draft_no }}</option>
-                                @endforeach
-                            </select>
-                        </td>
+                        <td class="whitespace-nowrap px-4 py-3.5 sm:px-6">{{ __('Draf') }} {{ $draft->draft_no }}</td>
                         <td class="px-4 py-3.5 text-gray-700 sm:px-6 dark:text-gray-400">{{ $draft->quotation_title }}</td>
                         <td class="whitespace-nowrap px-4 py-3.5 text-gray-700 sm:px-6 dark:text-gray-400">{{ $draft->quotation_date }}</td>
                         <td class="whitespace-nowrap px-4 py-3.5 tabular-nums text-gray-700 sm:px-6 dark:text-gray-400">{{ number_format($draft->jumlah_total, 2) }}</td>
+                        <td class="whitespace-nowrap px-4 py-3.5 sm:px-6"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium {{ $decisionClass }}">{{ __($decision) }}</span></td>
                         <td class="px-4 py-3.5 sm:px-6"><div class="flex items-center justify-end gap-2 whitespace-nowrap">
-                            <a href="{{ route('sebut-harga.edit', [$draft->quotation_id, 'draft'=>$draft->quotation_detail_id, 'from'=>'final']) }}" class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">{{ __('Lihat') }}</a>
-                            <a href="{{ route('sebut-harga.preview', [$draft->quotation_id, 'draft'=>$draft->quotation_detail_id, 'from'=>'final']) }}" class="inline-flex items-center rounded-lg border border-brand-200 px-3 py-1.5 text-xs font-medium text-brand-600 transition hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10">{{ __('Pratonton Dokumen') }}</a>
+                            <a href="{{ route('sebut-harga.edit', [$draft->quotation_id, 'draft' => $draft->quotation_detail_id, 'from' => 'final']) }}" class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">{{ __('Lihat') }}</a>
+                            <a href="{{ route('sebut-harga.preview', [$draft->quotation_id, 'draft' => $draft->quotation_detail_id, 'from' => 'final']) }}" class="inline-flex items-center rounded-lg border border-brand-200 px-3 py-1.5 text-xs font-medium text-brand-600 transition hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10">{{ __('Pratonton Dokumen') }}</a>
                         </div></td>
                     </tr>
                 @empty
-                    <tr><td colspan="7" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">{{ __('Tiada sebut harga dimuktamadkan.') }}</td></tr>
+                    <tr><td colspan="8" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">{{ __('Tiada sebut harga dimuktamadkan.') }}</td></tr>
                 @endforelse
             </tbody>
         </table>

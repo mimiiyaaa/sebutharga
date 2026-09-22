@@ -15,6 +15,7 @@ class PurchaseOrderController extends Controller
             ->join('customer_supplier as customer', 'customer.customer_id', '=', 'master.customer_id')
             ->where('customer.jenis_customer', 1)
             ->whereRaw('LOWER(TRIM(detail.status_draft)) = ?', ['final'])
+            ->whereNotNull('detail.sent_at')
             ->where('detail.status_quotation', 1)
             ->whereColumn('detail.quotation_detail_id', 'master.quotation_detail_id')
             ->orderByDesc('master.quotation_date')
@@ -92,6 +93,7 @@ class PurchaseOrderController extends Controller
             'customer_id'=>['required','integer',Rule::exists('customer_supplier','customer_id')->where('jenis_customer',2)],
             'po_date'=>'required|date','items_json'=>'required|json',
             'discount_percent'=>'nullable|numeric|min:0|max:100',
+            'sst_percent'=>'nullable|numeric|min:0|max:100',
             'delivery_address'=>'nullable|string','attention_supplier'=>'nullable|string|max:255',
             'attention_delivery'=>'nullable|string|max:255','terms_conditions'=>'nullable|string',
             'prepared_by'=>'nullable|string|max:255','approved_by'=>'nullable|string|max:255',
@@ -107,7 +109,10 @@ class PurchaseOrderController extends Controller
         ])->validate();
         $gross = collect($items)->sum(fn($i)=>round((int)$i['quantity']*(float)$i['price'],2));
         $discount = round($gross * (float)($data['discount_percent'] ?? 0) / 100, 2);
-        $request->merge(['discount_amount'=>$discount,'net_amount'=>round($gross-$discount,2)]);
+        $sstRate = (float) ($data['sst_percent'] ?? 0);
+        $sst = round(($gross - $discount) * $sstRate / 100, 2);
+        $net = round($gross - $discount + $sst, 2);
+        $request->merge(['discount_amount'=>$discount, 'sst_amount'=>$sst, 'net_amount'=>$net]);
         if ($request->input('_intent') === 'pdf') {
             $supplier = DB::table('customer_supplier')->where('customer_id',$data['customer_id'])->first();
             $order = (object) [
@@ -117,7 +122,7 @@ class PurchaseOrderController extends Controller
                 'attention_supplier'=>$request->attention_supplier, 'delivery_address'=>$request->delivery_address,
                 'attention_delivery'=>$request->attention_delivery, 'gross_amount'=>$gross,
                 'discount_percent'=>$data['discount_percent'] ?? 0, 'discount_amount'=>$discount,
-                'net_amount'=>round($gross-$discount,2), 'terms_conditions'=>$request->terms_conditions,
+                'sst_percent'=>$sstRate, 'sst_amount'=>$sst, 'net_amount'=>$net, 'terms_conditions'=>$request->terms_conditions,
                 'prepared_by'=>$request->prepared_by, 'approved_by'=>$request->approved_by,
             ];
             $document = $request->validate([
@@ -133,10 +138,10 @@ class PurchaseOrderController extends Controller
             return \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.purchase-order.pdf',compact('order','items','document'))
                 ->setPaper('a4')->setOption('isRemoteEnabled',false)->download($order->po_no.'.pdf');
         }
-        return DB::transaction(function () use ($request,$data,$items,$gross,$existing,$id) {
+        return DB::transaction(function () use ($request,$data,$items,$gross,$discount,$sstRate,$sst,$net,$existing,$id) {
         DB::table('sebutharga_master')->where('quotation_id',$data['quotation_id'])->lockForUpdate()->first();
         $poNo = $existing ? $existing->po_no : $this->nextPoNumber($data['po_date']);
-        $record = ['po_no'=>$poNo,'quotation_id'=>$data['quotation_id'],'quotation_detail_id'=>$data['quotation_detail_id'],'customer_id'=>$data['customer_id'],'po_date'=>$data['po_date'],'delivery_address'=>$request->delivery_address,'attention_supplier'=>$request->attention_supplier,'attention_delivery'=>$request->attention_delivery,'gross_amount'=>$gross,'discount_percent'=>$request->discount_percent ?? 0,'discount_amount'=>$request->discount_amount ?? 0,'net_amount'=>$request->net_amount ?? $gross,'terms_conditions'=>$request->terms_conditions,'prepared_by'=>$request->prepared_by,'approved_by'=>$request->approved_by,'updated_at'=>now()];
+        $record = ['po_no'=>$poNo,'quotation_id'=>$data['quotation_id'],'quotation_detail_id'=>$data['quotation_detail_id'],'customer_id'=>$data['customer_id'],'po_date'=>$data['po_date'],'delivery_address'=>$request->delivery_address,'attention_supplier'=>$request->attention_supplier,'attention_delivery'=>$request->attention_delivery,'gross_amount'=>$gross,'discount_percent'=>$data['discount_percent'] ?? 0,'discount_amount'=>$discount,'sst_percent'=>$sstRate,'sst_amount'=>$sst,'net_amount'=>$net,'terms_conditions'=>$request->terms_conditions,'prepared_by'=>$request->prepared_by,'approved_by'=>$request->approved_by,'updated_at'=>now()];
         if ($existing) {
             $record['updated_by']=$request->user()?->id;
             DB::table('purchase_order_master')->where('purchase_order_id',$id)->update($record);

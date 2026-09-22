@@ -3,12 +3,12 @@
 @import 'tailwindcss';
 
 /* Keep monetary fields clean while retaining numeric validation and keyboard input. */
-input.appearance-none[type='number'] {
+input.price-input[type='number'] {
   -moz-appearance: textfield;
 }
 
-input.appearance-none[type='number']::-webkit-outer-spin-button,
-input.appearance-none[type='number']::-webkit-inner-spin-button {
+input.price-input[type='number']::-webkit-outer-spin-button,
+input.price-input[type='number']::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }

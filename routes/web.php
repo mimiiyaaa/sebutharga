@@ -156,12 +156,9 @@ Route::get('/sebut-harga', function () {
             $quotationDrafts = $drafts->get($quotation->quotation_id, collect());
             $selectedDraft = $quotationDrafts->firstWhere('quotation_detail_id', $quotation->quotation_detail_id)
                 ?: $quotationDrafts->first();
-            $versionStatus = function ($draft) {
-                $status = $draft->status_quotation ?? null;
-                return $status === null
-                    ? (($draft->status_draft ?? null) === 'Final' ? 'Setuju' : 'Menunggu Keputusan')
-                    : ((int) $status === 1 ? 'Setuju' : 'Tidak Setuju');
-            };
+            $finalisationStatus = fn ($draft) => strtolower(trim((string) ($draft->status_draft ?? ''))) === 'final'
+                ? 'Sudah Difinalisekan'
+                : 'Belum Difinalisekan';
             $initials = collect(preg_split('/\s+/', trim($name)))
                 ->filter()
                 ->take(2)
@@ -185,14 +182,14 @@ Route::get('/sebut-harga', function () {
                     'title' => $draft->quotation_title ?? $quotation->quotation_title ?? '-',
                     'date' => $draft->quotation_date ?? $quotation->quotation_date,
                     'status' => $draft->status_draft === 'Final' ? 'Final' : 'Draf',
-                    'decision' => $versionStatus($draft),
+                    'decision' => $finalisationStatus($draft),
                     'selected' => $quotation->quotation_detail_id === $draft->quotation_detail_id,
                 ])->values(),
                 // Snapshot columns were added after existing records were created.
                 // Use master quotation values as the compatible fallback for old rows.
                 'closeDate' => $quotation->quotation_date,
-                'status' => ($selectedDraft->status_draft ?? null) === 'Final' ? 'Final' : 'Draf',
-                'decision' => $versionStatus($selectedDraft),
+                'status' => $finalisationStatus($selectedDraft),
+                'decision' => $finalisationStatus($selectedDraft),
             ];
         });
 
@@ -253,11 +250,28 @@ Route::get('/sebut-harga/create', function () {
         ->orderBy('company_name')
         ->get();
     $companies = DB::table('companies')->orderBy('nama_syarikat')->get();
+    $supplierQuotations = DB::table('pembekal_quotation_master')
+        ->orderByDesc('supplier_quotation_id')
+        ->get(['supplier_quotation_id', 'quotation_no_supplier', 'company_name', 'quotation_title'])
+        ->map(function ($supplierQuotation) {
+            $supplierQuotation->items = DB::table('pembekal_quotation_item')
+                ->where('supplier_quotation_id', $supplierQuotation->supplier_quotation_id)
+                ->orderBy('supplier_quotation_item_id')
+                ->get(['item_description', 'quantity', 'unit', 'unit_price'])
+                ->map(fn ($item) => [
+                    'description' => $item->item_description,
+                    'quantity' => $item->quantity,
+                    'unit' => $item->unit,
+                    'price' => $item->unit_price,
+                ])->values();
+            return $supplierQuotation;
+        })->values();
 
     return view('pages.sebut-harga.create', [
         'title' => 'Tambah Sebut Harga',
         'customers' => $customers,
         'companies' => $companies,
+        'supplierQuotations' => $supplierQuotations,
     ]);
 })->middleware('auth')->name('sebut-harga.create');
 
@@ -710,6 +724,11 @@ Route::patch('/sebut-harga/{id}/draft/{draftId}', function (\Illuminate\Http\Req
 
 Route::get('/sebut-harga-final', [\App\Http\Controllers\FinalQuotationController::class, 'index'])->middleware('auth')->name('sebut-harga.final');
 Route::post('/sebut-harga-final/{id}/{draftId}/new', [\App\Http\Controllers\FinalQuotationController::class, 'newVersion'])->whereNumber(['id', 'draftId'])->middleware('auth')->name('sebut-harga.final.new');
+Route::post('/sebut-harga/{id}/final/{draftId}/send', [\App\Http\Controllers\FinalQuotationController::class, 'send'])->whereNumber(['id', 'draftId'])->middleware('auth')->name('sebut-harga.final.send');
+Route::post('/sebut-harga/{id}/final/{draftId}/agree', fn (int $id, int $draftId) => app(\App\Http\Controllers\FinalQuotationController::class)->decide($id, $draftId, 1))->whereNumber(['id', 'draftId'])->middleware('auth')->name('sebut-harga.final.agree');
+Route::post('/sebut-harga/{id}/final/{draftId}/disagree', fn (int $id, int $draftId) => app(\App\Http\Controllers\FinalQuotationController::class)->decide($id, $draftId, 0))->whereNumber(['id', 'draftId'])->middleware('auth')->name('sebut-harga.final.disagree');
+Route::post('/sebut-harga/{id}/final/{draftId}/undo-decision', [\App\Http\Controllers\FinalQuotationController::class, 'undoDecision'])->whereNumber(['id', 'draftId'])->middleware('auth')->name('sebut-harga.final.undo-decision');
+Route::post('/sebut-harga/{id}/final/{draftId}/undo-send', [\App\Http\Controllers\FinalQuotationController::class, 'undoSend'])->whereNumber(['id', 'draftId'])->middleware('auth')->name('sebut-harga.final.undo-send');
 Route::post('/sebut-harga/{id}/draft/{draftId}/undo', [\App\Http\Controllers\FinalQuotationController::class, 'undo'])->middleware('auth')->name('sebut-harga.draft.undo');
 
 Route::post('/sebut-harga/{id}/draft/{draftId}/approve', function ($id, $draftId) {
@@ -722,20 +741,27 @@ Route::post('/sebut-harga/{id}/draft/{draftId}/approve', function ($id, $draftId
 
     DB::transaction(function () use ($id, $draftId, $draft) {
         $master = DB::table('sebutharga_master')->where('quotation_id', $id)->lockForUpdate()->first();
-        // Finalising a draft confirms it as the active quotation decision.
-        // Older drafts may have a null decision; treat the final action as approved.
-        $decision = $draft->status_quotation ?? $master?->status_quotation ?? 1;
+        // Finalising a draft creates a final quotation. Its customer decision is recorded only after it is sent.
+        $decision = null;
         $finalNo = ((int) DB::table('sebutharga_detail')
             ->where('quotation_id', $id)
             ->whereRaw('LOWER(TRIM(status_draft)) = ?', ['final'])
             ->max('final_no')) + 1;
         DB::table('sebutharga_detail')
             ->where('quotation_id', $id)
-            ->update(['status_draft' => 'Draf', 'updated_at' => now()]);
+            ->where('quotation_detail_id', '!=', $draftId)
+            ->whereRaw('LOWER(TRIM(status_draft)) = ?', ['final'])
+            ->update([
+                'status_draft' => 'Draf',
+                'final_no' => null,
+                'sent_at' => null,
+                'status_quotation' => null,
+                'updated_at' => now(),
+            ]);
 
         DB::table('sebutharga_detail')
             ->where('quotation_detail_id', $draftId)
-            ->update(['status_draft' => 'Final', 'final_no' => $finalNo, 'status_quotation' => $decision, 'updated_at' => now()]);
+            ->update(['status_draft' => 'Final', 'final_no' => $finalNo, 'sent_at' => null, 'status_quotation' => $decision, 'updated_at' => now()]);
 
         DB::table('sebutharga_master')
             ->where('quotation_id', $id)

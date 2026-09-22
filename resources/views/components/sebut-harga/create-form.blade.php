@@ -1,6 +1,7 @@
 @props([
     'customers' => collect(),
     'companies' => collect(),
+    'supplierQuotations' => collect(),
     'quotation' => null,
     'draft' => null,
     'editing' => false,
@@ -73,10 +74,24 @@
     },
     nextId: {{ $initialItems->count() + 1 }},
     items: @js($initialItems),
+    supplierQuotations: @js($supplierQuotations),
+    supplierQuotationId: '',
     subtotal(item) { return Math.round(Math.max(0, Number(item.quantity) || 0) * Math.max(0, Number(item.price) || 0) * 100) / 100 },
     get gross() { return this.items.reduce((sum, item) => sum + this.subtotal(item), 0) },
     money(value) { return new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(value) },
-    addItem() { this.items.push({ id: this.nextId++, description: '', quantity: 1, unit: '', price: 0 }) }
+    addItem() { this.items.push({ id: this.nextId++, description: '', quantity: 1, unit: '', price: 0 }) },
+    loadSupplierItems() {
+        const quotation = this.supplierQuotations.find(item => String(item.supplier_quotation_id) === String(this.supplierQuotationId));
+        if (!quotation) return;
+        this.items = quotation.items.map(item => ({
+            id: this.nextId++,
+            description: item.description || '',
+            quantity: Number(item.quantity) || 1,
+            unit: item.unit || '',
+            price: Number(item.price) || 0,
+        }));
+        if (this.items.length === 0) this.addItem();
+    }
 }">
     @csrf
     @if ($updateDraft && $isEditing)
@@ -166,6 +181,16 @@
         </div>
     </x-common.document-card>
     <x-common.document-card title="Item Sebut Harga">
+        <div class="mb-5 max-w-xl">
+            <label for="supplier_quotation_id" class="{{ $labelClass }}">{{ __('Sebut Harga Pembekal (Pilihan)') }}</label>
+            <select id="supplier_quotation_id" x-model="supplierQuotationId" @change="loadSupplierItems()" class="{{ $inputClass }}">
+                <option value="">{{ __('Isi item sendiri') }}</option>
+                <template x-for="supplierQuotation in supplierQuotations" :key="supplierQuotation.supplier_quotation_id">
+                    <option :value="supplierQuotation.supplier_quotation_id" x-text="`${supplierQuotation.quotation_no_supplier} — ${supplierQuotation.company_name}${supplierQuotation.quotation_title ? ` (${supplierQuotation.quotation_title})` : ''}`"></option>
+                </template>
+            </select>
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ __('Pilih sebut harga pembekal untuk memasukkan item secara automatik. Item masih boleh diedit.') }}</p>
+        </div>
         <div class="overflow-x-auto">
             <table class="w-full min-w-[900px] text-start text-theme-sm text-gray-700 dark:text-gray-300">
                 <thead class="bg-error-800 text-white dark:bg-error-900 dark:text-white">
@@ -182,7 +207,7 @@
                             <td class="min-w-60 p-3"><textarea :name="`items[${index}][description]`" x-model="item.description" rows="3" required class="{{ $inputClass }}" placeholder="Nama item / perkhidmatan"></textarea></td>
                             <td class="min-w-32 p-3"><input :name="`items[${index}][quantity]`" type="number" min="1" step="1" x-model.number="item.quantity" required class="{{ $inputClass }} text-center"></td>
                             <td class="min-w-32 p-3"><input :name="`items[${index}][unit]`" x-model="item.unit" required class="{{ $inputClass }} text-center" placeholder="Unit"></td>
-                            <td class="min-w-40 p-3"><input :name="`items[${index}][price]`" type="number" min="0" step="0.01" x-model.number="item.price" required class="{{ $inputClass }} appearance-none text-end"></td>
+                            <td class="min-w-40 p-3"><input :name="`items[${index}][price]`" type="number" min="0" step="0.01" x-model.number="item.price" required class="{{ $inputClass }} price-input text-end"></td>
                             <td class="whitespace-nowrap p-3" x-text="money(subtotal(item))"></td>
                             <td class="p-3"><button type="button" @click="items.splice(index, 1)" :disabled="items.length === 1" class="text-error-600 disabled:cursor-not-allowed disabled:opacity-40 dark:text-error-400">Buang</button></td>
                         </tr>

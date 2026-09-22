@@ -15,6 +15,7 @@
     </div>
     <p>{{ __('Jumlah Kasar') }}: RM {{ number_format($order->gross_amount,2) }}</p>
     <p>{{ __('Jumlah Diskaun') }}: RM {{ number_format($order->discount_amount,2) }}</p>
+    <p>{{ __('SST') }} ({{ (float) $order->sst_percent }}%): RM {{ number_format($order->sst_amount,2) }}</p>
     <p class="font-semibold">{{ __('Jumlah Bersih') }}: RM {{ number_format($order->net_amount,2) }}</p>
     <p class="whitespace-pre-line">{{ $order->terms_conditions }}</p>
     <p>{{ __('Disediakan Oleh') }}: {{ $order->prepared_by }}</p>

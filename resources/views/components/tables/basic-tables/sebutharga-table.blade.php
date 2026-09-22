@@ -25,11 +25,8 @@
     },
     getStatusClass(status) {
         const classes = {
-            'Final': 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400',
-            'Draf': 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-400',
-            'Setuju': 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400',
-            'Menunggu Keputusan': 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-400',
-            'Tidak Setuju': 'bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400',
+            'Sudah Difinalisekan': 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400',
+            'Belum Difinalisekan': 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-400',
         };
         return classes[status] || '';
     }
@@ -46,8 +43,8 @@
                     </button>
                     <div x-show="statusOpen" x-cloak x-transition.origin.top class="absolute start-0 top-full z-999 mt-2 w-full min-w-36 overflow-hidden rounded-xl border border-gray-200 bg-white p-1.5 shadow-theme-lg dark:border-gray-700 dark:bg-gray-800" role="listbox" aria-label="Pilihan status">
                         <button type="button" @click="filters.status = ''; statusOpen = false" :class="filters.status === '' ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300' : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.05]'" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-start text-theme-sm font-medium transition">Semua status<span x-show="filters.status === ''" class="text-brand-500">✓</span></button>
-                        <button type="button" @click="filters.status = 'Draf'; statusOpen = false" :class="filters.status === 'Draf' ? 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-300' : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.05]'" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-start text-theme-sm font-medium transition">Draf<span x-show="filters.status === 'Draf'" class="text-warning-500">✓</span></button>
-                        <button type="button" @click="filters.status = 'Final'; statusOpen = false" :class="filters.status === 'Final' ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-300' : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.05]'" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-start text-theme-sm font-medium transition">Final<span x-show="filters.status === 'Final'" class="text-success-500">✓</span></button>
+                        <button type="button" @click="filters.status = 'Belum Difinalisekan'; statusOpen = false" :class="filters.status === 'Belum Difinalisekan' ? 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-300' : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.05]'" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-start text-theme-sm font-medium transition">Belum Difinalisekan<span x-show="filters.status === 'Belum Difinalisekan'" class="text-warning-500">✓</span></button>
+                        <button type="button" @click="filters.status = 'Sudah Difinalisekan'; statusOpen = false" :class="filters.status === 'Sudah Difinalisekan' ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-300' : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.05]'" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-start text-theme-sm font-medium transition">Sudah Difinalisekan<span x-show="filters.status === 'Sudah Difinalisekan'" class="text-success-500">✓</span></button>
                     </div>
                 </div>
                 <input id="draft_filter_date" x-model="filters.date" type="date" aria-label="Tarikh" class="h-11 w-44 shrink-0 rounded-lg border-0 bg-white px-3 text-theme-sm text-gray-700 shadow-theme-xs focus:ring-2 focus:ring-brand-500/20 dark:bg-gray-800 dark:text-gray-300">

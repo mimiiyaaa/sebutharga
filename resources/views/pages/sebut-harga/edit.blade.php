@@ -38,8 +38,33 @@
                         @else
                             <form method="POST" action="{{ route('sebut-harga.final.new', [$quotation->quotation_id, $draft->quotation_detail_id]) }}">
                                 @csrf
-                                <button type="submit" class="inline-flex h-11 items-center rounded-lg border border-brand-300 px-4 text-sm font-medium text-brand-600 transition hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10">{{ __('Edit Versi Baharu') }}</button>
+                                <button type="submit" class="inline-flex h-11 items-center rounded-lg border border-brand-300 px-4 text-sm font-medium text-brand-600 transition hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10">{{ __('Cipta Draf Baharu') }}</button>
                             </form>
+                            @if (empty($draft->sent_at))
+                                <form method="POST" action="{{ route('sebut-harga.final.send', [$quotation->quotation_id, $draft->quotation_detail_id]) }}" @submit.prevent="$dispatch('confirm-action', { form: $el, message: 'Hantar sebut harga ini kepada pelanggan?', button: 'Hantar' })">
+                                    @csrf
+                                    <button type="submit" class="inline-flex h-11 items-center rounded-lg bg-brand-500 px-4 text-sm font-medium text-white transition hover:bg-brand-600">{{ __('Hantar') }}</button>
+                                </form>
+                            @elseif ($draft->status_quotation === null)
+                                <form method="POST" action="{{ route('sebut-harga.final.agree', [$quotation->quotation_id, $draft->quotation_detail_id]) }}" @submit.prevent="$dispatch('confirm-action', { form: $el, message: 'Tandakan sebut harga ini sebagai setuju?', button: 'Setuju' })">
+                                    @csrf
+                                    <button type="submit" class="inline-flex h-11 items-center rounded-lg bg-success-500 px-4 text-sm font-medium text-white transition hover:bg-success-600">{{ __('Setuju') }}</button>
+                                </form>
+                                <form method="POST" action="{{ route('sebut-harga.final.disagree', [$quotation->quotation_id, $draft->quotation_detail_id]) }}" @submit.prevent="$dispatch('confirm-action', { form: $el, message: 'Tandakan sebut harga ini sebagai tidak setuju?', button: 'Tidak Setuju' })">
+                                    @csrf
+                                    <button type="submit" class="inline-flex h-11 items-center rounded-lg border border-error-300 px-4 text-sm font-medium text-error-600 transition hover:bg-error-50 dark:border-error-700 dark:text-error-400 dark:hover:bg-error-500/10">{{ __('Tidak Setuju') }}</button>
+                                </form>
+                                <form method="POST" action="{{ route('sebut-harga.final.undo-send', [$quotation->quotation_id, $draft->quotation_detail_id]) }}">
+                                    @csrf
+                                    <button type="submit" class="inline-flex h-11 items-center rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Undo Hantar') }}</button>
+                                </form>
+                            @else
+                                <span class="inline-flex h-11 items-center rounded-lg {{ (int) $draft->status_quotation === 1 ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400' : 'bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400' }} px-4 text-sm font-medium">{{ (int) $draft->status_quotation === 1 ? __('Setuju') : __('Tidak Setuju') }}</span>
+                                <form method="POST" action="{{ route('sebut-harga.final.undo-decision', [$quotation->quotation_id, $draft->quotation_detail_id]) }}">
+                                    @csrf
+                                    <button type="submit" class="inline-flex h-11 items-center rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Undo Keputusan') }}</button>
+                                </form>
+                            @endif
                             <span class="inline-flex h-11 items-center rounded-lg bg-success-50 px-4 text-sm font-medium text-success-700 dark:bg-success-500/15 dark:text-success-400">{{ __('Final') }} {{ $draft->final_no ?? $draft->draft_no }}</span>
                         @endif
                     </div>
@@ -81,6 +106,23 @@
                         <div><p class="text-sm text-gray-500 dark:text-gray-400">{{ __('Nama Syarikat') }}</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $value('disediakan_company_name', $quotation->nama_syarikat) }}</p></div>
                         <div><p class="text-sm text-gray-500 dark:text-gray-400">{{ __('Diterima Oleh') }}</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $draft->diterima_oleh ?: '—' }}</p></div>
                     </div>
+                </section>
+            </div>
+        </div>
+
+        <div x-show="!editing" x-cloak class="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+            <div class="border-b border-gray-100 px-6 py-5 dark:border-gray-800">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ __('Maklumat Tambahan') }}</h3>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('Maklumat dalaman ini dipaparkan dalam sistem sahaja dan tidak dimasukkan ke dalam PDF.') }}</p>
+            </div>
+            <div class="grid grid-cols-1 gap-6 p-6 lg:grid-cols-2">
+                <section>
+                    <h4 class="mb-3 text-base font-semibold text-gray-800 dark:text-white/90">{{ __('Maklumat Tambahan') }}</h4>
+                    <p class="whitespace-pre-line break-words text-base leading-6 text-gray-700 dark:text-gray-300">{{ filled($document['maklumat_tambahan'] ?? null) ? $document['maklumat_tambahan'] : '—' }}</p>
+                </section>
+                <section class="border-t border-gray-100 pt-6 dark:border-gray-800 lg:border-t-0 lg:border-s lg:ps-6 lg:pt-0">
+                    <h4 class="mb-3 text-base font-semibold text-gray-800 dark:text-white/90">{{ __('Catatan') }}</h4>
+                    <p class="whitespace-pre-line break-words text-base leading-6 text-gray-700 dark:text-gray-300">{{ filled($document['catatan'] ?? null) ? $document['catatan'] : '—' }}</p>
                 </section>
             </div>
         </div>
@@ -130,13 +172,12 @@
         </div>
 
         <div x-show="!editing" x-cloak class="flex justify-end">
-            <a href="{{ route(request('from') === 'final' ? 'sebut-harga.final' : 'sebut-harga') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
+            <a href="{{ request('from') === 'final' ? route('sebut-harga.final', ['draft' => $draft->quotation_detail_id]) : route('sebut-harga') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
         </div>
 
         <div x-show="editing && editMode === 'existing'" x-cloak class="space-y-6">
             <div class="flex items-center justify-between gap-4">
                 <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ __('Kemaskini Sebut Harga') }}</h2>
-                <button type="button" @click="editing = false" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</button>
             </div>
             <x-sebut-harga.create-form
                 :customers="$customers"
@@ -151,7 +192,6 @@
         <div x-show="editing && editMode === 'new'" x-cloak class="space-y-6">
             <div class="flex items-center justify-between gap-4">
                 <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">Draf Baharu</h2>
-                <button type="button" @click="editing = false" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">Kembali</button>
             </div>
             <x-sebut-harga.create-form
                 :customers="$customers"
