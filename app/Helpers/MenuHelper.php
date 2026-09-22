@@ -43,8 +43,8 @@ class MenuHelper
                 'icon' => 'pages',
                 'name' => 'Sebut Harga',
                 'subItems' => [
-                    ['name' => 'Sebut Harga Draf', 'path' => '/sebut-harga'],
                     ['name' => 'Sebut Harga Pembekal', 'path' => '/sebut-harga-pembekal'],
+                    ['name' => 'Sebut Harga Draf', 'path' => '/sebut-harga'],
                     ['name' => 'Sebut Harga Final', 'path' => '/sebut-harga-final'],
                 ],
             ],
