@@ -442,6 +442,11 @@ Route::post('/sebut-harga/{id}/draft', function (\Illuminate\Http\Request $reque
                 'updated_at' => now(),
             ]);
             DB::table('sebutharga_detail')->where('quotation_detail_id', $draftId)->update([
+                'quotation_date' => $validated['quotation_date'],
+                'customer_id' => $validated['customer_id'],
+                'quotation_title' => $validated['quotation_title'] ?? null,
+                'no_rujukan_pelanggan' => $customerReference,
+                'status_quotation' => null,
                 'jumlah_total' => $total,
                 'terma_syarat' => \App\Helpers\QuotationTerms::fromRequest($request),
                 'document_data' => \App\Helpers\QuotationDocument::capture($request),
@@ -549,6 +554,12 @@ Route::get('/sebut-harga/{id}/edit', function ($id) {
     $quotation->customer_id = ($draft->customer_id ?? null) ?: $quotation->customer_id;
     $quotation->no_rujukan_pelanggan = ($draft->no_rujukan_pelanggan ?? null) ?: $quotation->no_rujukan_pelanggan;
     $quotation->status_quotation = $draft->status_quotation;
+    $draftCustomer = DB::table('customer_supplier')->where('customer_id', $quotation->customer_id)->first();
+    if ($draftCustomer) {
+        foreach (['customer_name', 'company_name', 'phone_no', 'email', 'address'] as $field) {
+            $quotation->$field = $draftCustomer->$field;
+        }
+    }
     $draft->items = DB::table('sebutharga_item')->where('quotation_detail_id', $draft->quotation_detail_id)->get();
     $customers = DB::table('customer_supplier')->where('jenis_customer', 1)->orderBy('company_name')->get();
     $companies = DB::table('companies')->orderBy('nama_syarikat')->get();
@@ -574,6 +585,15 @@ Route::get('/sebut-harga/{id}/preview', function ($id) {
     abort_unless($draft, 404);
     foreach (['quotation_date', 'quotation_title', 'no_rujukan_pelanggan'] as $field) {
         $quotation->$field = $draft->$field ?? $quotation->$field;
+    }
+    if ($draft->customer_id) {
+        $draftCustomer = DB::table('customer_supplier')->where('customer_id', $draft->customer_id)->first();
+        if ($draftCustomer) {
+            $quotation->customer_id = $draftCustomer->customer_id;
+            foreach (['customer_name', 'company_name', 'address', 'phone_no', 'email'] as $field) {
+                $quotation->$field = $draftCustomer->$field;
+            }
+        }
     }
     $draft->items = DB::table('sebutharga_item')->where('quotation_detail_id', $draft->quotation_detail_id)->get();
     return view('pages.sebut-harga.preview', compact('quotation', 'draft'));
@@ -618,6 +638,11 @@ Route::patch('/sebut-harga/{id}', function (\Illuminate\Http\Request $request, $
         ]);
 
         DB::table('sebutharga_detail')->where('quotation_detail_id', $draftId)->update([
+            'quotation_date' => $validated['quotation_date'],
+            'customer_id' => $validated['customer_id'],
+            'quotation_title' => $validated['quotation_title'] ?? null,
+            'no_rujukan_pelanggan' => $customerReference,
+            'status_quotation' => $validated['status_quotation'] ?? null,
             'draft_name' => null,
             'jumlah_total' => $total,
             'terma_syarat' => \App\Helpers\QuotationTerms::fromRequest($request),
