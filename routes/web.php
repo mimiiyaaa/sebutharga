@@ -180,7 +180,7 @@ Route::get('/sebut-harga', function () {
                 'initials' => $initials ?: '?',
                 'avatarBg' => 'bg-brand-50',
                 'avatarColor' => 'text-brand-500',
-                'product' => $quotation->quotation_title ?: '-',
+                'product' => $selectedDraft?->quotation_title ?: ($quotation->quotation_title ?: '-'),
                 'version' => $selectedDraft?->quotation_detail_id ?: 1,
                 'versions' => $quotationDrafts->map(fn ($draft) => [
                     'id' => $draft->quotation_detail_id,
