@@ -14,6 +14,7 @@
     @php
         $issuer = ['Nama Syarikat' => config('purchase_order.issuer_name'), 'Nombor Telefon' => config('purchase_order.issuer_phone'), 'E-mel' => config('purchase_order.issuer_email'), 'Alamat Syarikat' => config('purchase_order.issuer_address')];
         $supplier = ['Nama Syarikat' => $order->company_name, 'Nombor Telefon' => $order->supplier_phone, 'Untuk Perhatian' => $order->attention_supplier, 'Alamat' => $order->supplier_address];
+        $termsConditions = preg_replace('/^\s*\d+\.\s*$/m', '', (string) $order->terms_conditions);
     @endphp
 
     <section class="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
@@ -51,7 +52,7 @@
                 <div class="grid grid-cols-1 gap-5 sm:grid-cols-2"><div><p class="text-sm text-gray-500 dark:text-gray-400">{{ __('Disediakan Oleh') }}</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $order->prepared_by ?: '—' }}</p></div><div><p class="text-sm text-gray-500 dark:text-gray-400">{{ __('Diluluskan Oleh') }}</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $order->approved_by ?: '—' }}</p></div></div>
             </section>
         </div>
-        <div class="border-t border-gray-100 p-6 dark:border-gray-800"><h3 class="mb-3 text-base font-semibold text-gray-800 dark:text-white/90">{{ __('Terma dan Syarat Pembelian') }}</h3><p class="whitespace-pre-line text-base leading-6 text-gray-700 dark:text-gray-300">{{ $order->terms_conditions ?: '—' }}</p></div>
+        <div class="border-t border-gray-100 p-6 dark:border-gray-800"><h3 class="mb-3 text-base font-semibold text-gray-800 dark:text-white/90">{{ __('Terma dan Syarat Pembelian') }}</h3><p class="whitespace-pre-line text-base leading-6 text-gray-700 dark:text-gray-300">{{ trim($termsConditions) ?: '—' }}</p></div>
     </section>
 
     <section class="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">

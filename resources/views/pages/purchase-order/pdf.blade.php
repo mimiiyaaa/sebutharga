@@ -49,7 +49,7 @@
         <tbody>@foreach($items as $item)<tr><td class="center">{{ $loop->iteration }}</td><td class="lines">{{ $item->item_description }}</td><td class="center">{{ $item->quantity }}</td><td class="center">{{ $item->unit }}</td><td class="right">{{ number_format($item->unit_price,2) }}</td><td class="right">{{ number_format($item->subtotal,2) }}</td></tr>@endforeach</tbody>
     </table>
     <table class="totals"><tr><td class="right">JUMLAH KASAR:</td><td width="18%" class="right">{{ number_format($order->gross_amount,2) }}</td></tr><tr><td class="right">DISKAUN PUKAL ({{ (float)$order->discount_percent }}%):</td><td class="right">{{ number_format($order->discount_amount,2) }}</td></tr><tr><td class="right">SST ({{ (float)$order->sst_percent }}%):</td><td class="right">{{ number_format($order->sst_amount,2) }}</td></tr><tr><td class="right">JUMLAH BERSIH:</td><td class="right net">{{ number_format($order->net_amount,2) }}</td></tr></table>
-    <div class="terms"><h3>TERMA &amp; SYARAT PEMBELIAN (TERMS &amp; CONDITIONS):</h3><div class="lines">{{ $order->terms_conditions }}</div></div>
+    <div class="terms"><h3>TERMA &amp; SYARAT PEMBELIAN (TERMS &amp; CONDITIONS):</h3><div class="lines">{{ trim(preg_replace('/^\s*\d+\.\s*$/m', '', (string) $order->terms_conditions)) }}</div></div>
         <table class="signatures"><tr><td><strong>Disediakan Oleh:</strong><div class="signature">
             @if($order->prepared_by){{ $order->prepared_by }}<br>@endif
             @if(!empty($document['prepared_role'])){{ $document['prepared_role'] }}@endif

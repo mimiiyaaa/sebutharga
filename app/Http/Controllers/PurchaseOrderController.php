@@ -171,6 +171,7 @@ class PurchaseOrderController extends Controller
         ];
 
         $additional = trim((string) ($data['additional_terms'] ?? ''));
+        $additional = preg_match('/^\d+\.\s*$/', $additional) ? '' : $additional;
         return implode("\n", $terms).($additional !== '' ? "\n".$additional : '');
     }
 }

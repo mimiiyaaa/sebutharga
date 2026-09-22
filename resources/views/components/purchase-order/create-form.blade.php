@@ -185,7 +185,7 @@
             <p>3. {{ __('Sila hantar bekalan dalam tempoh') }} <span class="font-semibold" x-text="periods.delivery || '—'"></span> {{ __('hari bekerja dari tarikh dokumen ini dikeluarkan.') }}</p>
             <p>4. {{ __('Pembayaran penuh akan diproses dalam tempoh') }} <span class="font-semibold" x-text="periods.payment || '—'"></span> {{ __('hari (Kredit) selepas pengesahan penerimaan DO & Invois.') }}</p>
         </div>
-        <div><label for="additional_terms" class="{{ $labelClass }}">{{ __('Terma Tambahan') }}</label><textarea id="additional_terms" name="additional_terms" rows="4" maxlength="10000" @keydown.enter.prevent="insertNextTerm($event)" class="{{ $inputClass }}">{{ old('additional_terms', $additionalTerms ?: '5. ') }}</textarea><p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('Tekan Enter untuk sambung nombor terma secara automatik bermula daripada 5.') }}</p></div>
+        <div><label for="additional_terms" class="{{ $labelClass }}">{{ __('Terma Tambahan') }}</label><textarea id="additional_terms" name="additional_terms" rows="4" maxlength="10000" @keydown.enter.prevent="insertNextTerm($event)" class="{{ $inputClass }}">{{ old('additional_terms', $additionalTerms) }}</textarea><p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('Tekan Enter untuk sambung nombor terma secara automatik bermula daripada 5.') }}</p></div>
     </x-common.document-card>
     <x-common.document-card :title="__('Pengesahan PO')">
         <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
