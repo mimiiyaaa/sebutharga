@@ -44,17 +44,9 @@ class PurchaseOrderController extends Controller
             return redirect()->route('purchase-order.create')->withErrors(['quotation_detail_id' => __('Sila pilih sebut harga Final yang dipersetujui.')]);
         }
 
-        $initialItems = DB::table('sebutharga_item')
-            ->where('quotation_detail_id', $quotation->quotation_detail_id)
-            ->orderBy('quotation_item_id')
-            ->get()
-            ->map(fn ($item, $index) => [
-                'id' => $index + 1,
-                'description' => $item->item_description,
-                'quantity' => $item->quantity,
-                'unit' => $item->unit,
-                'price' => $item->unit_price,
-            ])->values()->all();
+        // Sebut harga hanya digunakan sebagai rujukan untuk PO. Item PO baharu
+        // bermula kosong supaya pengguna boleh mengisinya sendiri.
+        $initialItems = [];
 
         return view('pages.purchase-order.create', [
             'title' => 'Tambah PO',
@@ -68,7 +60,7 @@ class PurchaseOrderController extends Controller
         ]);
     }
 
-    public function edit(int $id)
+    public function edit(Request $request, int $id)
     {
         $order = DB::table('purchase_order_master')->where('purchase_order_id', $id)->first();
         abort_unless($order, 404);
@@ -76,6 +68,7 @@ class PurchaseOrderController extends Controller
             ->get()->map(fn ($item, $index) => ['id'=>$index+1, 'description'=>$item->item_description, 'quantity'=>$item->quantity, 'unit'=>$item->unit, 'price'=>$item->unit_price])->all();
         return view('pages.purchase-order.edit', [
             'order'=>$order, 'items'=>$items,
+            'returnToDetail'=>$request->query('from') === 'show',
             'suppliers'=>DB::table('customer_supplier')->where('jenis_customer',2)->orderBy('company_name')->get(),
         ]);
     }
@@ -95,10 +88,14 @@ class PurchaseOrderController extends Controller
             'discount_percent'=>'nullable|numeric|min:0|max:100',
             'sst_percent'=>'nullable|numeric|min:0|max:100',
             'delivery_address'=>'nullable|string','attention_supplier'=>'nullable|string|max:255',
-            'attention_delivery'=>'nullable|string|max:255','terms_conditions'=>'nullable|string',
+            'attention_delivery'=>'nullable|string|max:255',
+            'delivery_days'=>'required|integer|min:1|max:3650',
+            'payment_days'=>'required|integer|min:1|max:3650',
+            'additional_terms'=>'nullable|string|max:10000',
             'prepared_by'=>'nullable|string|max:255','approved_by'=>'nullable|string|max:255',
         ]);
         $items = json_decode($data['items_json'], true);
+        $termsConditions = $this->termsConditions($data);
         if (! $existing) {
             abort_unless($this->finalQuotations()->where('detail.quotation_detail_id', $data['quotation_detail_id'])->exists(), 422, __('Sila pilih sebut harga Final yang dipersetujui.'));
         }
@@ -122,7 +119,7 @@ class PurchaseOrderController extends Controller
                 'attention_supplier'=>$request->attention_supplier, 'delivery_address'=>$request->delivery_address,
                 'attention_delivery'=>$request->attention_delivery, 'gross_amount'=>$gross,
                 'discount_percent'=>$data['discount_percent'] ?? 0, 'discount_amount'=>$discount,
-                'sst_percent'=>$sstRate, 'sst_amount'=>$sst, 'net_amount'=>$net, 'terms_conditions'=>$request->terms_conditions,
+                'sst_percent'=>$sstRate, 'sst_amount'=>$sst, 'net_amount'=>$net, 'terms_conditions'=>$termsConditions,
                 'prepared_by'=>$request->prepared_by, 'approved_by'=>$request->approved_by,
             ];
             $document = $request->validate([
@@ -138,10 +135,10 @@ class PurchaseOrderController extends Controller
             return \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.purchase-order.pdf',compact('order','items','document'))
                 ->setPaper('a4')->setOption('isRemoteEnabled',false)->download($order->po_no.'.pdf');
         }
-        return DB::transaction(function () use ($request,$data,$items,$gross,$discount,$sstRate,$sst,$net,$existing,$id) {
+        return DB::transaction(function () use ($request,$data,$items,$gross,$discount,$sstRate,$sst,$net,$existing,$id,$termsConditions) {
         DB::table('sebutharga_master')->where('quotation_id',$data['quotation_id'])->lockForUpdate()->first();
         $poNo = $existing ? $existing->po_no : $this->nextPoNumber($data['po_date']);
-        $record = ['po_no'=>$poNo,'quotation_id'=>$data['quotation_id'],'quotation_detail_id'=>$data['quotation_detail_id'],'customer_id'=>$data['customer_id'],'po_date'=>$data['po_date'],'delivery_address'=>$request->delivery_address,'attention_supplier'=>$request->attention_supplier,'attention_delivery'=>$request->attention_delivery,'gross_amount'=>$gross,'discount_percent'=>$data['discount_percent'] ?? 0,'discount_amount'=>$discount,'sst_percent'=>$sstRate,'sst_amount'=>$sst,'net_amount'=>$net,'terms_conditions'=>$request->terms_conditions,'prepared_by'=>$request->prepared_by,'approved_by'=>$request->approved_by,'updated_at'=>now()];
+        $record = ['po_no'=>$poNo,'quotation_id'=>$data['quotation_id'],'quotation_detail_id'=>$data['quotation_detail_id'],'customer_id'=>$data['customer_id'],'po_date'=>$data['po_date'],'delivery_address'=>$request->delivery_address,'attention_supplier'=>$request->attention_supplier,'attention_delivery'=>$request->attention_delivery,'gross_amount'=>$gross,'discount_percent'=>$data['discount_percent'] ?? 0,'discount_amount'=>$discount,'sst_percent'=>$sstRate,'sst_amount'=>$sst,'net_amount'=>$net,'terms_conditions'=>$termsConditions,'prepared_by'=>$request->prepared_by,'approved_by'=>$request->approved_by,'updated_at'=>now()];
         if ($existing) {
             $record['updated_by']=$request->user()?->id;
             DB::table('purchase_order_master')->where('purchase_order_id',$id)->update($record);
@@ -150,7 +147,8 @@ class PurchaseOrderController extends Controller
             $id=DB::table('purchase_order_master')->insertGetId($record+['status_po'=>'Draf','created_at'=>now(),'created_by'=>$request->user()?->id]);
         }
         foreach($items as $item) DB::table('purchase_order_item')->insert(['purchase_order_id'=>$id,'item_description'=>$item['description']??'','quantity'=>$item['quantity']??0,'unit'=>$item['unit']??'','unit_price'=>$item['price']??0,'subtotal'=>($item['quantity']??0)*($item['price']??0),'created_at'=>now(),'updated_at'=>now()]);
-        return redirect()->route('purchase-order.index')->with('success', "PO {$poNo} berjaya disimpan.");
+        return redirect()->route($existing && $request->input('from') === 'show' ? 'purchase-order.show' : 'purchase-order.index', $existing && $request->input('from') === 'show' ? $id : [])
+            ->with('success', "PO {$poNo} berjaya disimpan.");
         });
     }
 
@@ -161,5 +159,18 @@ class PurchaseOrderController extends Controller
         $last = DB::table('purchase_order_master')->where('po_no', 'like', $prefix.'%')->orderByDesc('po_no')->value('po_no');
         $next = $last ? ((int) substr($last, -3)) + 1 : 1;
         return $prefix.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+    }
+
+    private function termsConditions(array $data): string
+    {
+        $terms = [
+            '1. Sila nyatakan nombor Purchase Order (PO) ini di dalam Invois dan Nota Serahan (DO) rasmi anda.',
+            '2. Penghantaran mestilah menepati spesifikasi teknikal yang dipesan. Barangan rosak/salah akan dipulangkan.',
+            "3. Sila hantar bekalan dalam tempoh {$data['delivery_days']} hari bekerja dari tarikh dokumen ini dikeluarkan.",
+            "4. Pembayaran penuh akan diproses dalam tempoh {$data['payment_days']} hari (Kredit) selepas pengesahan penerimaan DO & Invois.",
+        ];
+
+        $additional = trim((string) ($data['additional_terms'] ?? ''));
+        return implode("\n", $terms).($additional !== '' ? "\n".$additional : '');
     }
 }

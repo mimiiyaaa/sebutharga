@@ -119,12 +119,19 @@ Route::get('/purchase-order/{id}/pdf', function ($id) {
 Route::get('/purchase-order/{id}/edit', [\App\Http\Controllers\PurchaseOrderController::class, 'edit'])->whereNumber('id')->middleware('auth')->name('purchase-order.edit');
 Route::put('/purchase-order/{id}', [\App\Http\Controllers\PurchaseOrderController::class, 'store'])->whereNumber('id')->middleware('auth')->name('purchase-order.update');
 
-Route::get('/purchase-order/{id}', function ($id) {
-    $order = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier','supplier.customer_id','=','po.customer_id')->leftJoin('sebutharga_master as quotation','quotation.quotation_id','=','po.quotation_id')->where('po.purchase_order_id',$id)->select('po.*','quotation.quotation_no as quotation_reference_no','supplier.company_name','supplier.address as supplier_address','supplier.phone_no as supplier_phone')->first();
+Route::get('/purchase-order/{id}/preview', function ($id) {
+    $order = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier','supplier.customer_id','=','po.customer_id')->leftJoin('sebutharga_master as quotation','quotation.quotation_id','=','po.quotation_id')->leftJoin('users as creator', 'creator.id', '=', 'po.created_by')->where('po.purchase_order_id',$id)->select('po.*','quotation.quotation_no as quotation_reference_no','supplier.company_name','supplier.address as supplier_address','supplier.phone_no as supplier_phone','creator.name as creator_name','creator.email as creator_email')->first();
     abort_unless($order,404);
     $items = DB::table('purchase_order_item')->where('purchase_order_id',$id)->orderBy('po_item_id')->get();
     return view('pages.purchase-order.preview', compact('order','items'));
-})->middleware('auth')->name('purchase-order.show');
+})->whereNumber('id')->middleware('auth')->name('purchase-order.preview');
+
+Route::get('/purchase-order/{id}', function ($id) {
+    $order = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier','supplier.customer_id','=','po.customer_id')->leftJoin('sebutharga_master as quotation','quotation.quotation_id','=','po.quotation_id')->leftJoin('users as creator', 'creator.id', '=', 'po.created_by')->where('po.purchase_order_id',$id)->select('po.*','quotation.quotation_no as quotation_reference_no','supplier.company_name','supplier.address as supplier_address','supplier.phone_no as supplier_phone','creator.name as creator_name','creator.email as creator_email')->first();
+    abort_unless($order,404);
+    $items = DB::table('purchase_order_item')->where('purchase_order_id',$id)->orderBy('po_item_id')->get();
+    return view('pages.purchase-order.show', compact('order','items'));
+})->whereNumber('id')->middleware('auth')->name('purchase-order.show');
 Route::delete('/purchase-order/{id}', function ($id) { DB::table('purchase_order_item')->where('purchase_order_id',$id)->delete(); DB::table('purchase_order_master')->where('purchase_order_id',$id)->delete(); return redirect()->route('purchase-order.index'); })->middleware('auth')->name('purchase-order.delete');
 
 Route::get('/sebut-harga', function () {
@@ -586,6 +593,9 @@ Route::get('/sebut-harga/{id}/edit', function ($id) {
     $draft->items = DB::table('sebutharga_item')->where('quotation_detail_id', $draft->quotation_detail_id)->get();
     $customers = DB::table('customer_supplier')->where('jenis_customer', 1)->orderBy('company_name')->get();
     $companies = DB::table('companies')->orderBy('nama_syarikat')->get();
+    $createdBy = $draft->created_by
+        ? DB::table('users')->where('id', $draft->created_by)->first(['name', 'email'])
+        : null;
 
     return view('pages.sebut-harga.edit', [
         'title' => 'Edit Sebut Harga',
@@ -593,6 +603,7 @@ Route::get('/sebut-harga/{id}/edit', function ($id) {
         'draft' => $draft,
         'customers' => $customers,
         'companies' => $companies,
+        'createdBy' => $createdBy,
     ]);
 })->middleware('auth')->name('sebut-harga.edit');
 

@@ -1,0 +1,6 @@
+@props(['name' => null, 'email' => null, 'createdAt' => null, 'documentLabel' => 'rekod ini'])
+
+<div x-cloak x-show="loginInfoOpen" x-transition.origin.top.right class="absolute end-0 top-full z-999 mt-3 w-80 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-xl dark:border-gray-700 dark:bg-gray-900">
+    <div class="border-b border-gray-100 px-5 py-4 dark:border-gray-800"><h3 class="text-base font-semibold text-gray-800 dark:text-white/90">{{ __('Maklumat Login') }}</h3><p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ __('Rekod penciptaan') }} {{ $documentLabel }}</p></div>
+    <dl class="space-y-3 px-5 py-4"><div><dt class="text-xs text-gray-500 dark:text-gray-400">{{ __('Dicipta Oleh') }}</dt><dd class="mt-1 text-sm font-semibold text-gray-800 dark:text-white/90">{{ $name ?: '—' }}</dd></div><div><dt class="text-xs text-gray-500 dark:text-gray-400">{{ __('E-mel') }}</dt><dd class="mt-1 break-all text-sm font-semibold text-gray-800 dark:text-white/90">{{ $email ?: '—' }}</dd></div><div><dt class="text-xs text-gray-500 dark:text-gray-400">{{ __('Tarikh Dicipta') }}</dt><dd class="mt-1 text-sm font-semibold text-gray-800 dark:text-white/90">{{ $createdAt ? \Carbon\Carbon::parse($createdAt)->format('d/m/Y · H:i') : '—' }}</dd></div></dl>
+</div>

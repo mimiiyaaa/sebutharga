@@ -1,4 +1,4 @@
-@props(['suppliers' => collect(), 'quotation', 'nextPoNo', 'order' => null, 'initialItems' => []])
+@props(['suppliers' => collect(), 'quotation', 'nextPoNo', 'order' => null, 'initialItems' => [], 'returnToDetail' => false])
 
 @php
     $inputClass = 'w-full min-h-11 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90';
@@ -30,6 +30,7 @@
 }">
     @csrf
     @if ($order) @method('PUT') @endif
+    @if ($order && $returnToDetail)<input type="hidden" name="from" value="show">@endif
     <input type="hidden" name="quotation_id" value="{{ $quotation->quotation_id }}">
     <input type="hidden" name="quotation_detail_id" value="{{ $quotation->quotation_detail_id }}">
     <input type="hidden" name="items_json" :value="JSON.stringify(items)">
@@ -126,22 +127,22 @@
 
     <x-common.document-card :title="__('Item PO')">
         <div class="overflow-x-auto">
-            <table class="w-full text-start text-sm text-gray-700 dark:text-gray-300">
+            <table class="w-full min-w-[900px] text-start text-theme-sm text-gray-700 dark:text-gray-300">
                 <thead class="bg-error-800 text-white dark:bg-error-900 dark:text-white">
                     <tr>
-                        @foreach (['Bil.', 'Perihal Barangan', 'Kuantiti', 'Unit', 'Harga Seunit (RM)', 'Jumlah (RM)', 'Tindakan'] as $heading)
-                            <th scope="col" class="whitespace-nowrap px-3 py-3 text-start font-medium">{{ __($heading) }}</th>
+                        @foreach (['Bil.', 'Keterangan / Description', 'Kuantiti', 'Unit', 'Harga Seunit (RM)', 'Jumlah (RM)', 'Tindakan'] as $heading)
+                            <th scope="col" class="whitespace-nowrap px-3 py-3 text-start text-theme-xs font-semibold">{{ __($heading) }}</th>
                         @endforeach
                     </tr>
                 </thead>
                 <tbody>
                     <template x-for="(item, index) in items" :key="item.id">
                         <tr class="border-b border-gray-100 dark:border-gray-800">
-                            <td class="p-3 text-center" x-text="index + 1"></td>
-                            <td class="min-w-60 p-3"><textarea rows="3" x-model="item.description" aria-label="{{ __('Perihal Barangan') }}" class="{{ $inputClass }}"></textarea></td>
-                            <td class="min-w-32 p-3"><input type="number" min="1" step="1" x-model.number="item.quantity" aria-label="{{ __('Kuantiti') }}" class="{{ $inputClass }}"></td>
-                            <td class="min-w-32 p-3"><input x-model="item.unit" aria-label="{{ __('Unit') }}" class="{{ $inputClass }}"></td>
-                            <td class="min-w-40 p-3"><input type="number" min="0" step="0.01" x-model.number="item.price" aria-label="{{ __('Harga Seunit (RM)') }}" class="{{ $inputClass }} price-input"></td>
+                            <td class="p-3 text-center tabular-nums" x-text="index + 1"></td>
+                            <td class="min-w-60 p-3"><textarea rows="3" required x-model="item.description" aria-label="{{ __('Keterangan / Description') }}" placeholder="{{ __('Nama item / perkhidmatan') }}" class="{{ $inputClass }}"></textarea></td>
+                            <td class="min-w-32 p-3"><input type="number" min="1" step="1" required x-model.number="item.quantity" aria-label="{{ __('Kuantiti') }}" class="{{ $inputClass }} text-center"></td>
+                            <td class="min-w-32 p-3"><input required x-model="item.unit" aria-label="{{ __('Unit') }}" placeholder="{{ __('Unit') }}" class="{{ $inputClass }} text-center"></td>
+                            <td class="min-w-40 p-3"><input type="number" min="0" step="0.01" required x-model.number="item.price" aria-label="{{ __('Harga Seunit (RM)') }}" class="{{ $inputClass }} price-input text-end"></td>
                             <td class="whitespace-nowrap p-3" x-text="money(subtotal(item))"></td>
                             <td class="p-3"><button type="button" @click="items.splice(index, 1)" :disabled="items.length === 1" class="text-error-600 disabled:cursor-not-allowed disabled:opacity-40 dark:text-error-400">{{ __('Buang') }}</button></td>
                         </tr>
@@ -166,32 +167,60 @@
         </div>
     </x-common.document-card>
 
-    <x-common.document-card :title="__('Terma dan Syarat Pembelian')">
-        <div>
-            <label for="terms_conditions" class="{{ $labelClass }}">{{ __('Terma dan Syarat') }}</label>
-            <textarea id="terms_conditions" name="terms_conditions" rows="6" class="{{ $inputClass }}">{{ old('terms_conditions', $order?->terms_conditions ?? config('purchase_order.terms')) }}</textarea>
+    @php
+        $storedTerms = old('terms_conditions', $order?->terms_conditions ?? config('purchase_order.terms'));
+        preg_match('/tempoh\s+(\d+)\s+hari bekerja/i', $storedTerms, $deliveryMatch);
+        preg_match('/tempoh\s+(\d+)\s+hari\s+\(Kredit\)/i', $storedTerms, $paymentMatch);
+        $additionalTerms = implode("\n", array_slice(preg_split('/\r?\n/', $storedTerms), 4));
+    @endphp
+    <x-common.document-card :title="__('Terma dan Syarat Pembelian')" x-data="{ periods: { delivery: {{ old('delivery_days', $deliveryMatch[1] ?? 14) }}, payment: {{ old('payment_days', $paymentMatch[1] ?? 30) }} }, insertNextTerm(event) { const field = event.target; const before = field.value.slice(0, field.selectionStart); const after = field.value.slice(field.selectionEnd); const nextNumber = 5 + before.split(/\r?\n/).filter(Boolean).length; const insertion = `\n${nextNumber}. `; field.value = before + insertion + after; field.dispatchEvent(new Event('input', { bubbles: true })); requestAnimationFrame(() => { const cursor = before.length + insertion.length; field.setSelectionRange(cursor, cursor); }); } }">
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div><label for="delivery_days" class="{{ $labelClass }}">{{ __('Tempoh Penghantaran (Hari)') }}</label><input id="delivery_days" name="delivery_days" type="number" min="1" max="3650" required x-model="periods.delivery" class="{{ $inputClass }}"></div>
+            <div><label for="payment_days" class="{{ $labelClass }}">{{ __('Tempoh Pembayaran (Hari)') }}</label><input id="payment_days" name="payment_days" type="number" min="1" max="3650" required x-model="periods.payment" class="{{ $inputClass }}"></div>
         </div>
+        <p class="text-sm text-gray-600 dark:text-gray-300">{{ __('Tempoh penghantaran dan pembayaran dikira dari tarikh PO dikeluarkan serta pengesahan penerimaan dokumen.') }}</p>
+        <div class="space-y-2 text-sm leading-6 text-gray-700 dark:text-gray-300">
+            <p>1. {{ __('Sila nyatakan nombor Purchase Order (PO) ini di dalam Invois dan Nota Serahan (DO) rasmi anda.') }}</p>
+            <p>2. {{ __('Penghantaran mestilah menepati spesifikasi teknikal yang dipesan. Barangan rosak/salah akan dipulangkan.') }}</p>
+            <p>3. {{ __('Sila hantar bekalan dalam tempoh') }} <span class="font-semibold" x-text="periods.delivery || '—'"></span> {{ __('hari bekerja dari tarikh dokumen ini dikeluarkan.') }}</p>
+            <p>4. {{ __('Pembayaran penuh akan diproses dalam tempoh') }} <span class="font-semibold" x-text="periods.payment || '—'"></span> {{ __('hari (Kredit) selepas pengesahan penerimaan DO & Invois.') }}</p>
+        </div>
+        <div><label for="additional_terms" class="{{ $labelClass }}">{{ __('Terma Tambahan') }}</label><textarea id="additional_terms" name="additional_terms" rows="4" maxlength="10000" @keydown.enter.prevent="insertNextTerm($event)" class="{{ $inputClass }}">{{ old('additional_terms', $additionalTerms ?: '5. ') }}</textarea><p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('Tekan Enter untuk sambung nombor terma secara automatik bermula daripada 5.') }}</p></div>
     </x-common.document-card>
     <x-common.document-card :title="__('Pengesahan PO')">
-        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            <div>
-                <label for="prepared_by" class="{{ $labelClass }}">{{ __('Disediakan Oleh') }}</label>
-                <input id="prepared_by" name="prepared_by" value="{{ old('prepared_by', $order?->prepared_by ?? auth()->user()?->name) }}" class="{{ $inputClass }}">
-                <label for="prepared_role" class="{{ $labelClass }} mt-4">{{ __('Jawatan / Unit Penyedia') }}</label>
-                <input id="prepared_role" name="prepared_role" value="{{ old('prepared_role', $order?->prepared_role ?? '') }}" class="{{ $inputClass }}">
-                <div class="mt-10 border-t border-dashed border-gray-400 pt-2 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">{{ __('Ruang Tandatangan') }}</div>
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div class="flex flex-col rounded-xl border border-gray-200 bg-gray-50/50 p-5 dark:border-gray-700 dark:bg-gray-800/30 sm:p-6">
+                <div class="space-y-5">
+                    <div>
+                        <label for="prepared_by" class="{{ $labelClass }}">{{ __('Disediakan Oleh') }}</label>
+                        <input id="prepared_by" name="prepared_by" value="{{ old('prepared_by', $order?->prepared_by ?? auth()->user()?->name) }}" class="{{ $inputClass }}">
+                    </div>
+                    <div>
+                        <label for="prepared_role" class="{{ $labelClass }}">{{ __('Jawatan / Unit Penyedia') }}</label>
+                        <input id="prepared_role" name="prepared_role" value="{{ old('prepared_role', $order?->prepared_role ?? config('purchase_order.prepared_role')) }}" class="{{ $inputClass }}">
+                    </div>
+                </div>
+                <div class="h-16" aria-hidden="true"></div>
+                <div class="min-h-16 border-t border-dashed border-gray-400 pt-3 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">{{ __('Ruang Tandatangan') }}</div>
             </div>
-            <div>
-                <label for="approved_by" class="{{ $labelClass }}">{{ __('Diluluskan Oleh') }}</label>
-                <input id="approved_by" name="approved_by" value="{{ old('approved_by', $order?->approved_by) }}" class="{{ $inputClass }}">
-                <label for="approved_role" class="{{ $labelClass }} mt-4">{{ __('Jawatan Pelulus') }}</label>
-                <input id="approved_role" name="approved_role" value="{{ old('approved_role', $order?->approved_role ?? '') }}" class="{{ $inputClass }}">
-                <div class="mt-10 border-t border-dashed border-gray-400 pt-2 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">{{ __('Ruang Tandatangan') }}</div>
+            <div class="flex flex-col rounded-xl border border-gray-200 bg-gray-50/50 p-5 dark:border-gray-700 dark:bg-gray-800/30 sm:p-6">
+                <div class="space-y-5">
+                    <div>
+                        <label for="approved_by" class="{{ $labelClass }}">{{ __('Diluluskan Oleh') }}</label>
+                        <input id="approved_by" name="approved_by" value="{{ old('approved_by', $order?->approved_by) }}" class="{{ $inputClass }}">
+                    </div>
+                    <div>
+                        <label for="approved_role" class="{{ $labelClass }}">{{ __('Jawatan Pelulus') }}</label>
+                        <input id="approved_role" name="approved_role" value="{{ old('approved_role', $order?->approved_role ?? config('purchase_order.approved_role')) }}" class="{{ $inputClass }}">
+                    </div>
+                </div>
+                <div class="h-16" aria-hidden="true"></div>
+                <div class="min-h-16 border-t border-dashed border-gray-400 pt-3 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">{{ __('Ruang Tandatangan') }}</div>
             </div>
         </div>
     </x-common.document-card>
     <div class="flex flex-wrap items-center justify-end gap-3">
-        <a href="{{ route('purchase-order.index') }}" class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
+        <a href="{{ $order && $returnToDetail ? route('purchase-order.show', $order->purchase_order_id) : route('purchase-order.index') }}" class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
         <button type="submit" class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600 dark:bg-brand-500 dark:text-white">{{ __('Simpan PO') }}</button>
     </div>
 </form>

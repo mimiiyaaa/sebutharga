@@ -1,5 +1,5 @@
 @props(['title', 'subtitle' => '', 'reference' => null])
-<div class="mx-auto max-w-7xl space-y-6 font-outfit text-theme-sm text-gray-700 dark:text-gray-300">
+<div {{ $attributes->merge(['class' => 'mx-auto max-w-7xl space-y-6 font-outfit text-theme-sm text-gray-700 dark:text-gray-300']) }}>
     <header class="flex flex-col gap-3 py-1 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-4">
             <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
@@ -7,11 +7,17 @@
             </div>
             <div>
                 <h1 class="text-xl font-semibold tracking-tight text-gray-900 dark:text-white/90">{{ $title }}</h1>
-
             </div>
         </div>
-        @if ($reference)
-            <span class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-theme-xs font-medium text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">{{ $reference }}</span>
+        @if ($reference || isset($referenceActions))
+            <div class="flex items-center gap-2">
+                @if ($reference)
+                    <span class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-theme-xs font-medium text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">{{ $reference }}</span>
+                @endif
+                @isset ($referenceActions)
+                    {{ $referenceActions }}
+                @endisset
+            </div>
         @endif
     </header>
     {{ $slot }}
