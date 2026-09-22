@@ -179,7 +179,7 @@ Route::get('/sebut-harga', function () {
                     'id' => $draft->quotation_detail_id,
                     'name' => 'Draf ' . $draft->draft_no . ($draft->status_draft === 'Final' ? ' (Final)' : ''),
                     'draftNo' => $draft->draft_no,
-                    'title' => $draft->quotation_title ?? $quotation->quotation_title ?? '-',
+                    'title' => $draft->quotation_title ?: '-',
                     'date' => $draft->quotation_date ?? $quotation->quotation_date,
                     'status' => $draft->status_draft === 'Final' ? 'Final' : 'Draf',
                     'decision' => $finalisationStatus($draft),
@@ -417,7 +417,7 @@ Route::post('/sebut-harga/{id}/draft', function (\Illuminate\Http\Request $reque
     abort_unless($quotation, 404);
 
     DB::transaction(function () use ($validated, $request, $id) {
-        DB::table('sebutharga_master')->where('quotation_id', $id)->lockForUpdate()->first();
+        $master = DB::table('sebutharga_master')->where('quotation_id', $id)->lockForUpdate()->first();
         // Every revision needs a fresh decision, regardless of the source draft.
         $validated['status_quotation'] = null;
         $total = collect($validated['items'])->sum(fn ($item) => (int) $item['quantity'] * (float) $item['price']);
@@ -475,6 +475,29 @@ Route::post('/sebut-harga/{id}/draft', function (\Illuminate\Http\Request $reque
             return;
         }
         $draftNo = ((int) DB::table('sebutharga_detail')->where('quotation_id', $id)->max('draft_no')) + 1;
+
+        // Older drafts may predate the version snapshot columns. Preserve the
+        // currently active draft before the master record is replaced by the new draft.
+        if ($master?->quotation_detail_id) {
+            $activeDraft = DB::table('sebutharga_detail')
+                ->where('quotation_id', $id)
+                ->where('quotation_detail_id', $master->quotation_detail_id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($activeDraft) {
+                $missingSnapshot = [];
+                foreach (['quotation_date', 'customer_id', 'quotation_title', 'no_rujukan_pelanggan'] as $field) {
+                    if ($activeDraft->$field === null) {
+                        $missingSnapshot[$field] = $master->$field;
+                    }
+                }
+                if ($missingSnapshot) {
+                    DB::table('sebutharga_detail')->where('quotation_detail_id', $activeDraft->quotation_detail_id)
+                        ->update($missingSnapshot + ['updated_at' => now()]);
+                }
+            }
+        }
 
         DB::table('sebutharga_master')->where('quotation_id', $id)->update([
             'customer_id' => $validated['customer_id'],
@@ -549,10 +572,10 @@ Route::get('/sebut-harga/{id}/edit', function ($id) {
     $draftId = request('draft') ?: ($quotation->quotation_detail_id ?: DB::table('sebutharga_detail')->where('quotation_id', $id)->value('quotation_detail_id'));
     $draft = DB::table('sebutharga_detail')->where('quotation_detail_id', $draftId)->where('quotation_id', $id)->first();
     abort_unless($draft, 404);
-    $quotation->quotation_date = ($draft->quotation_date ?? null) ?: $quotation->quotation_date;
-    $quotation->quotation_title = ($draft->quotation_title ?? null) ?: $quotation->quotation_title;
-    $quotation->customer_id = ($draft->customer_id ?? null) ?: $quotation->customer_id;
-    $quotation->no_rujukan_pelanggan = ($draft->no_rujukan_pelanggan ?? null) ?: $quotation->no_rujukan_pelanggan;
+    $quotation->quotation_date = $draft->quotation_date ?? $quotation->quotation_date;
+    $quotation->quotation_title = $draft->quotation_title;
+    $quotation->customer_id = $draft->customer_id ?? $quotation->customer_id;
+    $quotation->no_rujukan_pelanggan = $draft->no_rujukan_pelanggan;
     $quotation->status_quotation = $draft->status_quotation;
     $draftCustomer = DB::table('customer_supplier')->where('customer_id', $quotation->customer_id)->first();
     if ($draftCustomer) {
@@ -584,7 +607,7 @@ Route::get('/sebut-harga/{id}/preview', function ($id) {
     $draft = DB::table('sebutharga_detail')->where('quotation_detail_id', $detailId)->where('quotation_id', $id)->first();
     abort_unless($draft, 404);
     foreach (['quotation_date', 'quotation_title', 'no_rujukan_pelanggan'] as $field) {
-        $quotation->$field = $draft->$field ?? $quotation->$field;
+        $quotation->$field = $draft->$field;
     }
     if ($draft->customer_id) {
         $draftCustomer = DB::table('customer_supplier')->where('customer_id', $draft->customer_id)->first();
