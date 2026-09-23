@@ -90,10 +90,10 @@ class FinalQuotationController extends Controller
     {
         $data = $request->validate([
             'sent_by' => ['required', 'string', 'max:255'],
-            'sent_date' => ['required', 'date'],
-            'sent_time' => ['required', 'date_format:H:i'],
+            'sent_date' => ['required', 'date_format:m/d/Y'],
+            'sent_time' => ['required', 'date_format:h:i A'],
         ]);
-        $sentAt = Carbon::createFromFormat('Y-m-d H:i', $data['sent_date'].' '.$data['sent_time']);
+        $sentAt = Carbon::createFromFormat('m/d/Y h:i A', $data['sent_date'].' '.$data['sent_time']);
 
         $this->updateDecisionState($id, $draftId, ['sent_at' => $sentAt, 'sent_by' => $data['sent_by'], 'status_quotation' => null], null);
 

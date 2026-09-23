@@ -608,6 +608,23 @@ Route::get('/sebut-harga/{id}/edit', function ($id) {
     $draft->items = DB::table('sebutharga_item')->where('quotation_detail_id', $draft->quotation_detail_id)->get();
     $customers = DB::table('customer_supplier')->where('jenis_customer', 1)->orderBy('company_name')->get();
     $companies = DB::table('companies')->orderBy('nama_syarikat')->get();
+    $supplierQuotations = DB::table('pembekal_quotation_master')
+        ->orderByDesc('supplier_quotation_id')
+        ->get(['supplier_quotation_id', 'quotation_no_supplier', 'company_name', 'quotation_title'])
+        ->map(function ($supplierQuotation) {
+            $supplierQuotation->items = DB::table('pembekal_quotation_item')
+                ->where('supplier_quotation_id', $supplierQuotation->supplier_quotation_id)
+                ->orderBy('supplier_quotation_item_id')
+                ->get(['item_description', 'quantity', 'unit', 'unit_price'])
+                ->map(fn ($item) => [
+                    'description' => $item->item_description,
+                    'quantity' => $item->quantity,
+                    'unit' => $item->unit,
+                    'price' => $item->unit_price,
+                ])->values();
+
+            return $supplierQuotation;
+        })->values();
     $createdBy = $draft->created_by
         ? DB::table('users')->where('id', $draft->created_by)->first(['name', 'jawatan', 'email'])
         : null;
@@ -619,6 +636,7 @@ Route::get('/sebut-harga/{id}/edit', function ($id) {
         'draft' => $draft,
         'customers' => $customers,
         'companies' => $companies,
+        'supplierQuotations' => $supplierQuotations,
         'createdBy' => $createdBy,
         'nextDraftNo' => $nextDraftNo,
     ]);
