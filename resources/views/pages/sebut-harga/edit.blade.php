@@ -2,7 +2,7 @@
 
 @section('content')
 
-    <x-common.document-workspace :title="__('Butiran Sebut Harga')" :subtitle="$quotation->quotation_no" :reference="($draft->status_draft === 'Final' ? __('Versi') . ' ' . ($draft->final_no ?? $draft->draft_no) : __('Draf') . ' ' . $draft->draft_no)" x-data="{ editing: {{ request('edit') ? 'true' : 'false' }}, editMode: 'existing', loginInfoOpen: false }" @keydown.escape.window="loginInfoOpen = false">
+    <x-common.document-workspace :title="__('Butiran Sebut Harga')" :subtitle="$quotation->quotation_no" :reference="($draft->status_draft === 'Final' ? __('Versi') . ' ' . ($draft->final_no ?? $draft->draft_no) : __('Draf') . ' ' . $draft->draft_no)" x-data="{ editing: {{ request('edit') ? 'true' : 'false' }}, editMode: 'existing', loginInfoOpen: false, sendModalOpen: false }" @keydown.escape.window="loginInfoOpen = false; sendModalOpen = false">
     <x-slot:referenceActions><div class="relative" @click.outside="loginInfoOpen = false"><button type="button" @click="loginInfoOpen = !loginInfoOpen" title="{{ __('Maklumat Login') }}" aria-label="{{ __('Maklumat Login') }}" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-brand-700 dark:hover:text-brand-400"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 16v-4m0-4h.01M21 12a9 9 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></button><x-common.created-by-panel :name="$createdBy?->name" :jawatan="$createdBy?->jawatan" :email="$createdBy?->email" :created-at="$draft->created_at" document-label="draf ini" /></div></x-slot>
     <div>
         @php
@@ -42,10 +42,7 @@
                                 <button type="submit" class="inline-flex h-11 items-center rounded-lg border border-brand-300 px-4 text-sm font-medium text-brand-600 transition hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10">{{ __('Cipta Draf Baharu') }}</button>
                             </form>
                             @if (empty($draft->sent_at))
-                                <form method="POST" action="{{ route('sebut-harga.final.send', [$quotation->quotation_id, $draft->quotation_detail_id]) }}" @submit.prevent="$dispatch('confirm-action', { form: $el, message: 'Hantar sebut harga ini kepada pelanggan?', button: 'Hantar' })">
-                                    @csrf
-                                    <button type="submit" class="inline-flex h-11 items-center rounded-lg bg-brand-500 px-4 text-sm font-medium text-white transition hover:bg-brand-600">{{ __('Hantar') }}</button>
-                                </form>
+                                <button type="button" @click="sendModalOpen = true" class="inline-flex h-11 items-center rounded-lg bg-brand-500 px-4 text-sm font-medium text-white transition hover:bg-brand-600">{{ __('Hantar') }}</button>
                             @elseif ($draft->status_quotation === null)
                                 <form method="POST" action="{{ route('sebut-harga.final.agree', [$quotation->quotation_id, $draft->quotation_detail_id]) }}" @submit.prevent="$dispatch('confirm-action', { form: $el, message: 'Tandakan sebut harga ini sebagai setuju?', button: 'Setuju' })">
                                     @csrf
@@ -74,6 +71,10 @@
                 <div><p class="text-sm text-gray-500 dark:text-gray-400">{{ $draft->status_draft === 'Final' ? __('Versi') : __('Draf') }}</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $draft->status_draft === 'Final' ? __('Versi') . ' ' . ($draft->final_no ?? $draft->draft_no) : __('Draf') . ' ' . $draft->draft_no }}</p></div>
                 <div><p class="text-sm text-gray-500 dark:text-gray-400">Kemaskini Terakhir</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $draft->updated_at ? \Carbon\Carbon::parse($draft->updated_at)->format('d/m/Y H:i') : '-' }}</p></div>
                 <div><p class="text-sm text-gray-500 dark:text-gray-400">No. Rujukan Pelanggan</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $quotation->no_rujukan_pelanggan ?: '—' }}</p></div>
+                @if ($draft->sent_at)
+                    <div><p class="text-sm text-gray-500 dark:text-gray-400">{{ __('Dihantar Oleh') }}</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $draft->sent_by ?: '—' }}</p></div>
+                    <div><p class="text-sm text-gray-500 dark:text-gray-400">{{ __('Tarikh & Masa Hantar') }}</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ \Carbon\Carbon::parse($draft->sent_at)->format('d/m/Y H:i') }}</p></div>
+                @endif
             </div>
             <div class="border-t border-gray-100 px-6 py-5 dark:border-gray-800"><p class="text-sm text-gray-500 dark:text-gray-400">Tajuk</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $quotation->quotation_title ?: '-' }}</p></div>
             <div class="grid grid-cols-1 gap-5 border-t border-gray-100 p-6 dark:border-gray-800 lg:grid-cols-2">
@@ -200,5 +201,15 @@
             />
         </div>
     </div>
+    @if (strtolower(trim((string) $draft->status_draft)) === 'final' && empty($draft->sent_at))
+        <div x-cloak x-show="sendModalOpen" x-transition.opacity class="fixed inset-0 z-999999 flex items-center justify-center bg-gray-900/50 p-4" @click.self="sendModalOpen = false">
+            <form method="POST" action="{{ route('sebut-harga.final.send', [$quotation->quotation_id, $draft->quotation_detail_id]) }}" x-show="sendModalOpen" x-transition class="w-full max-w-md rounded-2xl bg-white shadow-theme-xl dark:bg-gray-900">
+                @csrf
+                <div class="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5 dark:border-gray-800"><div><h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ __('Maklumat Penghantaran') }}</h2><p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('Lengkapkan maklumat sebelum menghantar sebut harga.') }}</p></div><button type="button" @click="sendModalOpen = false" class="text-xl text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90" aria-label="{{ __('Tutup') }}">&times;</button></div>
+                <div class="space-y-4 px-6 py-5"><div><label for="sent_by" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">{{ __('Dihantar Oleh') }}</label><input id="sent_by" name="sent_by" required value="{{ old('sent_by', auth()->user()?->name) }}" class="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></div><div class="grid grid-cols-1 gap-4 sm:grid-cols-2"><div><label for="sent_date" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">{{ __('Tarikh Hantar') }}</label><input id="sent_date" name="sent_date" type="date" required value="{{ old('sent_date', now()->format('Y-m-d')) }}" class="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></div><div><label for="sent_time" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">{{ __('Masa Hantar') }}</label><input id="sent_time" name="sent_time" type="time" required value="{{ old('sent_time', now()->format('H:i')) }}" class="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></div></div></div>
+                <div class="flex justify-end gap-3 border-t border-gray-100 px-6 py-4 dark:border-gray-800"><button type="button" @click="sendModalOpen = false" class="inline-flex h-10 items-center rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Batal') }}</button><button type="submit" class="inline-flex h-10 items-center rounded-lg bg-brand-500 px-4 text-sm font-medium text-white hover:bg-brand-600">{{ __('Hantar') }}</button></div>
+            </form>
+        </div>
+    @endif
     </x-common.document-workspace>
 @endsection

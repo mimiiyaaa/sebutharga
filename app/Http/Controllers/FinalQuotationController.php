@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class FinalQuotationController extends Controller
 {
@@ -42,9 +43,9 @@ class FinalQuotationController extends Controller
                 'terma_syarat' => $source->terma_syarat,
                 'document_data' => $source->document_data,
                 'disediakan_oleh' => $source->disediakan_oleh,
-                'disediakan_role' => $source->disediakan_role ?? null,
+                'disediakan_role' => property_exists($source, 'disediakan_role') ? $source->disediakan_role : null,
                 'diterima_oleh' => $source->diterima_oleh,
-                'diterima_role' => $source->diterima_role ?? null,
+                'diterima_role' => property_exists($source, 'diterima_role') ? $source->diterima_role : null,
                 'status_draft' => 'Draf',
                 'created_by' => $userId,
                 'created_at' => now(),
@@ -85,9 +86,16 @@ class FinalQuotationController extends Controller
         return redirect()->route('sebut-harga.edit', [$id, 'draft'=>$draftId]);
     }
 
-    public function send(int $id, int $draftId)
+    public function send(Request $request, int $id, int $draftId)
     {
-        $this->updateDecisionState($id, $draftId, ['sent_at' => now(), 'status_quotation' => null], null);
+        $data = $request->validate([
+            'sent_by' => ['required', 'string', 'max:255'],
+            'sent_date' => ['required', 'date'],
+            'sent_time' => ['required', 'date_format:H:i'],
+        ]);
+        $sentAt = Carbon::createFromFormat('Y-m-d H:i', $data['sent_date'].' '.$data['sent_time']);
+
+        $this->updateDecisionState($id, $draftId, ['sent_at' => $sentAt, 'sent_by' => $data['sent_by'], 'status_quotation' => null], null);
 
         return redirect()->route('sebut-harga.edit', [$id, 'draft' => $draftId, 'from' => 'final'])
             ->with('success', 'Sebut harga telah dihantar dan menunggu keputusan pelanggan.');
@@ -111,7 +119,7 @@ class FinalQuotationController extends Controller
 
     public function undoSend(int $id, int $draftId)
     {
-        $this->updateDecisionState($id, $draftId, ['sent_at' => null, 'status_quotation' => null], null);
+        $this->updateDecisionState($id, $draftId, ['sent_at' => null, 'sent_by' => null, 'status_quotation' => null], null);
 
         return redirect()->route('sebut-harga.edit', [$id, 'draft' => $draftId, 'from' => 'final'])
             ->with('success', 'Status penghantaran telah dibatalkan.');

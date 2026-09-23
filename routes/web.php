@@ -831,13 +831,14 @@ Route::post('/sebut-harga/{id}/draft/{draftId}/approve', function ($id, $draftId
                 'status_draft' => 'Draf',
                 'final_no' => null,
                 'sent_at' => null,
+                'sent_by' => null,
                 'status_quotation' => null,
                 'updated_at' => now(),
             ]);
 
         DB::table('sebutharga_detail')
             ->where('quotation_detail_id', $draftId)
-            ->update(['status_draft' => 'Final', 'final_no' => $finalNo, 'sent_at' => null, 'status_quotation' => $decision, 'updated_at' => now()]);
+        ->update(['status_draft' => 'Final', 'final_no' => $finalNo, 'sent_at' => null, 'sent_by' => null, 'status_quotation' => $decision, 'updated_at' => now()]);
 
         DB::table('sebutharga_master')
             ->where('quotation_id', $id)
