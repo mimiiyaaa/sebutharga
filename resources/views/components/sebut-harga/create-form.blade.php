@@ -6,6 +6,7 @@
     'draft' => null,
     'editing' => false,
     'submitAtTop' => false,
+    'showBack' => true,
     'updateDraft' => false,
     'copyAsNewQuotation' => false,
 ])
@@ -97,6 +98,9 @@
     }
 }">
     @csrf
+    @if ($showBack)
+        <div class="flex justify-end"><a @if ($isEditing) href="#" @click.prevent="editing = false" @else href="{{ route('sebut-harga') }}" @endif class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a></div>
+    @endif
     @if ($updateDraft && $isEditing)
         <input type="hidden" name="update_draft_id" value="{{ $draft->quotation_detail_id }}">
     @endif
@@ -300,7 +304,6 @@
         </x-common.document-card>
 
     <div class="flex flex-wrap items-center justify-end gap-3">
-        <a @if ($isEditing) href="#" @click.prevent="editing = false" @else href="{{ route('sebut-harga') }}" @endif class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
         @if (! $submitAtTop)
             <button type="submit" class="inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white hover:bg-brand-600 dark:bg-brand-500 dark:hover:bg-brand-600">{{ $isEditing && $updateDraft ? 'Kemaskini' : 'Simpan Sebut Harga' }}</button>
         @endif

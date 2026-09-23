@@ -1,7 +1,11 @@
 @extends('layouts.app')
 
 @section('content')
-    <x-common.page-breadcrumb :pageTitle="$user ? __('Edit Pengguna') : __('Tambah Pengguna')" />
+    <x-common.page-breadcrumb :pageTitle="$user ? __('Edit Pengguna') : __('Tambah Pengguna')">
+        <x-slot:actions>
+            <a href="{{ route('maklumat-login') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">{{ __('Kembali') }}</a>
+        </x-slot:actions>
+    </x-common.page-breadcrumb>
     <div class="w-full">
         <form method="POST" action="{{ route('maklumat-login.save', ['id' => $user?->id]) }}" class="space-y-6">
             @csrf
@@ -31,7 +35,6 @@
                 </div>
             </x-common.document-card>
             <div class="flex justify-end gap-3 border-t border-gray-200 pt-5 dark:border-gray-800">
-                <a href="{{ route('maklumat-login') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">{{ __('Kembali') }}</a>
                 <button type="submit" class="inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-6 text-sm font-medium text-white transition hover:bg-brand-600">{{ __('Simpan Pengguna') }}</button>
             </div>
         </form>

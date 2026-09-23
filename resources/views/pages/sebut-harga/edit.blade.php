@@ -6,7 +6,7 @@
         $isFinalView = request('from') === 'final';
     @endphp
     <x-common.document-workspace :title="__('Butiran Sebut Harga')" :subtitle="$quotation->quotation_no" :reference="($isFinalView ? __('Versi') . ' ' . ($draft->final_no ?? $draft->draft_no) : __('Draf') . ' ' . $draft->draft_no)" x-data="{ editing: {{ request('edit') ? 'true' : 'false' }}, editMode: 'existing', loginInfoOpen: false, sendModalOpen: false }" @keydown.escape.window="loginInfoOpen = false; sendModalOpen = false">
-    <x-slot:referenceActions><div class="relative" @click.outside="loginInfoOpen = false"><button type="button" @click="loginInfoOpen = !loginInfoOpen" title="{{ __('Maklumat Login') }}" aria-label="{{ __('Maklumat Login') }}" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-brand-700 dark:hover:text-brand-400"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 16v-4m0-4h.01M21 12a9 9 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></button><x-common.created-by-panel :name="$createdBy?->name" :jawatan="$createdBy?->jawatan" :email="$createdBy?->email" :created-at="$draft->created_at" document-label="draf ini" /></div></x-slot>
+    <x-slot:referenceActions><a x-show="!editing" x-cloak href="{{ request('from') === 'final' ? route('sebut-harga.final', ['draft' => $draft->quotation_detail_id]) : route('sebut-harga') }}" class="inline-flex h-9 items-center justify-center rounded-lg border border-gray-200 bg-white px-3 text-theme-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">{{ __('Kembali') }}</a><div class="relative" @click.outside="loginInfoOpen = false"><button type="button" @click="loginInfoOpen = !loginInfoOpen" title="{{ __('Maklumat Login') }}" aria-label="{{ __('Maklumat Login') }}" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-brand-700 dark:hover:text-brand-400"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 16v-4m0-4h.01M21 12a9 9 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></button><x-common.created-by-panel :name="$createdBy?->name" :jawatan="$createdBy?->jawatan" :email="$createdBy?->email" :created-at="$draft->created_at" document-label="draf ini" /></div></x-slot>
     <div>
         @php
             $document = App\Helpers\QuotationDocument::data($draft);
@@ -176,13 +176,10 @@
             </div>
         </div>
 
-        <div x-show="!editing" x-cloak class="flex justify-end">
-            <a href="{{ request('from') === 'final' ? route('sebut-harga.final', ['draft' => $draft->quotation_detail_id]) : route('sebut-harga') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
-        </div>
-
         <div x-show="editing && editMode === 'existing'" x-cloak class="space-y-6">
             <div class="flex items-center justify-between gap-4">
                 <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ __('Kemaskini Sebut Harga') }}</h2>
+                <button type="button" @click="editing = false" class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</button>
             </div>
             <x-sebut-harga.create-form
                 :customers="$customers"
@@ -192,12 +189,14 @@
                 :draft="$draft"
                 :editing="true"
                 :submit-at-top="false"
+                :show-back="false"
                 :update-draft="true"
             />
         </div>
         <div x-show="editing && editMode === 'new'" x-cloak class="space-y-6">
             <div class="flex items-center justify-between gap-4">
                 <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">Draf Baharu</h2>
+                <button type="button" @click="editing = false" class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</button>
             </div>
             <x-sebut-harga.create-form
                 :customers="$customers"
@@ -207,6 +206,7 @@
                 :draft="$draft"
                 :editing="true"
                 :submit-at-top="false"
+                :show-back="false"
             />
         </div>
     </div>

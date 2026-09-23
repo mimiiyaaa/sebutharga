@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('content')
 <x-common.document-workspace :title="__('Tambah PO')" :subtitle="__('Pilih nombor sebut harga sebelum meneruskan.')">
+<x-slot:referenceActions><a href="{{ route('purchase-order.index') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">{{ __('Kembali') }}</a></x-slot:referenceActions>
 <x-common.document-card :title="__('Pilih Sebut Harga')">
     <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('Semua sebut harga Final berkeputusan Setuju disenaraikan mengikut nombor sebut harga.') }}</p>
     @if ($errors->any())
@@ -29,7 +30,6 @@
         </div>
         <p x-cloak x-show="draftId && !quotation" class="text-gray-600 dark:text-gray-400">{{ __('Tiada sebut harga Final yang dipersetujui untuk pelanggan ini.') }}</p>
         <div class="flex flex-wrap justify-end gap-3 border-t border-gray-100 pt-5 dark:border-gray-800">
-            <a href="{{ route('purchase-order.index') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">{{ __('Kembali ke Senarai PO') }}</a>
             <button type="submit" :disabled="!quotation" class="inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-6 text-sm font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">{{ __('Teruskan') }}</button>
         </div>
     </form>

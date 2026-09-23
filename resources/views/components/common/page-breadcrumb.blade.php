@@ -4,6 +4,10 @@
     <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">
         {{ $pageTitle }}
     </h2>
+    <div class="flex flex-wrap items-center gap-3">
+        @isset($actions)
+            {{ $actions }}
+        @endisset
     <nav>
         <ol class="flex items-center gap-1.5">
             <li>
@@ -35,4 +39,5 @@
             </li>
         </ol>
     </nav>
+    </div>
 </div>

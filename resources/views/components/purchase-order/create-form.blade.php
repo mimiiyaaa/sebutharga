@@ -1,4 +1,4 @@
-@props(['suppliers' => collect(), 'quotation', 'nextPoNo', 'order' => null, 'initialItems' => [], 'returnToDetail' => false])
+@props(['suppliers' => collect(), 'quotation', 'nextPoNo', 'order' => null, 'initialItems' => [], 'returnToDetail' => false, 'showBack' => true])
 
 @php
     $inputClass = 'w-full min-h-11 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90';
@@ -29,6 +29,9 @@
     addItem() { this.items.push({ id: this.nextId++, description: '', quantity: 1, unit: '', price: 0 }) }
 }">
     @csrf
+    @if ($showBack)
+        <div class="flex justify-end"><a href="{{ $order && $returnToDetail ? route('purchase-order.show', $order->purchase_order_id) : route('purchase-order.index') }}" class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a></div>
+    @endif
     @if ($order) @method('PUT') @endif
     @if ($order && $returnToDetail)<input type="hidden" name="from" value="show">@endif
     <input type="hidden" name="quotation_id" value="{{ $quotation->quotation_id }}">
@@ -220,7 +223,6 @@
         </div>
     </x-common.document-card>
     <div class="flex flex-wrap items-center justify-end gap-3">
-        <a href="{{ $order && $returnToDetail ? route('purchase-order.show', $order->purchase_order_id) : route('purchase-order.index') }}" class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
         <button type="submit" class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600 dark:bg-brand-500 dark:text-white">{{ __('Simpan PO') }}</button>
     </div>
 </form>
