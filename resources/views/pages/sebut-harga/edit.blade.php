@@ -3,7 +3,7 @@
 @section('content')
 
     <x-common.document-workspace :title="__('Butiran Sebut Harga')" :subtitle="$quotation->quotation_no" :reference="($draft->status_draft === 'Final' ? __('Versi') . ' ' . ($draft->final_no ?? $draft->draft_no) : __('Draf') . ' ' . $draft->draft_no)" x-data="{ editing: {{ request('edit') ? 'true' : 'false' }}, editMode: 'existing', loginInfoOpen: false }" @keydown.escape.window="loginInfoOpen = false">
-    <x-slot:referenceActions><div class="relative" @click.outside="loginInfoOpen = false"><button type="button" @click="loginInfoOpen = !loginInfoOpen" title="{{ __('Maklumat Login') }}" aria-label="{{ __('Maklumat Login') }}" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-brand-700 dark:hover:text-brand-400"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 16v-4m0-4h.01M21 12a9 9 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></button><x-common.created-by-panel :name="$createdBy?->name" :email="$createdBy?->email" :created-at="$draft->created_at" document-label="draf ini" /></div></x-slot>
+    <x-slot:referenceActions><div class="relative" @click.outside="loginInfoOpen = false"><button type="button" @click="loginInfoOpen = !loginInfoOpen" title="{{ __('Maklumat Login') }}" aria-label="{{ __('Maklumat Login') }}" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-brand-700 dark:hover:text-brand-400"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 16v-4m0-4h.01M21 12a9 9 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></button><x-common.created-by-panel :name="$createdBy?->name" :jawatan="$createdBy?->jawatan" :email="$createdBy?->email" :created-at="$draft->created_at" document-label="draf ini" /></div></x-slot>
     <div>
         @php
             $document = App\Helpers\QuotationDocument::data($draft);
@@ -50,10 +50,6 @@
                                 <form method="POST" action="{{ route('sebut-harga.final.agree', [$quotation->quotation_id, $draft->quotation_detail_id]) }}" @submit.prevent="$dispatch('confirm-action', { form: $el, message: 'Tandakan sebut harga ini sebagai setuju?', button: 'Setuju' })">
                                     @csrf
                                     <button type="submit" class="inline-flex h-11 items-center rounded-lg bg-success-500 px-4 text-sm font-medium text-white transition hover:bg-success-600">{{ __('Setuju') }}</button>
-                                </form>
-                                <form method="POST" action="{{ route('sebut-harga.final.disagree', [$quotation->quotation_id, $draft->quotation_detail_id]) }}" @submit.prevent="$dispatch('confirm-action', { form: $el, message: 'Tandakan sebut harga ini sebagai tidak setuju?', button: 'Tidak Setuju' })">
-                                    @csrf
-                                    <button type="submit" class="inline-flex h-11 items-center rounded-lg border border-error-300 px-4 text-sm font-medium text-error-600 transition hover:bg-error-50 dark:border-error-700 dark:text-error-400 dark:hover:bg-error-500/10">{{ __('Tidak Setuju') }}</button>
                                 </form>
                                 <form method="POST" action="{{ route('sebut-harga.final.undo-send', [$quotation->quotation_id, $draft->quotation_detail_id]) }}">
                                     @csrf

@@ -7,6 +7,7 @@
     'editing' => false,
     'submitAtTop' => false,
     'updateDraft' => false,
+    'copyAsNewQuotation' => false,
 ])
 
 @php
@@ -25,8 +26,10 @@
     $issuerEmail = old('issuer_email', array_key_exists('issuer_email', $document) ? $document['issuer_email'] : ($quotation->emel ?? ''));
     $issuerPersonInCharge = old('issuer_person_in_charge', $document['issuer_person_in_charge'] ?? ($quotation->person_in_charge ?? ''));
     $issuerAddress = old('issuer_address', array_key_exists('issuer_address', $document) ? $document['issuer_address'] : ($quotation->alamat_syarikat ?? ''));
+    $loggedInJawatan = auth()->user()?->jawatan ?? '';
+    $confirmationRole = old('disediakan_oleh', $updateDraft ? ($draft->disediakan_oleh ?? $loggedInJawatan) : $loggedInJawatan);
     $confirmationCompany = old('disediakan_company_name', $document['disediakan_company_name'] ?? $issuerName);
-    $formAction = $isEditing ? route('sebut-harga.draft.store', $quotation->quotation_id) : route('sebut-harga.store');
+    $formAction = $isEditing && ! $copyAsNewQuotation ? route('sebut-harga.draft.store', $quotation->quotation_id) : route('sebut-harga.store');
     $initialItems = $isEditing
         ? $draft->items->map(fn ($item, $index) => [
             'id' => $index + 1,
@@ -138,7 +141,7 @@
         <x-common.document-card title="Maklumat Sebut Harga">
             <div>
                 <label for="quotation_no" class="{{ $labelClass }}">No. Sebut Harga</label>
-                <input id="quotation_no" readonly value="{{ $isEditing ? $quotation->quotation_no : App\Helpers\QuotationNumber::next(old('quotation_date', now()->format('Y-m-d'))) }}" @if (! $isEditing) :value="nextQuotationNo" @endif class="{{ $inputClass }} bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                <input id="quotation_no" readonly value="{{ $isEditing && $updateDraft ? $quotation->quotation_no : App\Helpers\QuotationNumber::next(old('quotation_date', $isEditing ? $quotation->quotation_date : now()->format('Y-m-d'))) }}" @if (! ($isEditing && $updateDraft)) :value="nextQuotationNo" @endif class="{{ $inputClass }} bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
             </div>
             <div>
                 <label for="quotation_date" class="{{ $labelClass }}">Tarikh Sebut Harga</label>
@@ -224,26 +227,38 @@
         </div>
     </x-common.document-card>
 
-    @php($periods = App\Helpers\QuotationTerms::periods($isEditing ? $draft->terma_syarat : null))
-    <x-common.document-card :title="__('Terma dan Syarat')" x-data="{ periods: {{ Illuminate\Support\Js::from(collect($periods)->mapWithKeys(fn ($value, $key) => [$key => old($key, $value)])) }}, insertNextTerm(event) { const field = event.target; const before = field.value.slice(0, field.selectionStart); const after = field.value.slice(field.selectionEnd); const nextNumber = 4 + before.split(/\r?\n/).length; const insertion = `\n${nextNumber}. `; field.value = before + insertion + after; field.dispatchEvent(new Event('input', { bubbles: true })); requestAnimationFrame(() => { const cursor = before.length + insertion.length; field.setSelectionRange(cursor, cursor); }); } }">
+    @php
+        $periods = App\Helpers\QuotationTerms::periods($isEditing ? $draft->terma_syarat : null);
+        $periodValues = collect($periods)->mapWithKeys(fn ($value, $key) => [$key => old($key, $value)]);
+        $savedTerms = trim(old('additional_terms', $document['additional_terms'] ?? ''));
+        $defaultTerms = [
+            "Tempoh sah sebutharga adalah selama {$periodValues['validity_days']} hari dari tarikh sebutharga dikeluarkan.",
+            "Tempoh penghantaran: {$periodValues['delivery_min_days']} - {$periodValues['delivery_max_days']} hari selepas penerimaan Pesanan Belian (PO) rasmi.",
+            'Sila tandatangan di bawah untuk pengesahan persetujuan sebutharga ini.',
+        ];
+        $savedLines = collect(preg_split('/\R/u', $savedTerms ?: ''))
+            ->map(fn ($line) => preg_replace('/^\s*\d+\.\s*/', '', trim($line)))
+            ->filter(fn ($line) => trim($line) !== '')
+            ->values();
+        $termLines = preg_match('/^\s*1\.\s*/', $savedTerms) && $savedLines->isNotEmpty()
+            ? $savedLines
+            : collect($defaultTerms)->merge($savedLines);
+        $termsText = $termLines->map(fn ($line, $index) => ($index + 1) . '. ' . $line)->implode("\n") . "\n" . ($termLines->count() + 1) . '. ';
+    @endphp
+    <x-common.document-card :title="__('Terma dan Syarat')" x-data="{ periods: {{ Illuminate\Support\Js::from($periodValues) }}, termsText: {{ Illuminate\Support\Js::from($termsText) }}, termsDirty: false, buildTerms() { const lines = this.termsText.split(/\r?\n/); const extras = lines.slice(3).map(line => line.replace(/^\s*\d+\.\s*/, '').trim()).filter(Boolean); return `1. Tempoh sah sebutharga adalah selama ${this.periods.validity_days || '—'} hari dari tarikh sebutharga dikeluarkan.\n2. Tempoh penghantaran: ${this.periods.delivery_min_days || '—'} - ${this.periods.delivery_max_days || '—'} hari selepas penerimaan Pesanan Belian (PO) rasmi.\n3. Sila tandatangan di bawah untuk pengesahan persetujuan sebutharga ini.` + extras.map((line, index) => `\n${index + 4}. ${line}`).join(''); }, syncTerms() { if (!this.termsDirty) this.termsText = this.buildTerms(); }, insertNextTerm(event) { const field = event.target; const before = field.value.slice(0, field.selectionStart); const after = field.value.slice(field.selectionEnd); const nextNumber = before.split(/\r?\n/).length + 1; const insertion = `\n${nextNumber}. `; field.value = before + insertion + after; field.dispatchEvent(new Event('input', { bubbles: true })); requestAnimationFrame(() => { const cursor = before.length + insertion.length; field.setSelectionRange(cursor, cursor); }); } }">
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
             @foreach (['validity_days' => 'Tempoh Sah (Hari)', 'delivery_min_days' => 'Penghantaran Minimum (Hari)', 'delivery_max_days' => 'Penghantaran Maksimum (Hari)'] as $field => $label)
                 <div>
                     <label for="{{ $field }}" class="{{ $labelClass }}">{{ __($label) }}</label>
-                    <input id="{{ $field }}" name="{{ $field }}" x-model="periods.{{ $field }}" type="number" min="1" max="3650" required value="{{ old($field, $periods[$field]) }}" class="{{ $inputClass }}">
+                    <input id="{{ $field }}" name="{{ $field }}" x-model="periods.{{ $field }}" @input="syncTerms()" type="number" min="1" max="3650" required value="{{ old($field, $periods[$field]) }}" class="{{ $inputClass }}">
                 </div>
             @endforeach
         </div>
         <p class="text-sm text-gray-600 dark:text-gray-300">{{ __('Tempoh sah dikira dari Tarikh Sebut Harga. Tempoh penghantaran dikira selepas penerimaan PO rasmi.') }}</p>
-        <div class="space-y-2 text-sm leading-6 text-gray-700 dark:text-gray-300">
-            <p>1. Tempoh sah sebutharga adalah selama <span class="font-semibold" x-text="periods.validity_days || '—'"></span> hari dari tarikh sebutharga dikeluarkan.</p>
-            <p>2. Tempoh penghantaran: <span class="font-semibold" x-text="periods.delivery_min_days || '—'"></span> - <span class="font-semibold" x-text="periods.delivery_max_days || '—'"></span> hari selepas penerimaan Pesanan Belian (PO) rasmi.</p>
-            <p>3. {{ __('Sila tandatangan di bawah untuk pengesahan persetujuan sebutharga ini.') }}</p>
-        </div>
         <div>
-            <label for="additional_terms" class="{{ $labelClass }}">{{ __('Terma Tambahan') }}</label>
-            <textarea id="additional_terms" name="additional_terms" rows="4" maxlength="10000" @keydown.enter.prevent="insertNextTerm($event)" class="{{ $inputClass }}">{{ old('additional_terms', array_key_exists('additional_terms', $document) && trim($document['additional_terms']) !== '' ? $document['additional_terms'] : '4. ') }}</textarea>
-            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('Tekan Enter untuk sambung nombor terma secara automatik bermula daripada 4.') }}</p>
+            <label for="additional_terms" class="{{ $labelClass }}">{{ __('Terma dan Syarat (boleh diubah)') }}</label>
+            <textarea id="additional_terms" name="additional_terms" x-model="termsText" rows="9" maxlength="10000" @input="termsDirty = true" @keydown.enter.prevent="insertNextTerm($event)" class="{{ $inputClass }}"></textarea>
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('Semua ayat termasuk terma 1 hingga 3 boleh diubah. Tekan Enter untuk sambung nombor terma seterusnya.') }}</p>
         </div>
     </x-common.document-card>
     <x-common.document-card title="Pengesahan Sebut Harga">
@@ -252,7 +267,7 @@
                 <div class="space-y-5">
                     <div>
                         <label for="disediakan_oleh_confirmation" class="{{ $labelClass }}">{{ __('Disediakan Oleh (Jawatan)') }}</label>
-                        <input id="disediakan_oleh_confirmation" name="disediakan_oleh" value="{{ old('disediakan_oleh', $isEditing ? ($draft->disediakan_oleh ?? '') : '') }}" class="{{ $inputClass }}">
+                        <input id="disediakan_oleh_confirmation" name="disediakan_oleh" value="{{ $confirmationRole }}" class="{{ $inputClass }}">
                     </div>
                     <div>
                         <label for="disediakan_company_name" class="{{ $labelClass }}">{{ __('Nama Syarikat') }}</label>
@@ -287,7 +302,7 @@
     <div class="flex flex-wrap items-center justify-end gap-3">
         <a @if ($isEditing) href="#" @click.prevent="editing = false" @else href="{{ route('sebut-harga') }}" @endif class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
         @if (! $submitAtTop)
-            <button type="submit" class="inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white hover:bg-brand-600 dark:bg-brand-500 dark:hover:bg-brand-600">{{ $isEditing ? 'Kemaskini' : 'Simpan Sebut Harga' }}</button>
+            <button type="submit" class="inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white hover:bg-brand-600 dark:bg-brand-500 dark:hover:bg-brand-600">{{ $isEditing && $updateDraft ? 'Kemaskini' : 'Simpan Sebut Harga' }}</button>
         @endif
     </div>
 </form>

@@ -7,7 +7,7 @@
             @csrf
             <x-common.document-card :title="$user ? __('Kemaskini Maklumat Akaun') : __('Maklumat Akaun')" :desc="__('Lengkapkan maklumat login pengguna.')">
                 <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
-                    @foreach (['name' => 'Nama Pengguna', 'no_kp' => 'No. Kad Pengenalan', 'email' => 'E-mel'] as $field => $label)
+                    @foreach (['name' => 'Nama Pengguna', 'jawatan' => 'Jawatan', 'no_kp' => 'No. Kad Pengenalan', 'email' => 'E-mel'] as $field => $label)
                         <div @class(['md:col-span-2' => $field === 'email'])>
                             <label for="{{ $field }}" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __($label) }}</label>
                             <input id="{{ $field }}" name="{{ $field }}" type="{{ $field === 'email' ? 'email' : 'text' }}" value="{{ old($field, $user?->$field) }}" required class="min-h-11 w-full rounded-xl border border-gray-200 bg-gray-50/70 px-4 py-2.5 text-sm text-gray-800 outline-none transition focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800/60 dark:text-white/90">

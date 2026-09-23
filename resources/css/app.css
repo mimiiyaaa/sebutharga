@@ -310,6 +310,22 @@ input.price-input[type='number']::-webkit-inner-spin-button {
     @apply bg-gray-200 rounded-full dark:bg-gray-700;
   }
 }
+
+@utility quotation-add-modal {
+  width: 100%;
+  max-width: 64rem;
+  margin-inline: auto;
+}
+
+@utility quotation-add-overlay {
+  padding-inline-start: 0;
+}
+
+@media (min-width: 64rem) {
+  .quotation-add-overlay {
+    padding-inline-start: 7rem;
+  }
+}
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: #344054;
 }

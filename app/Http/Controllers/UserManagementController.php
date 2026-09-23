@@ -11,7 +11,7 @@ class UserManagementController extends Controller
 {
     public function index()
     {
-        $users = DB::table('users')->orderBy('name')->get(['id', 'name', 'no_kp', 'email', 'created_at']);
+        $users = DB::table('users')->orderBy('name')->get(['id', 'name', 'jawatan', 'no_kp', 'email', 'created_at']);
 
         return view('pages.maklumat-login.index', compact('users'));
     }
@@ -27,6 +27,7 @@ class UserManagementController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'jawatan' => ['nullable', 'string', 'max:255'],
             'no_kp' => ['required', 'string', 'max:255', Rule::unique('users', 'no_kp')->ignore($id)],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($id)],
             'password' => [$id ? 'nullable' : 'required', 'string', 'min:8', 'confirmed'],
@@ -34,6 +35,7 @@ class UserManagementController extends Controller
 
         $record = [
             'name' => $data['name'],
+            'jawatan' => $data['jawatan'] ?? null,
             'no_kp' => $data['no_kp'],
             'email' => $data['email'],
             'updated_at' => now(),

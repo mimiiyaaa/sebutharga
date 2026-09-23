@@ -7,7 +7,7 @@
             <button type="button" @click="loginInfoOpen = !loginInfoOpen" title="{{ __('Maklumat Login') }}" aria-label="{{ __('Maklumat Login') }}" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-brand-700 dark:hover:text-brand-400">
                 <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 16v-4m0-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
             </button>
-            <x-common.created-by-panel :name="$order->creator_name" :email="$order->creator_email" :created-at="$order->created_at" document-label="PO ini" />
+            <x-common.created-by-panel :name="$order->creator_name" :jawatan="$order->creator_jawatan" :email="$order->creator_email" :created-at="$order->created_at" document-label="PO ini" />
         </div>
     </x-slot:referenceActions>
 
