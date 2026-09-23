@@ -65,7 +65,7 @@
                         <th class="px-6 py-3 font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400 text-start">{{ __('Draf') }}</th>
                         <th class="px-6 py-3 font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400 text-start">Status</th>
                         <th class="px-6 py-3 font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400 text-start">Tarikh</th>
-                        <th class="px-6 py-3 font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400 text-start">Tindakan</th>
+                        <th class="px-6 py-3 text-center font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">Tindakan</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -109,8 +109,8 @@
                             <td class="px-4 sm:px-6 py-3.5">
                                 <p class="whitespace-nowrap text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.closeDate"></p>
                             </td>
-                            <td class="px-4 sm:px-6 py-3.5">
-                                <div class="flex items-center gap-2">
+                            <td class="px-4 py-3.5 text-center sm:px-6">
+                                <div class="flex items-center justify-center gap-2">
                                     <a :href="'{{ url('/sebut-harga') }}/' + row.id + '/edit?draft=' + row.version" class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">{{ __('Lihat') }}</a>
                                     <form :action="'{{ url('/sebut-harga') }}/' + row.id + '/draft/' + row.version" method="POST" @submit.prevent="$dispatch('confirm-action', { form: $el, message: 'Padam draf yang dipilih sahaja?' })">
                                     <input type="hidden" name="_token" value="{{ csrf_token() }}">
