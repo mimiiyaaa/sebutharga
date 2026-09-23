@@ -313,7 +313,7 @@ input.price-input[type='number']::-webkit-inner-spin-button {
 
 @utility quotation-add-modal {
   width: 100%;
-  max-width: 64rem;
+  max-width: 40rem;
   margin-inline: auto;
 }
 
@@ -323,7 +323,7 @@ input.price-input[type='number']::-webkit-inner-spin-button {
 
 @media (min-width: 64rem) {
   .quotation-add-overlay {
-    padding-inline-start: 7rem;
+    padding-inline-start: 18.125rem;
   }
 }
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
