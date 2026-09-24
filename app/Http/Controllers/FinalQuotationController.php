@@ -93,7 +93,7 @@ class FinalQuotationController extends Controller
             return $newVersionId;
         });
 
-        return redirect()->route('sebut-harga.final')
+        return redirect()->route('sebut-harga.edit', [$id, 'draft' => $newVersionId, 'from' => 'final', 'edit' => 1])
             ->with('success', 'Versi baharu berjaya dicipta daripada sebut harga Final.');
     }
 
