@@ -13,7 +13,7 @@
         <div class="max-w-full overflow-x-auto">
         <table class="w-full text-theme-sm leading-6 text-gray-700 dark:text-gray-300">
             <thead class="border-y border-gray-100 bg-gray-50 dark:border-white/[0.05] dark:bg-gray-900"><tr>
-                @foreach (['No. Sebut Harga', 'Pelanggan', 'Draf', 'Tajuk', 'Tarikh', 'Jumlah (RM)', 'Keputusan', 'Tindakan'] as $label)
+                @foreach (['No. Sebut Harga', 'Pelanggan', 'Versi', 'Tajuk', 'Tarikh', 'Jumlah (RM)', 'Keputusan', 'Tindakan'] as $label)
                     <th class="px-6 py-3 {{ $label === 'Tindakan' ? 'text-center' : 'text-start' }} text-theme-sm font-semibold text-gray-500 dark:text-gray-400">{{ __($label) }}</th>
                 @endforeach
             </tr></thead>
@@ -33,16 +33,16 @@
                             default => 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
                         };
                     @endphp
-                    <tr x-show="matches({ customer: @js($document['company_name'] ?? $draft->company_name), date: @js($draft->quotation_date), title: @js($draft->quotation_title ?? '') })" class="border-b border-gray-100 hover:bg-gray-50 dark:border-white/[0.05] dark:hover:bg-white/[0.03]">
+                    <tr x-data="{ selectedVersion: @js((string) $draft->quotation_detail_id), versions: @js($draft->versions) }" x-show="matches({ customer: @js($document['company_name'] ?? $draft->company_name), date: @js($draft->quotation_date), title: @js($draft->quotation_title ?? '') })" class="border-b border-gray-100 hover:bg-gray-50 dark:border-white/[0.05] dark:hover:bg-white/[0.03]">
                         <td class="whitespace-nowrap px-4 py-3.5 font-medium text-gray-700 sm:px-6 dark:text-gray-400">{{ $draft->quotation_no }}</td>
                         <td class="px-4 py-3.5 text-gray-800 sm:px-6 dark:text-white/90">{{ $document['company_name'] ?? $draft->company_name }}</td>
-                        <td class="whitespace-nowrap px-4 py-3.5 sm:px-6">{{ __('Draf') }} {{ $draft->draft_no }}</td>
+                        <td class="whitespace-nowrap px-4 py-3.5 sm:px-6"><select x-model="selectedVersion" @click.stop class="h-10 min-w-30 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">@foreach ($draft->versions as $version)<option value="{{ $version['id'] }}">{{ $version['label'] }}</option>@endforeach</select></td>
                         <td class="px-4 py-3.5 text-gray-700 sm:px-6 dark:text-gray-400">{{ $draft->quotation_title }}</td>
                         <td class="whitespace-nowrap px-4 py-3.5 text-gray-700 sm:px-6 dark:text-gray-400">{{ $draft->quotation_date }}</td>
                         <td class="whitespace-nowrap px-4 py-3.5 tabular-nums text-gray-700 sm:px-6 dark:text-gray-400">{{ number_format($draft->jumlah_total, 2) }}</td>
                         <td class="whitespace-nowrap px-4 py-3.5 sm:px-6"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium {{ $decisionClass }}">{{ __($decision) }}</span></td>
                         <td class="px-4 py-3.5 text-center sm:px-6"><div class="flex items-center justify-center gap-2 whitespace-nowrap">
-                            <a href="{{ route('sebut-harga.edit', [$draft->quotation_id, 'draft' => $draft->quotation_detail_id, 'from' => 'final']) }}" class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">{{ __('Lihat') }}</a>
+                            <a :href="versions.find(version => String(version.id) === String(selectedVersion))?.viewUrl" class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">{{ __('Lihat') }}</a>
                             <a href="{{ route('sebut-harga.preview', [$draft->quotation_id, 'draft' => $draft->quotation_detail_id, 'from' => 'final']) }}" class="inline-flex items-center rounded-lg border border-brand-200 px-3 py-1.5 text-xs font-medium text-brand-600 transition hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10">{{ __('Pratonton Dokumen') }}</a>
                         </div></td>
                     </tr>

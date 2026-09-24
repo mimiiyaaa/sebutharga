@@ -13,26 +13,41 @@ class FinalQuotationController extends Controller
             ->join('sebutharga_master as m', 'm.quotation_id', '=', 'd.quotation_id')
             ->leftJoin('customer_supplier as c', 'c.customer_id', '=', 'm.customer_id')
             ->whereRaw('LOWER(TRIM(d.status_draft)) = ?', ['final'])
-            ->whereColumn('d.quotation_detail_id', 'm.quotation_detail_id')
-            ->select('d.*', 'm.quotation_no', 'c.company_name')
-            ->orderBy('d.quotation_id')->get();
-        $finals = $drafts->values();
+            ->select('d.*', 'm.quotation_no', 'm.quotation_detail_id as active_detail_id', 'c.company_name')
+            ->orderBy('d.quotation_id')
+            ->orderBy('d.final_no')
+            ->get();
+
+        $finals = $drafts
+            ->groupBy('quotation_id')
+            ->map(function ($versions) {
+                $selected = $versions->firstWhere('quotation_detail_id', $versions->first()->active_detail_id)
+                    ?: $versions->last();
+                $selected->versions = $versions->map(fn ($version) => [
+                    'id' => $version->quotation_detail_id,
+                    'label' => 'Versi ' . ($version->final_no ?? $version->draft_no),
+                    'viewUrl' => route('sebut-harga.edit', [$version->quotation_id, 'draft' => $version->quotation_detail_id, 'from' => 'final']),
+                ])->values();
+
+                return $selected;
+            })
+            ->values();
         return view('pages.sebut-harga.final', compact('finals'));
     }
 
     public function newVersion(Request $request, int $id, int $draftId)
     {
-        $newDraftId = DB::transaction(function () use ($request, $id, $draftId) {
+        $newVersionId = DB::transaction(function () use ($request, $id, $draftId) {
             $master = DB::table('sebutharga_master')->where('quotation_id', $id)->lockForUpdate()->first();
             abort_unless($master, 404);
             $source = DB::table('sebutharga_detail')->where('quotation_id', $id)->where('quotation_detail_id', $draftId)->lockForUpdate()->first();
             abort_unless($source && strtolower(trim($source->status_draft)) === 'final', 404);
 
             $userId = $request->user()?->id;
-            $newDraftId = DB::table('sebutharga_detail')->insertGetId([
+            $newVersionId = DB::table('sebutharga_detail')->insertGetId([
                 'quotation_id' => $id,
                 'draft_no' => ((int) DB::table('sebutharga_detail')->where('quotation_id', $id)->max('draft_no')) + 1,
-                'final_no' => null,
+                'final_no' => ((int) DB::table('sebutharga_detail')->where('quotation_id', $id)->whereRaw('LOWER(TRIM(status_draft)) = ?', ['final'])->max('final_no')) + 1,
                 'quotation_date' => $source->quotation_date,
                 'customer_id' => $source->customer_id,
                 'quotation_title' => $source->quotation_title,
@@ -46,7 +61,7 @@ class FinalQuotationController extends Controller
                 'disediakan_role' => property_exists($source, 'disediakan_role') ? $source->disediakan_role : null,
                 'diterima_oleh' => $source->diterima_oleh,
                 'diterima_role' => property_exists($source, 'diterima_role') ? $source->diterima_role : null,
-                'status_draft' => 'Draf',
+                'status_draft' => 'Final',
                 'created_by' => $userId,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -55,7 +70,7 @@ class FinalQuotationController extends Controller
             $items = DB::table('sebutharga_item')->where('quotation_detail_id', $draftId)->get();
             foreach ($items as $item) {
                 DB::table('sebutharga_item')->insert([
-                    'quotation_detail_id' => $newDraftId,
+                    'quotation_detail_id' => $newVersionId,
                     'item_description' => $item->item_description,
                     'quantity' => $item->quantity,
                     'unit' => $item->unit,
@@ -67,11 +82,19 @@ class FinalQuotationController extends Controller
                 ]);
             }
 
-            return $newDraftId;
+            DB::table('sebutharga_master')
+                ->where('quotation_id', $id)
+                ->update([
+                    'quotation_detail_id' => $newVersionId,
+                    'status_quotation' => null,
+                    'updated_at' => now(),
+                ]);
+
+            return $newVersionId;
         });
 
-        return redirect()->route('sebut-harga.edit', [$id, 'draft' => $newDraftId, 'edit' => 1])
-            ->with('success', 'Draf baharu berjaya dibuat untuk diedit.');
+        return redirect()->route('sebut-harga.final')
+            ->with('success', 'Versi baharu berjaya dicipta daripada sebut harga Final.');
     }
 
     public function undo(int $id, int $draftId)

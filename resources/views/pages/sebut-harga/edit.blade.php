@@ -46,7 +46,7 @@
                         @else
                             <form method="POST" action="{{ route('sebut-harga.final.new', [$quotation->quotation_id, $draft->quotation_detail_id]) }}">
                                 @csrf
-                                <button type="submit" class="inline-flex h-11 items-center rounded-lg border border-brand-300 px-4 text-sm font-medium text-brand-600 transition hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10">{{ __('Cipta Draf Baharu') }}</button>
+                                <button type="submit" class="inline-flex h-11 items-center rounded-lg border border-brand-300 px-4 text-sm font-medium text-brand-600 transition hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10">{{ __('Cipta Versi Baharu') }}</button>
                             </form>
                             @if (empty($draft->sent_at))
                                 <button type="button" @click="sendModalOpen = true" class="inline-flex h-11 items-center rounded-lg bg-brand-500 px-4 text-sm font-medium text-white transition hover:bg-brand-600">{{ __('Hantar') }}</button>
