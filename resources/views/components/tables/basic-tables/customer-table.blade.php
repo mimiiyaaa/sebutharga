@@ -1,6 +1,30 @@
 @props(['contacts' => collect()])
 
-<div class="overflow-x-auto custom-scrollbar">
+<div x-data="{
+    search: '',
+    matches(contact) {
+        const query = this.search.trim().toLowerCase();
+        if (!query) return true;
+        return [
+            contact.code,
+            contact.name,
+            contact.company,
+            contact.address,
+            contact.phone,
+            contact.email,
+            contact.reference,
+        ].join(' ').toLowerCase().includes(query);
+    },
+    reset() { this.search = ''; }
+}">
+    <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="relative min-w-0 flex-1">
+            <input x-model="search" type="search" placeholder="{{ __('Cari kod, nama, syarikat, telefon atau e-mel') }}" aria-label="{{ __('Cari pelanggan atau pembekal') }}" class="h-11 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 shadow-theme-xs outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+        </div>
+        <button type="button" @click="reset()" class="h-11 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 shadow-theme-xs transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">{{ __('Reset') }}</button>
+    </div>
+
+    <div class="overflow-x-auto custom-scrollbar">
     <table class="w-full min-w-[900px]">
         <thead>
             <tr class="border-b border-gray-100 dark:border-gray-800">
@@ -11,7 +35,7 @@
         </thead>
         <tbody>
             @forelse ($contacts as $contact)
-                <tr class="border-b border-gray-100 dark:border-gray-800">
+                <tr x-show="matches({ code: @js($contact->customer_code), name: @js($contact->customer_name ?: ''), company: @js($contact->company_name), address: @js($contact->address), phone: @js($contact->phone_no ?: ''), email: @js($contact->email ?: ''), reference: @js($contact->reference_no ?: '') })" class="border-b border-gray-100 dark:border-gray-800">
                     <td class="px-5 py-4 text-gray-500 text-theme-sm dark:text-gray-400">{{ $contact->customer_code }}</td>
                     <td class="px-5 py-4 text-gray-800 text-theme-sm dark:text-white/90">{{ $contact->customer_name ?: '—' }}</td>
                     <td class="px-5 py-4 text-gray-800 text-theme-sm dark:text-white/90">{{ $contact->company_name }}</td>
@@ -30,6 +54,8 @@
             @empty
                 <tr><td colspan="8" class="px-5 py-10 text-center text-gray-500 text-theme-sm dark:text-gray-400">Tiada rekod untuk dipaparkan.</td></tr>
             @endforelse
+            <tr x-cloak x-show="search && !Array.from($el.parentElement.querySelectorAll('tr[x-show]')).some(row => row.offsetParent !== null)"><td colspan="8" class="px-5 py-10 text-center text-gray-500 text-theme-sm dark:text-gray-400">{{ __('Tiada rekod sepadan dengan carian.') }}</td></tr>
         </tbody>
     </table>
+    </div>
 </div>

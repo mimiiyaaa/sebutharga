@@ -15,7 +15,7 @@
         get filteredSources() {
             const search = this.sourceFilters.search.trim().toLowerCase();
             return this.sources.filter(item => {
-                const searchable = [item.quotationNo, item.customerName, item.title].join(' ').toLowerCase();
+            const searchable = [item.quotationNo, item.customerName, item.title, ...(item.items || [])].join(' ').toLowerCase();
                 return item.status === this.sourceType
                     && (!search || searchable.includes(search))
                     && (!this.sourceFilters.customer || item.customerName === this.sourceFilters.customer)
@@ -52,7 +52,7 @@
             </x-slot:header>
 
             <div class="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,220px)_minmax(0,160px)_auto]">
-                <input x-model="sourceFilters.search" type="search" placeholder="{{ __('Cari no. sebut harga, syarikat atau tajuk') }}" aria-label="{{ __('Cari no. sebut harga, syarikat atau tajuk') }}" class="h-11 min-w-0 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 shadow-theme-xs focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                <input x-model="sourceFilters.search" type="search" placeholder="{{ __('Cari no. sebut harga, syarikat, tajuk atau item') }}" aria-label="{{ __('Cari no. sebut harga, syarikat, tajuk atau item') }}" class="h-11 min-w-0 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 shadow-theme-xs focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
                 <select x-model="sourceFilters.customer" aria-label="{{ __('Tapis syarikat') }}" class="h-11 min-w-0 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 shadow-theme-xs focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
                     <option value="">{{ __('Semua syarikat') }}</option>
                     <template x-for="customer in sourceCustomers" :key="customer"><option :value="customer" x-text="customer"></option></template>

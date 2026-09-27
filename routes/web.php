@@ -157,7 +157,12 @@ Route::get('/sebut-harga', function () {
         ->get()
         ->groupBy('quotation_id');
 
-    $quotations = $quotations->map(function ($quotation) use ($drafts) {
+    $quotationItems = DB::table('sebutharga_item')
+        ->whereIn('quotation_detail_id', $drafts->flatten()->pluck('quotation_detail_id'))
+        ->get(['quotation_detail_id', 'item_description'])
+        ->groupBy('quotation_detail_id');
+
+    $quotations = $quotations->map(function ($quotation) use ($drafts, $quotationItems) {
             $name = $quotation->company_name ?: ($quotation->customer_name ?: 'Tiada nama');
             $quotationDrafts = $drafts->get($quotation->quotation_id, collect());
             $selectedDraft = $quotationDrafts->firstWhere('quotation_detail_id', $quotation->quotation_detail_id)
@@ -191,6 +196,7 @@ Route::get('/sebut-harga', function () {
                     'status' => $draft->status_draft === 'Final' ? 'Final' : 'Draf',
                     'decision' => $finalisationStatus($draft),
                     'selected' => $quotation->quotation_detail_id === $draft->quotation_detail_id,
+                    'items' => $quotationItems->get($draft->quotation_detail_id, collect())->pluck('item_description')->values(),
                 ])->values(),
                 // Snapshot columns were added after existing records were created.
                 // Use master quotation values as the compatible fallback for old rows.
@@ -212,6 +218,7 @@ Route::get('/sebut-harga', function () {
                 'draftNo' => $version['draftNo'],
                 'status' => $version['status'],
                 'date' => $version['date'],
+                'items' => $version['items'] ?? [],
                 'editUrl' => route('sebut-harga.create', ['source' => $version['id']]),
             ];
         });
@@ -266,6 +273,8 @@ Route::get('/pembekal', function () {
 
 Route::get('/sebut-harga-pembekal', [\App\Http\Controllers\SupplierQuotationController::class, 'index'])->middleware('auth')->name('sebut-harga-pembekal');
 Route::get('/sebut-harga-pembekal/tambah', [\App\Http\Controllers\SupplierQuotationController::class, 'form'])->middleware('auth')->name('sebut-harga-pembekal.create');
+Route::post('/sebut-harga-pembekal/extract', [\App\Http\Controllers\SupplierQuotationController::class, 'extract'])->middleware('auth')->name('sebut-harga-pembekal.extract');
+Route::post('/sebut-harga-pembekal/register-supplier', [\App\Http\Controllers\SupplierQuotationController::class, 'registerSupplier'])->middleware('auth')->name('sebut-harga-pembekal.register-supplier');
 Route::post('/sebut-harga-pembekal/simpan/{id?}', [\App\Http\Controllers\SupplierQuotationController::class, 'save'])->middleware('auth')->name('sebut-harga-pembekal.save');
 Route::get('/sebut-harga-pembekal/{id}/edit', [\App\Http\Controllers\SupplierQuotationController::class, 'form'])->whereNumber('id')->middleware('auth')->name('sebut-harga-pembekal.edit');
 Route::get('/sebut-harga-pembekal/{id}/download', [\App\Http\Controllers\SupplierQuotationController::class, 'download'])->whereNumber('id')->middleware('auth')->name('sebut-harga-pembekal.download');
