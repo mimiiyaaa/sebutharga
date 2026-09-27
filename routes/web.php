@@ -282,6 +282,10 @@ Route::get('/invoice', function () {
     return view('pages.invoice', ['title' => 'Invoice']);
 })->name('invoice');
 
+Route::get('/lo', function () {
+    return view('pages.lo', ['title' => 'LO']);
+})->middleware('auth')->name('lo');
+
 Route::get('/syarikat', [\App\Http\Controllers\CompanyController::class, 'index'])->middleware('auth')->name('syarikat');
 Route::get('/maklumat-login', [\App\Http\Controllers\UserManagementController::class, 'index'])->middleware('auth')->name('maklumat-login');
 Route::get('/maklumat-login/tambah', [\App\Http\Controllers\UserManagementController::class, 'form'])->middleware('auth')->name('maklumat-login.create');

@@ -69,10 +69,10 @@
                         </div>
                         <div class="divide-y divide-gray-100 dark:divide-gray-800">
                             <template x-for="source in group.items" :key="source.id">
-                                <a :href="source.editUrl" class="flex min-w-0 items-center justify-between gap-4 px-4 py-3 transition hover:bg-brand-50/50 dark:hover:bg-brand-500/10">
+                                <button type="button" @click="window.location.assign(source.editUrl)" class="flex w-full min-w-0 items-center justify-between gap-4 px-4 py-3 text-start transition hover:bg-brand-50/50 dark:hover:bg-brand-500/10">
                                     <div class="min-w-0"><p class="truncate text-sm font-medium text-gray-800 dark:text-white/90" x-text="source.title"></p><p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400" x-text="source.date"></p></div>
                                     <span class="inline-flex shrink-0 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300" x-text="source.status + ' ' + source.draftNo"></span>
-                                </a>
+                                </button>
                             </template>
                         </div>
                     </div>

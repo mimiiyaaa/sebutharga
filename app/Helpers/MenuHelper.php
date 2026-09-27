@@ -54,6 +54,11 @@ class MenuHelper
                 'path' => '/purchase-order',
             ],
             [
+                'icon' => 'task',
+                'name' => 'LO',
+                'path' => '/lo',
+            ],
+            [
                 'icon' => 'user-profile',
                 'name' => 'Invoice',
                 'path' => '/invoice',
