@@ -9,6 +9,7 @@
     'showBack' => true,
     'updateDraft' => false,
     'copyAsNewQuotation' => false,
+    'jawatanOptions' => collect(),
 ])
 
 @php
@@ -28,6 +29,13 @@
     $issuerPersonInCharge = old('issuer_person_in_charge', $document['issuer_person_in_charge'] ?? ($quotation->person_in_charge ?? ''));
     $issuerAddress = old('issuer_address', array_key_exists('issuer_address', $document) ? $document['issuer_address'] : ($quotation->alamat_syarikat ?? ''));
     $defaultJawatan = 'Pengurus Besar';
+    $jawatanOptions = collect($jawatanOptions)
+        ->map(fn ($jawatan) => trim((string) $jawatan))
+        ->filter()
+        ->prepend($defaultJawatan)
+        ->unique()
+        ->sort()
+        ->values();
     $confirmationRole = old('disediakan_oleh', $updateDraft ? ($draft->disediakan_oleh ?? $defaultJawatan) : $defaultJawatan);
     $defaultQuotationDate = $copyAsNewQuotation ? now()->format('Y-m-d') : ($isEditing ? $quotation->quotation_date : now()->format('Y-m-d'));
     $confirmationCompany = old('disediakan_company_name', $document['disediakan_company_name'] ?? $issuerName);
@@ -272,7 +280,14 @@
                 <div class="space-y-5">
                     <div>
                         <label for="disediakan_oleh_confirmation" class="{{ $labelClass }}">{{ __('Disediakan Oleh (Jawatan)') }}</label>
-                        <input id="disediakan_oleh_confirmation" name="disediakan_oleh" value="{{ $confirmationRole }}" class="{{ $inputClass }}">
+                        <select id="disediakan_oleh_confirmation" name="disediakan_oleh" class="{{ $inputClass }}">
+                            @if ($confirmationRole && ! $jawatanOptions->contains($confirmationRole))
+                                <option value="{{ $confirmationRole }}" selected>{{ $confirmationRole }}</option>
+                            @endif
+                            @foreach ($jawatanOptions as $jawatan)
+                                <option value="{{ $jawatan }}" @selected($confirmationRole === $jawatan)>{{ $jawatan }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     <div>
                         <label for="disediakan_company_name" class="{{ $labelClass }}">{{ __('Nama Syarikat') }}</label>

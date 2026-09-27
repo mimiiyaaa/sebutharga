@@ -310,6 +310,13 @@ Route::get('/sebut-harga/create', function () {
         ->where('jenis_customer', 1)
         ->orderBy('company_name')
         ->get();
+    $jawatanOptions = collect(['Pengurus Besar'])
+        ->merge(DB::table('users')->whereNotNull('jawatan')->pluck('jawatan'))
+        ->map(fn ($jawatan) => trim((string) $jawatan))
+        ->filter()
+        ->unique()
+        ->sort()
+        ->values();
     $companies = DB::table('companies')->orderBy('nama_syarikat')->get();
     $supplierQuotations = DB::table('pembekal_quotation_master')
         ->orderByDesc('supplier_quotation_id')
@@ -349,6 +356,7 @@ Route::get('/sebut-harga/create', function () {
         'supplierQuotations' => $supplierQuotations,
         'sourceQuotation' => $sourceQuotation,
         'sourceDraft' => $sourceDraft,
+        'jawatanOptions' => $jawatanOptions,
     ]);
 })->middleware('auth')->name('sebut-harga.create');
 
@@ -662,6 +670,13 @@ Route::get('/sebut-harga/{id}/edit', function ($id) {
     }
     $draft->items = DB::table('sebutharga_item')->where('quotation_detail_id', $draft->quotation_detail_id)->get();
     $customers = DB::table('customer_supplier')->where('jenis_customer', 1)->orderBy('company_name')->get();
+    $jawatanOptions = collect(['Pengurus Besar'])
+        ->merge(DB::table('users')->whereNotNull('jawatan')->pluck('jawatan'))
+        ->map(fn ($jawatan) => trim((string) $jawatan))
+        ->filter()
+        ->unique()
+        ->sort()
+        ->values();
     $companies = DB::table('companies')->orderBy('nama_syarikat')->get();
     $supplierQuotations = DB::table('pembekal_quotation_master')
         ->orderByDesc('supplier_quotation_id')
@@ -694,6 +709,7 @@ Route::get('/sebut-harga/{id}/edit', function ($id) {
         'supplierQuotations' => $supplierQuotations,
         'createdBy' => $createdBy,
         'nextDraftNo' => $nextDraftNo,
+        'jawatanOptions' => $jawatanOptions,
     ]);
 })->middleware('auth')->name('sebut-harga.edit');
 

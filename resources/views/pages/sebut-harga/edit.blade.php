@@ -191,6 +191,7 @@
                 :submit-at-top="false"
                 :show-back="false"
                 :update-draft="true"
+                :jawatan-options="$jawatanOptions"
             />
         </div>
         <div x-show="editing && editMode === 'new'" x-cloak class="space-y-6">
@@ -207,6 +208,7 @@
                 :editing="true"
                 :submit-at-top="false"
                 :show-back="false"
+                :jawatan-options="$jawatanOptions"
             />
         </div>
     </div>
