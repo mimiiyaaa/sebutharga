@@ -27,8 +27,9 @@
     $issuerEmail = old('issuer_email', array_key_exists('issuer_email', $document) ? $document['issuer_email'] : ($quotation->emel ?? ''));
     $issuerPersonInCharge = old('issuer_person_in_charge', $document['issuer_person_in_charge'] ?? ($quotation->person_in_charge ?? ''));
     $issuerAddress = old('issuer_address', array_key_exists('issuer_address', $document) ? $document['issuer_address'] : ($quotation->alamat_syarikat ?? ''));
-    $loggedInJawatan = auth()->user()?->jawatan ?? '';
-    $confirmationRole = old('disediakan_oleh', $updateDraft ? ($draft->disediakan_oleh ?? $loggedInJawatan) : $loggedInJawatan);
+    $defaultJawatan = 'Pengurus Besar';
+    $confirmationRole = old('disediakan_oleh', $updateDraft ? ($draft->disediakan_oleh ?? $defaultJawatan) : $defaultJawatan);
+    $defaultQuotationDate = $copyAsNewQuotation ? now()->format('Y-m-d') : ($isEditing ? $quotation->quotation_date : now()->format('Y-m-d'));
     $confirmationCompany = old('disediakan_company_name', $document['disediakan_company_name'] ?? $issuerName);
     $formAction = $isEditing && ! $copyAsNewQuotation ? route('sebut-harga.draft.store', $quotation->quotation_id) : route('sebut-harga.store');
     $initialItems = $isEditing
@@ -43,7 +44,7 @@
 @endphp
 
 <form method="POST" action="{{ $formAction }}" class="font-outfit space-y-6" x-data="{
-    quotationDate: {{ Illuminate\Support\Js::from(old('quotation_date', $isEditing ? $quotation->quotation_date : now()->format('Y-m-d'))) }},
+    quotationDate: {{ Illuminate\Support\Js::from(old('quotation_date', $defaultQuotationDate)) }},
     sequences: {{ Illuminate\Support\Js::from((object) App\Helpers\QuotationNumber::sequences()) }},
     customers: {{ Illuminate\Support\Js::from($customers) }},
     companies: {{ Illuminate\Support\Js::from($companies) }},
@@ -145,11 +146,11 @@
         <x-common.document-card title="Maklumat Sebut Harga">
             <div>
                 <label for="quotation_no" class="{{ $labelClass }}">No. Sebut Harga</label>
-                <input id="quotation_no" readonly value="{{ $isEditing && $updateDraft ? $quotation->quotation_no : App\Helpers\QuotationNumber::next(old('quotation_date', $isEditing ? $quotation->quotation_date : now()->format('Y-m-d'))) }}" @if (! ($isEditing && $updateDraft)) :value="nextQuotationNo" @endif class="{{ $inputClass }} bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                <input id="quotation_no" readonly value="{{ $isEditing && $updateDraft ? $quotation->quotation_no : App\Helpers\QuotationNumber::next(old('quotation_date', $defaultQuotationDate)) }}" @if (! ($isEditing && $updateDraft)) :value="nextQuotationNo" @endif class="{{ $inputClass }} bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
             </div>
             <div>
                 <label for="quotation_date" class="{{ $labelClass }}">Tarikh Sebut Harga</label>
-                <input id="quotation_date" name="quotation_date" x-model="quotationDate" type="date" value="{{ $isEditing ? $quotation->quotation_date : now()->format('Y-m-d') }}" required class="{{ $inputClass }}">
+                <input id="quotation_date" name="quotation_date" x-model="quotationDate" type="date" value="{{ $defaultQuotationDate }}" required class="{{ $inputClass }}">
             </div>
             <div>
                 <label for="customer_id" class="{{ $labelClass }}">Pilih Pelanggan</label>

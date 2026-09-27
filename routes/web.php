@@ -185,6 +185,7 @@ Route::get('/sebut-harga', function () {
                     'id' => $draft->quotation_detail_id,
                     'name' => 'Draf ' . $draft->draft_no . ($draft->status_draft === 'Final' ? ' (Final)' : ''),
                     'draftNo' => $draft->draft_no,
+                    'finalNo' => $draft->final_no,
                     'title' => $draft->quotation_title ?: '-',
                     'date' => $draft->quotation_date ?? $quotation->quotation_date,
                     'status' => $draft->status_draft === 'Final' ? 'Final' : 'Draf',
@@ -199,9 +200,59 @@ Route::get('/sebut-harga', function () {
             ];
         });
 
+    // Keep all versions available for the source picker, including Final versions.
+    $allQuotationVersions = $quotations;
+    $existingQuotationSources = $allQuotationVersions->flatMap(function ($quotation) {
+        return collect($quotation['versions'])->map(function ($version) use ($quotation) {
+            return [
+                'id' => $version['id'],
+                'quotationNo' => $quotation['quotationNo'],
+                'customerName' => $quotation['customerName'],
+                'title' => $version['title'],
+                'draftNo' => $version['draftNo'],
+                'status' => $version['status'],
+                'date' => $version['date'],
+                'editUrl' => route('sebut-harga.create', ['source' => $version['id']]),
+            ];
+        });
+    })->values();
+
+    // Keep ordinary Draf records and the original finalized draft visible here.
+    // Revisions created from a Final start at final_no 2 and belong only on the
+    // dedicated Final page.
+    $quotations = $quotations->map(function ($quotation) {
+        $draftVersions = collect($quotation['versions'])
+            ->filter(fn ($version) => $version['status'] === 'Draf'
+                || ($version['status'] === 'Final' && (int) ($version['finalNo'] ?? 0) === 1))
+            ->values();
+
+        if ($draftVersions->isEmpty()) {
+            return null;
+        }
+
+        $selectedDraft = $draftVersions->firstWhere('selected', true) ?: $draftVersions->first();
+
+        return array_merge($quotation, [
+            'product' => $selectedDraft['title'],
+            'version' => $selectedDraft['id'],
+            'versions' => $draftVersions,
+            'closeDate' => $selectedDraft['date'],
+            'status' => $selectedDraft['status'] === 'Final' ? 'Sudah Difinalisekan' : 'Belum Difinalisekan',
+            'decision' => $selectedDraft['decision'],
+        ]);
+    })->filter()->values();
+
+    if (request()->boolean('add')) {
+        return view('pages.sebut-harga.add', [
+            'title' => 'Tambah Sebut Harga',
+            'sources' => $existingQuotationSources,
+        ]);
+    }
+
     return view('pages.sebut-harga', [
         'title' => 'Sebut Harga',
         'quotations' => $quotations,
+        'existingQuotationSources' => $existingQuotationSources,
     ]);
 })->middleware('auth')->name('sebut-harga');
 

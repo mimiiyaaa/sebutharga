@@ -27,6 +27,11 @@ class FinalQuotationController extends Controller
                     'id' => $version->quotation_detail_id,
                     'label' => 'Versi ' . ($version->final_no ?? $version->draft_no),
                     'viewUrl' => route('sebut-harga.edit', [$version->quotation_id, 'draft' => $version->quotation_detail_id, 'from' => 'final']),
+                    'decision' => empty($version->sent_at)
+                        ? 'Belum Hantar'
+                        : ($version->status_quotation === null
+                            ? 'Menunggu Keputusan'
+                            : ((int) $version->status_quotation === 1 ? 'Setuju' : 'Tidak Setuju')),
                 ])->values();
 
                 return $selected;
