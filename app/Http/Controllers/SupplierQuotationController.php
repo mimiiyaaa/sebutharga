@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\SupplierQuotationOcr;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Symfony\Component\Process\Process;
 
 class SupplierQuotationController extends Controller
 {
@@ -33,23 +33,16 @@ class SupplierQuotationController extends Controller
     public function extract(Request $request)
     {
         $data = $request->validate([
-            'supplier_quotation_file' => ['required', 'file', 'mimes:pdf', 'max:10240'],
+            'supplier_quotation_file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
         ]);
 
-        $process = new Process([
-            env('PDFTOTEXT_BINARY', 'pdftotext'),
-            '-layout',
-            $data['supplier_quotation_file']->getPathname(),
-            '-',
-        ]);
-        $process->setTimeout(30);
-        $process->run();
-
-        if (! $process->isSuccessful()) {
-            return response()->json(['message' => 'PDF ini tidak dapat dibaca.'], 422);
+        try {
+            $extracted = app(SupplierQuotationOcr::class)->extractText($data['supplier_quotation_file']);
+        } catch (\RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
         }
 
-        $parsed = $this->parsePdfText($process->getOutput());
+        $parsed = $this->parsePdfText($extracted['text']);
         $supplier = $parsed['supplier_name']
             ? DB::table('customer_supplier')
                 ->where('jenis_customer', 2)
@@ -66,7 +59,7 @@ class SupplierQuotationController extends Controller
                 'items' => $parsed['items'],
             ],
             'supplier_name' => $parsed['supplier_name'],
-            'message' => count($parsed['items']) . ' item berjaya dibaca. Sila semak sebelum simpan.',
+            'message' => count($parsed['items']) . ' item berjaya dibaca melalui ' . $extracted['method'] . '. Sila semak sebelum simpan.',
         ]);
     }
 
@@ -180,6 +173,9 @@ class SupplierQuotationController extends Controller
                 } elseif (preg_match('/^(?:(\d+)\s+)?(.+?)\s+(\d+(?:\.\d+)?)\s+([A-Za-z]+)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})$/', $line, $match)) {
                     $rowNumber = $match[1] !== '' ? (int) $match[1] : (count($items) + 1);
                     $description = trim($match[2]);
+                    if (str_starts_with($description, '(') && $pendingDescription) {
+                        $description = trim($pendingDescription . ' ' . $description);
+                    }
                     $previous = end($items);
                     if ($match[1] !== '' && $previous && ($previous['item_number'] ?? null) === $rowNumber) {
                         $description = $previous['description'];
@@ -254,7 +250,7 @@ class SupplierQuotationController extends Controller
             'quotation_no_supplier' => ['required', 'string', 'max:100'],
             'quotation_title' => ['nullable', 'string', 'max:255'],
             'person_in_charge' => ['nullable', 'string', 'max:255'],
-            'supplier_quotation_file' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
+            'supplier_quotation_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.description' => ['required', 'string'],
             'items.*.quantity' => ['required', 'numeric', 'min:0.01'],
@@ -271,10 +267,11 @@ class SupplierQuotationController extends Controller
         if ($file && $file->getError() !== UPLOAD_ERR_NO_FILE) {
             $temporaryPath = $file->getPathname();
             if (! $file->isValid() || ! $temporaryPath || ! is_file($temporaryPath)) {
-                return back()->withErrors(['supplier_quotation_file' => 'Fail PDF tidak berjaya diterima. Sila pilih fail PDF semula.'])->withInput();
+                return back()->withErrors(['supplier_quotation_file' => 'Fail dokumen tidak berjaya diterima. Sila pilih fail semula.'])->withInput();
             }
 
-            $storedName = Str::uuid() . '.pdf';
+            $extension = strtolower($file->getClientOriginalExtension() ?: 'pdf');
+            $storedName = Str::uuid() . '.' . $extension;
             $filePath = 'pembekal-quotations/' . $storedName;
             Storage::disk('public')->put($filePath, file_get_contents($temporaryPath));
             $fileName = $file->getClientOriginalName();

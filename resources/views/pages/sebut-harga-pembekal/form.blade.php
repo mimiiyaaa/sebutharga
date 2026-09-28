@@ -7,7 +7,8 @@
         $initialItems = $items->isNotEmpty()
             ? $items->map(fn ($item, $index) => ['id' => $index + 1, 'description' => $item->item_description, 'quantity' => $item->quantity, 'unit' => $item->unit, 'price' => $item->unit_price])->values()
             : collect([['id' => 1, 'description' => '', 'quantity' => 1, 'unit' => '', 'price' => 0]]);
-        $existingPdfUrl = $quotation?->file_path ? asset('storage/' . $quotation->file_path) : '';
+        $existingDocumentUrl = $quotation?->file_path ? asset('storage/' . $quotation->file_path) : '';
+        $existingDocumentIsImage = in_array(strtolower(pathinfo((string) $quotation?->file_name, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png'], true);
     @endphp
 
     <form method="POST" enctype="multipart/form-data" action="{{ route('sebut-harga-pembekal.save', ['id' => $quotation?->supplier_quotation_id]) }}" class="font-outfit" x-data="{
@@ -19,7 +20,8 @@
         quotationNoSupplier: {{ Illuminate\Support\Js::from(old('quotation_no_supplier', $quotation?->quotation_no_supplier ?? '')) }},
         quotationTitle: {{ Illuminate\Support\Js::from(old('quotation_title', $quotation?->quotation_title ?? '')) }},
         personInCharge: {{ Illuminate\Support\Js::from(old('person_in_charge', $quotation?->person_in_charge ?? '')) }},
-        pdfUrl: {{ Illuminate\Support\Js::from($existingPdfUrl) }},
+        documentUrl: {{ Illuminate\Support\Js::from($existingDocumentUrl) }},
+        documentIsImage: {{ Illuminate\Support\Js::from($existingDocumentIsImage) }},
         fileName: {{ Illuminate\Support\Js::from($quotation?->file_name ?? '') }},
         extracting: false,
         registeringSupplier: false,
@@ -27,15 +29,17 @@
         newSupplier: { company_name: '', customer_name: '', address: '', phone_no: '', email: '' },
         extractMessage: '',
         extractError: '',
-        choosePdf(event) {
+        chooseDocument(event) {
             const file = event.target.files[0];
             if (!file) return;
-            if (file.type !== 'application/pdf') { event.target.value = ''; this.pdfUrl = ''; this.fileName = ''; return; }
-            if (this.pdfUrl && this.pdfUrl.startsWith('blob:')) URL.revokeObjectURL(this.pdfUrl);
-            this.pdfUrl = URL.createObjectURL(file);
+            const acceptedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+            if (!acceptedTypes.includes(file.type)) { event.target.value = ''; this.documentUrl = ''; this.fileName = ''; return; }
+            if (this.documentUrl && this.documentUrl.startsWith('blob:')) URL.revokeObjectURL(this.documentUrl);
+            this.documentUrl = URL.createObjectURL(file);
+            this.documentIsImage = file.type.startsWith('image/');
             this.fileName = file.name;
         },
-        async extractPdf() {
+        async extractDocument() {
             const file = document.getElementById('supplier_quotation_file').files[0];
             if (!file) return;
             this.extracting = true;
@@ -101,12 +105,12 @@
             <div class="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
             <section class="w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-800">
-                    <div><h2 class="text-base font-semibold text-gray-800 dark:text-white/90">{{ __('Dokumen Pembekal') }}</h2><p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('Upload PDF dan baca maklumat secara automatik.') }}</p></div>
+                    <div><h2 class="text-base font-semibold text-gray-800 dark:text-white/90">{{ __('Dokumen Pembekal') }}</h2><p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('Upload PDF atau imej dan baca maklumat secara automatik.') }}</p></div>
                     <div class="flex flex-wrap gap-2">
-                        <label for="supplier_quotation_file" class="inline-flex cursor-pointer items-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Upload PDF') }}</label>
-                        <button type="button" x-show="fileName" @click="extractPdf()" :disabled="extracting" class="inline-flex items-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600 disabled:cursor-wait disabled:opacity-60"><span x-text="extracting ? 'Membaca...' : 'Baca Dokumen'"></span></button>
+                        <label for="supplier_quotation_file" class="inline-flex cursor-pointer items-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Upload Dokumen') }}</label>
+                        <button type="button" x-show="fileName" @click="extractDocument()" :disabled="extracting" class="inline-flex items-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600 disabled:cursor-wait disabled:opacity-60"><span x-text="extracting ? 'Membaca...' : 'Baca Dokumen'"></span></button>
                     </div>
-                    <input id="supplier_quotation_file" name="supplier_quotation_file" type="file" accept="application/pdf" class="sr-only" @change="choosePdf($event)">
+                    <input id="supplier_quotation_file" name="supplier_quotation_file" type="file" accept="application/pdf,image/jpeg,image/png" class="sr-only" @change="chooseDocument($event)">
                 </div>
                 <div class="border-b border-gray-100 bg-gray-50/70 px-5 py-3 dark:border-gray-800 dark:bg-gray-900/40">
                     <div x-cloak x-show="fileName" class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300"><svg class="h-4 w-4 text-error-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 2h8l4 4v16H6V2Zm7 1.5V7h3.5L13 3.5Z"/></svg><span class="truncate" x-text="fileName"></span></div>
@@ -115,8 +119,8 @@
                     <p x-show="!fileName" class="text-sm text-gray-500 dark:text-gray-400">{{ __('Belum ada PDF dipilih.') }}</p>
                 </div>
                 <div class="min-h-[360px] bg-gray-100 p-3 dark:bg-gray-950/40">
-                    <div x-cloak x-show="pdfUrl" class="h-[360px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700"><iframe :src="pdfUrl" title="{{ __('Preview PDF Sebut Harga Pembekal') }}" class="h-full w-full"></iframe></div>
-                    <div x-show="!pdfUrl" class="flex h-[480px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-white px-8 text-center dark:border-gray-700 dark:bg-gray-900/50"><div class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"><svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M7 3h7l4 4v14H7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 1 2-2Zm7 0v5h5M8 13h8M8 17h6"/></svg></div><h3 class="text-base font-semibold text-gray-800 dark:text-white/90">{{ __('Preview PDF akan muncul di sini') }}</h3><p class="mt-2 max-w-sm text-sm leading-6 text-gray-500 dark:text-gray-400">{{ __('Upload sebut harga pembekal untuk melihat dokumen sebelum memasukkan item di bawah.') }}</p><label for="supplier_quotation_file" class="mt-5 cursor-pointer text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400">{{ __('Pilih fail PDF') }}</label></div>
+                    <div x-cloak x-show="documentUrl" class="h-[360px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700"><template x-if="documentIsImage"><img :src="documentUrl" alt="{{ __('Preview dokumen pembekal') }}" class="h-full w-full object-contain"></template><template x-if="!documentIsImage"><iframe :src="documentUrl" title="{{ __('Preview PDF Sebut Harga Pembekal') }}" class="h-full w-full"></iframe></template></div>
+                    <div x-show="!documentUrl" class="flex h-[480px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-white px-8 text-center dark:border-gray-700 dark:bg-gray-900/50"><div class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"><svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M7 3h7l4 4v14H7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 1 2-2Zm7 0v5h5M8 13h8M8 17h6"/></svg></div><h3 class="text-base font-semibold text-gray-800 dark:text-white/90">{{ __('Preview dokumen akan muncul di sini') }}</h3><p class="mt-2 max-w-sm text-sm leading-6 text-gray-500 dark:text-gray-400">{{ __('Upload sebut harga pembekal untuk melihat dokumen sebelum memasukkan item di bawah.') }}</p><label for="supplier_quotation_file" class="mt-5 cursor-pointer text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400">{{ __('Pilih PDF atau imej') }}</label></div>
                 </div>
             </section>
 
