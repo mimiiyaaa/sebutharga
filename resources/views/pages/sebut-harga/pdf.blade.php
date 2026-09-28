@@ -96,6 +96,6 @@ table { width: 100%; border-collapse: collapse; }
 </div>
 <table class="signatures"><tr><td>Disediakan oleh,</td><td class="signature-right">Diterima / Disahkan oleh,</td></tr>
 <tr><td class="signature-space"></td><td></td></tr>
-<tr><td><div class="signature-block">@if ($detail->disediakan_oleh){{ $detail->disediakan_oleh }}<br>@endif @if (property_exists($detail, 'disediakan_company_name') && $detail->disediakan_company_name){{ $detail->disediakan_company_name }}<br>@elseif (property_exists($detail, 'disediakan_role') && $detail->disediakan_role){{ $detail->disediakan_role }}<br>@endif</div></td>
+<tr><td><div class="signature-block">@if ($detail->disediakan_oleh){{ $detail->disediakan_oleh }}<br>@endif @if (property_exists($detail, 'disediakan_role') && $detail->disediakan_role){{ $detail->disediakan_role }}<br>@endif @if (property_exists($detail, 'disediakan_company_name') && $detail->disediakan_company_name){{ $detail->disediakan_company_name }}<br>@endif</div></td>
 <td class="signature-right"><div class="signature-block">Tandatangan &amp; Cop<br>Tarikh</div></td></tr></table>
 </body></html>

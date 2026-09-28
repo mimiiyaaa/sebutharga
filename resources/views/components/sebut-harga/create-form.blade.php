@@ -36,7 +36,8 @@
         ->unique()
         ->sort()
         ->values();
-    $confirmationRole = old('disediakan_oleh', $updateDraft ? ($draft->disediakan_oleh ?? $defaultJawatan) : $defaultJawatan);
+    $confirmationPreparedBy = old('disediakan_oleh', $updateDraft ? ($draft->disediakan_oleh ?? auth()->user()?->name ?? '') : (auth()->user()?->name ?? ''));
+    $confirmationRole = old('disediakan_role', $document['disediakan_role'] ?? ($draft->disediakan_role ?? auth()->user()?->jawatan ?? $defaultJawatan));
     $defaultQuotationDate = $copyAsNewQuotation ? now()->format('Y-m-d') : ($isEditing ? $quotation->quotation_date : now()->format('Y-m-d'));
     $confirmationCompany = old('disediakan_company_name', $document['disediakan_company_name'] ?? $issuerName);
     $formAction = $isEditing && ! $copyAsNewQuotation ? route('sebut-harga.draft.store', $quotation->quotation_id) : route('sebut-harga.store');
@@ -279,8 +280,12 @@
             <div class="flex flex-col rounded-xl border border-gray-200 bg-gray-50/50 p-5 dark:border-gray-700 dark:bg-gray-800/30 sm:p-6">
                 <div class="space-y-5">
                     <div>
-                        <label for="disediakan_oleh_confirmation" class="{{ $labelClass }}">{{ __('Disediakan Oleh (Jawatan)') }}</label>
-                        <select id="disediakan_oleh_confirmation" name="disediakan_oleh" class="{{ $inputClass }}">
+                        <label for="disediakan_oleh_confirmation" class="{{ $labelClass }}">{{ __('Disediakan Oleh') }}</label>
+                        <input id="disediakan_oleh_confirmation" name="disediakan_oleh" value="{{ $confirmationPreparedBy }}" class="{{ $inputClass }}">
+                    </div>
+                    <div>
+                        <label for="disediakan_role_confirmation" class="{{ $labelClass }}">{{ __('Jawatan') }}</label>
+                        <select id="disediakan_role_confirmation" name="disediakan_role" class="{{ $inputClass }}">
                             @if ($confirmationRole && ! $jawatanOptions->contains($confirmationRole))
                                 <option value="{{ $confirmationRole }}" selected>{{ $confirmationRole }}</option>
                             @endif

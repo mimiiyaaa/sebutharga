@@ -292,7 +292,21 @@ Route::get('/invoice', function () {
 })->name('invoice');
 
 Route::get('/lo', function () {
-    return view('pages.lo', ['title' => 'LO']);
+    $loDocuments = DB::table('lo_inden_master as lo')
+        ->leftJoin('customer_supplier as customer', 'customer.customer_id', '=', 'lo.customer_id')
+        ->orderByDesc('lo.lo_inden_date')
+        ->orderByDesc('lo.lo_inden_id')
+        ->get([
+            'lo.lo_inden_id',
+            'lo.lo_inden_no',
+            'lo.lo_inden_date',
+            'lo.amount',
+            'lo.document_file',
+            'customer.customer_name',
+            'customer.company_name',
+        ]);
+
+    return view('pages.lo', ['title' => 'LO', 'loDocuments' => $loDocuments]);
 })->middleware('auth')->name('lo');
 
 Route::get('/syarikat', [\App\Http\Controllers\CompanyController::class, 'index'])->middleware('auth')->name('syarikat');

@@ -108,6 +108,7 @@
                     <h4 class="mb-3 text-base font-semibold text-gray-800 dark:text-white/90">{{ __('Pengesahan Sebut Harga') }}</h4>
                     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                         <div><p class="text-sm text-gray-500 dark:text-gray-400">{{ __('Disediakan Oleh') }}</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $draft->disediakan_oleh ?: '—' }}</p></div>
+                        <div><p class="text-sm text-gray-500 dark:text-gray-400">{{ __('Jawatan') }}</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $value('disediakan_role', $draft->disediakan_role) }}</p></div>
                         <div><p class="text-sm text-gray-500 dark:text-gray-400">{{ __('Nama Syarikat') }}</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $value('disediakan_company_name', $quotation->nama_syarikat) }}</p></div>
                         <div><p class="text-sm text-gray-500 dark:text-gray-400">{{ __('Diterima Oleh') }}</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $draft->diterima_oleh ?: '—' }}</p></div>
                     </div>
@@ -191,7 +192,7 @@
                 :submit-at-top="false"
                 :show-back="false"
                 :update-draft="true"
-                :jawatan-options="$jawatanOptions"
+                :jawatan-options="$jawatanOptions ?? collect()"
             />
         </div>
         <div x-show="editing && editMode === 'new'" x-cloak class="space-y-6">
@@ -208,7 +209,7 @@
                 :editing="true"
                 :submit-at-top="false"
                 :show-back="false"
-                :jawatan-options="$jawatanOptions"
+                :jawatan-options="$jawatanOptions ?? collect()"
             />
         </div>
     </div>
