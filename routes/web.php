@@ -291,23 +291,14 @@ Route::get('/invoice', function () {
     return view('pages.invoice', ['title' => 'Invoice']);
 })->name('invoice');
 
-Route::get('/lo', function () {
-    $loDocuments = DB::table('lo_inden_master as lo')
-        ->leftJoin('customer_supplier as customer', 'customer.customer_id', '=', 'lo.customer_id')
-        ->orderByDesc('lo.lo_inden_date')
-        ->orderByDesc('lo.lo_inden_id')
-        ->get([
-            'lo.lo_inden_id',
-            'lo.lo_inden_no',
-            'lo.lo_inden_date',
-            'lo.amount',
-            'lo.document_file',
-            'customer.customer_name',
-            'customer.company_name',
-        ]);
-
-    return view('pages.lo', ['title' => 'LO', 'loDocuments' => $loDocuments]);
-})->middleware('auth')->name('lo');
+Route::get('/lo', [\App\Http\Controllers\LoController::class, 'index'])->middleware('auth')->name('lo');
+Route::get('/lo/tambah', [\App\Http\Controllers\LoController::class, 'form'])->middleware('auth')->name('lo.create');
+Route::post('/lo', [\App\Http\Controllers\LoController::class, 'save'])->middleware('auth')->name('lo.store');
+Route::get('/lo/{id}/dokumen', [\App\Http\Controllers\LoController::class, 'document'])->whereNumber('id')->middleware('auth')->name('lo.document');
+Route::get('/lo/{id}/edit', [\App\Http\Controllers\LoController::class, 'form'])->whereNumber('id')->middleware('auth')->name('lo.edit');
+Route::put('/lo/{id}', [\App\Http\Controllers\LoController::class, 'save'])->whereNumber('id')->middleware('auth')->name('lo.update');
+Route::delete('/lo/{id}', [\App\Http\Controllers\LoController::class, 'delete'])->whereNumber('id')->middleware('auth')->name('lo.delete');
+Route::get('/lo/{id}', [\App\Http\Controllers\LoController::class, 'show'])->whereNumber('id')->middleware('auth')->name('lo.show');
 
 Route::get('/syarikat', [\App\Http\Controllers\CompanyController::class, 'index'])->middleware('auth')->name('syarikat');
 Route::get('/maklumat-login', [\App\Http\Controllers\UserManagementController::class, 'index'])->middleware('auth')->name('maklumat-login');
