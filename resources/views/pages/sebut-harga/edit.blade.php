@@ -4,6 +4,7 @@
 
     @php
         $isFinalView = request('from') === 'final';
+        $linkedLo = $linkedLo ?? null;
     @endphp
     <x-common.document-workspace :title="__('Butiran Sebut Harga')" :subtitle="$quotation->quotation_no" :reference="($isFinalView ? __('Versi') . ' ' . ($draft->final_no ?? $draft->draft_no) : __('Draf') . ' ' . $draft->draft_no)" x-data="{ editing: {{ request('edit') ? 'true' : 'false' }}, editMode: 'existing', loginInfoOpen: false, sendModalOpen: false }" @keydown.escape.window="loginInfoOpen = false; sendModalOpen = false">
     <x-slot:referenceActions><a x-show="!editing" x-cloak href="{{ request('from') === 'final' ? route('sebut-harga.final', ['draft' => $draft->quotation_detail_id]) : route('sebut-harga') }}" class="inline-flex h-9 items-center justify-center rounded-lg border border-gray-200 bg-white px-3 text-theme-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">{{ __('Kembali') }}</a><div class="relative" @click.outside="loginInfoOpen = false"><button type="button" @click="loginInfoOpen = !loginInfoOpen" title="{{ __('Maklumat Login') }}" aria-label="{{ __('Maklumat Login') }}" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-brand-700 dark:hover:text-brand-400"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 16v-4m0-4h.01M21 12a9 9 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></button><x-common.created-by-panel :name="$createdBy?->name" :jawatan="$createdBy?->jawatan" :email="$createdBy?->email" :created-at="$draft->created_at" document-label="draf ini" /></div></x-slot>
@@ -51,16 +52,25 @@
                             @if (empty($draft->sent_at))
                                 <button type="button" @click="sendModalOpen = true" class="inline-flex h-11 items-center rounded-lg bg-brand-500 px-4 text-sm font-medium text-white transition hover:bg-brand-600">{{ __('Hantar') }}</button>
                             @elseif ($draft->status_quotation === null)
-                                <form method="POST" action="{{ route('sebut-harga.final.agree', [$quotation->quotation_id, $draft->quotation_detail_id]) }}" @submit.prevent="$dispatch('confirm-action', { form: $el, message: 'Tandakan sebut harga ini sebagai setuju?', button: 'Setuju' })">
+                                <form method="POST" action="{{ route('sebut-harga.final.agree', [$quotation->quotation_id, $draft->quotation_detail_id]) }}" @submit.prevent="$dispatch('confirm-action', { form: $el, message: 'Tandakan sebut harga ini sebagai berjaya?', button: 'Setuju' })">
                                     @csrf
                                     <button type="submit" class="inline-flex h-11 items-center rounded-lg bg-success-500 px-4 text-sm font-medium text-white transition hover:bg-success-600">{{ __('Setuju') }}</button>
                                 </form>
+                                <span class="inline-flex h-11 items-center rounded-lg bg-warning-50 px-4 text-sm font-medium text-warning-700 dark:bg-warning-500/10 dark:text-warning-400">{{ __('Menunggu LO') }}</span>
                                 <form method="POST" action="{{ route('sebut-harga.final.undo-send', [$quotation->quotation_id, $draft->quotation_detail_id]) }}">
                                     @csrf
                                     <button type="submit" class="inline-flex h-11 items-center rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Undo Hantar') }}</button>
                                 </form>
                             @else
-                                <span class="inline-flex h-11 items-center rounded-lg {{ (int) $draft->status_quotation === 1 ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400' : 'bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400' }} px-4 text-sm font-medium">{{ (int) $draft->status_quotation === 1 ? __('Setuju') : __('Tidak Setuju') }}</span>
+                                @if ((int) $draft->status_quotation === 1)
+                                    @if ($linkedLo)
+                                        <a href="{{ route('lo.show', $linkedLo->lo_inden_id) }}" class="inline-flex h-11 items-center rounded-lg bg-success-50 px-4 text-sm font-medium text-success-700 transition hover:bg-success-100 dark:bg-success-500/15 dark:text-success-400 dark:hover:bg-success-500/25">{{ __('Berjaya — LO Diterima') }}</a>
+                                    @else
+                                        <span class="inline-flex h-11 items-center rounded-lg bg-success-50 px-4 text-sm font-medium text-success-700 dark:bg-success-500/15 dark:text-success-400">{{ __('Berjaya — Belum Ada LO') }}</span>
+                                    @endif
+                                @else
+                                    <span class="inline-flex h-11 items-center rounded-lg bg-error-50 px-4 text-sm font-medium text-error-700 dark:bg-error-500/15 dark:text-error-400">{{ __('Tidak Berjaya') }}</span>
+                                @endif
                                 <form method="POST" action="{{ route('sebut-harga.final.undo-decision', [$quotation->quotation_id, $draft->quotation_detail_id]) }}">
                                     @csrf
                                     <button type="submit" class="inline-flex h-11 items-center rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Undo Keputusan') }}</button>

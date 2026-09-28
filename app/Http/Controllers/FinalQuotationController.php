@@ -12,8 +12,9 @@ class FinalQuotationController extends Controller
         $drafts = DB::table('sebutharga_detail as d')
             ->join('sebutharga_master as m', 'm.quotation_id', '=', 'd.quotation_id')
             ->leftJoin('customer_supplier as c', 'c.customer_id', '=', 'm.customer_id')
+            ->leftJoin('lo_inden_master as lo', 'lo.quotation_detail_id', '=', 'd.quotation_detail_id')
             ->whereRaw('LOWER(TRIM(d.status_draft)) = ?', ['final'])
-            ->select('d.*', 'm.quotation_no', 'm.quotation_detail_id as active_detail_id', 'c.company_name')
+            ->select('d.*', 'm.quotation_no', 'm.quotation_detail_id as active_detail_id', 'c.company_name', 'lo.lo_inden_no')
             ->orderBy('d.quotation_id')
             ->orderBy('d.final_no')
             ->get();
@@ -30,8 +31,10 @@ class FinalQuotationController extends Controller
                     'decision' => empty($version->sent_at)
                         ? 'Belum Hantar'
                         : ($version->status_quotation === null
-                            ? 'Menunggu Keputusan'
-                            : ((int) $version->status_quotation === 1 ? 'Setuju' : 'Tidak Setuju')),
+                            ? 'Menunggu LO'
+                            : ((int) $version->status_quotation === 1
+                                ? ($version->lo_inden_no ? 'Berjaya — LO Diterima' : 'Berjaya — Belum Ada LO')
+                                : 'Tidak Berjaya')),
                 ])->values();
 
                 return $selected;
@@ -126,7 +129,7 @@ class FinalQuotationController extends Controller
         $this->updateDecisionState($id, $draftId, ['sent_at' => $sentAt, 'sent_by' => $data['sent_by'], 'status_quotation' => null], null);
 
         return redirect()->route('sebut-harga.edit', [$id, 'draft' => $draftId, 'from' => 'final'])
-            ->with('success', 'Sebut harga telah dihantar dan menunggu keputusan pelanggan.');
+            ->with('success', 'Sebut harga telah dihantar dan kini menunggu LO.');
     }
 
     public function decide(int $id, int $draftId, int $decision)
@@ -134,7 +137,7 @@ class FinalQuotationController extends Controller
         $this->updateDecisionState($id, $draftId, ['status_quotation' => $decision], $decision);
 
         return redirect()->route('sebut-harga.edit', [$id, 'draft' => $draftId, 'from' => 'final'])
-            ->with('success', $decision === 1 ? 'Sebut harga ditandakan sebagai setuju.' : 'Sebut harga ditandakan sebagai tidak setuju.');
+            ->with('success', $decision === 1 ? 'Sebut harga ditandakan sebagai Berjaya.' : 'Sebut harga ditandakan sebagai tidak berjaya.');
     }
 
     public function undoDecision(int $id, int $draftId)
@@ -142,7 +145,7 @@ class FinalQuotationController extends Controller
         $this->updateDecisionState($id, $draftId, ['status_quotation' => null], null);
 
         return redirect()->route('sebut-harga.edit', [$id, 'draft' => $draftId, 'from' => 'final'])
-            ->with('success', 'Keputusan telah dibatalkan. Sebut harga kembali menunggu keputusan.');
+            ->with('success', 'Keputusan telah dibatalkan. Sebut harga kembali menunggu LO.');
     }
 
     public function undoSend(int $id, int $draftId)

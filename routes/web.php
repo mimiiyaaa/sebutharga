@@ -712,6 +712,9 @@ Route::get('/sebut-harga/{id}/edit', function ($id) {
     $createdBy = $draft->created_by
         ? DB::table('users')->where('id', $draft->created_by)->first(['name', 'jawatan', 'email'])
         : null;
+    $linkedLo = DB::table('lo_inden_master')
+        ->where('quotation_detail_id', $draft->quotation_detail_id)
+        ->first(['lo_inden_id', 'lo_inden_no']);
     $nextDraftNo = ((int) DB::table('sebutharga_detail')->where('quotation_id', $id)->max('draft_no')) + 1;
 
     return view('pages.sebut-harga.edit', [
@@ -724,6 +727,7 @@ Route::get('/sebut-harga/{id}/edit', function ($id) {
         'createdBy' => $createdBy,
         'nextDraftNo' => $nextDraftNo,
         'jawatanOptions' => $jawatanOptions,
+        'linkedLo' => $linkedLo,
     ]);
 })->middleware('auth')->name('sebut-harga.edit');
 
