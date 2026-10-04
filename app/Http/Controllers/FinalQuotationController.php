@@ -59,6 +59,7 @@ class FinalQuotationController extends Controller
                 'quotation_date' => $source->quotation_date,
                 'customer_id' => $source->customer_id,
                 'quotation_title' => $source->quotation_title,
+                'sumber_sebut_harga' => $source->sumber_sebut_harga,
                 'no_rujukan_pelanggan' => $source->no_rujukan_pelanggan,
                 'status_quotation' => null,
                 'draft_name' => null,

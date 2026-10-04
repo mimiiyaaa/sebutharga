@@ -1,7 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
-    <x-common.page-breadcrumb :pageTitle="$lo ? __('Kemaskini LO') : __('Tambah LO')" />
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ $lo ? __('Kemaskini LO') : __('Tambah LO') }}</h2>
+        <a href="{{ $lo ? route('lo.show', $lo->lo_inden_id) : route('lo') }}" class="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
+    </div>
     @php
         $selectedQuotationId = (string) old('quotation_detail_id', $lo->quotation_detail_id ?? '');
         $quotationOptions = $finalQuotations->map(fn ($quotation) => [
@@ -17,7 +20,6 @@
     <form method="POST" enctype="multipart/form-data" action="{{ $lo ? route('lo.update', $lo->lo_inden_id) : route('lo.store') }}" class="space-y-6 font-outfit" x-data="{ quotationId: @js($selectedQuotationId), quotationFilter: '', quotations: @js($quotationOptions), amount: @js((string) old('amount', $lo->amount ?? '0.00')), fileName: '', get selectedQuotation() { return this.quotations.find(quotation => quotation.id === String(this.quotationId)); }, get filteredQuotations() { return this.quotations.filter(quotation => !this.quotationFilter || quotation.status === this.quotationFilter); }, selectQuotation() { if (this.selectedQuotation) this.amount = this.selectedQuotation.amount; } }">
         @csrf
         @if($lo) @method('PUT') @endif
-        <div class="flex justify-end"><a href="{{ $lo ? route('lo.show', $lo->lo_inden_id) : route('lo') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a></div>
         <x-common.document-card :title="$lo ? __('Maklumat LO') : __('Maklumat LO Baharu')">
             <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
                 <div class="md:col-span-2">

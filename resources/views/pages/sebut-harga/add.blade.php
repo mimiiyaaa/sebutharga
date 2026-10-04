@@ -5,7 +5,9 @@
         $sourceCustomers = $sources->pluck('customerName')->filter()->unique()->sort()->values();
     @endphp
 
-    <x-common.page-breadcrumb pageTitle="Tambah Sebut Harga" />
+    <div class="mb-6">
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ __('Tambah Sebut Harga') }}</h2>
+    </div>
 
     <div class="space-y-6" x-data="{
         sourceType: 'Draf',
@@ -61,23 +63,36 @@
                 <button type="button" @click="resetSourceFilters()" class="h-11 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 shadow-theme-xs transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">{{ __('Reset') }}</button>
             </div>
 
-            <div class="mt-5 space-y-3">
-                <template x-for="group in filteredGroups" :key="group.quotationNo + group.customerName">
-                    <div class="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
-                        <div class="flex items-center justify-between gap-3 bg-gray-50 px-4 py-3 dark:bg-gray-800/60">
-                            <div class="min-w-0"><p class="truncate text-sm font-semibold text-gray-800 dark:text-white/90" x-text="group.quotationNo + ' — ' + group.customerName"></p><p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400" x-text="group.items.length + (group.items.length === 1 ? ' rekod' : ' rekod')"></p></div>
-                        </div>
-                        <div class="divide-y divide-gray-100 dark:divide-gray-800">
-                            <template x-for="source in group.items" :key="source.id">
-                                <button type="button" @click="window.location.assign(source.editUrl)" class="flex w-full min-w-0 items-center justify-between gap-4 px-4 py-3 text-start transition hover:bg-brand-50/50 dark:hover:bg-brand-500/10">
-                                    <div class="min-w-0"><p class="truncate text-sm font-medium text-gray-800 dark:text-white/90" x-text="source.title"></p><p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400" x-text="source.date"></p></div>
-                                    <span class="inline-flex shrink-0 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300" x-text="source.status + ' ' + source.draftNo"></span>
-                                </button>
+            <div class="mt-5 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+                <div class="max-w-full overflow-x-auto">
+                    <table class="w-full min-w-[900px] text-start text-sm">
+                        <thead class="bg-gray-50 dark:bg-gray-800/60">
+                            <tr>
+                                <th class="px-4 py-3 font-semibold text-gray-600 dark:text-gray-300">No. Sebut Harga</th>
+                                <th class="px-4 py-3 font-semibold text-gray-600 dark:text-gray-300">Pelanggan</th>
+                                <th class="px-4 py-3 font-semibold text-gray-600 dark:text-gray-300">Tajuk</th>
+                                <th class="px-4 py-3 font-semibold text-gray-600 dark:text-gray-300">Versi</th>
+                                <th class="px-4 py-3 font-semibold text-gray-600 dark:text-gray-300">Tarikh</th>
+                                <th class="px-4 py-3 font-semibold text-gray-600 dark:text-gray-300">Status</th>
+                                <th class="px-4 py-3 text-center font-semibold text-gray-600 dark:text-gray-300">Tindakan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="group in filteredGroups" :key="group.quotationNo + '|' + group.customerName">
+                                <tr x-data="{ selectedId: group.items[0]?.id, selected() { return group.items.find(item => String(item.id) === String(this.selectedId)) || group.items[0] } }" class="border-t border-gray-100 transition hover:bg-brand-50/50 dark:border-gray-800 dark:hover:bg-brand-500/10">
+                                    <td class="whitespace-nowrap px-4 py-3.5 font-medium text-gray-800 dark:text-white/90" x-text="group.quotationNo"></td>
+                                    <td class="px-4 py-3.5 text-gray-700 dark:text-gray-300" x-text="group.customerName"></td>
+                                    <td class="px-4 py-3.5 text-gray-700 dark:text-gray-300" x-text="selected()?.title"></td>
+                                    <td class="px-4 py-3.5"><select x-model="selectedId" class="h-9 min-w-28 rounded-lg border border-gray-200 bg-white px-2.5 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"><template x-for="item in group.items" :key="item.id"><option :value="item.id" x-text="item.status + ' ' + item.draftNo"></option></template></select></td>
+                                    <td class="whitespace-nowrap px-4 py-3.5 text-gray-600 dark:text-gray-400" x-text="selected()?.date"></td>
+                                    <td class="px-4 py-3.5"><span class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300" x-text="selected()?.status + ' ' + selected()?.draftNo"></span></td>
+                                    <td class="px-4 py-3.5 text-center"><button type="button" @click="window.location.assign(selected()?.editUrl)" class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-white dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">Lihat</button></td>
+                                </tr>
                             </template>
-                        </div>
-                    </div>
-                </template>
-                <div x-show="filteredGroups.length === 0" class="rounded-xl border border-dashed border-gray-300 px-4 py-12 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">{{ __('Tiada sebut harga sepadan dengan filter.') }}</div>
+                            <tr x-show="filteredGroups.length === 0"><td colspan="7" class="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400">{{ __('Tiada sebut harga sepadan dengan filter.') }}</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </x-common.component-card>
     </div>

@@ -249,6 +249,7 @@ class SupplierQuotationController extends Controller
             'supplier_id' => ['required', 'integer', Rule::exists('customer_supplier', 'customer_id')->where('jenis_customer', 2)],
             'quotation_no_supplier' => ['required', 'string', 'max:100'],
             'quotation_title' => ['nullable', 'string', 'max:255'],
+            'sumber_sebut_harga' => ['required', 'in:PDF,E-mel,WhatsApp,Surat,Serahan Tangan,Lain-lain'],
             'person_in_charge' => ['nullable', 'string', 'max:255'],
             'supplier_quotation_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
             'items' => ['required', 'array', 'min:1'],
@@ -284,6 +285,7 @@ class SupplierQuotationController extends Controller
                 'quotation_no_supplier' => $data['quotation_no_supplier'],
                 'company_name' => $supplier->company_name,
                 'quotation_title' => $data['quotation_title'] ?? null,
+                'sumber_sebut_harga' => $data['sumber_sebut_harga'],
                 'person_in_charge' => $data['person_in_charge'] ?? null,
                 'updated_at' => now(),
             ];

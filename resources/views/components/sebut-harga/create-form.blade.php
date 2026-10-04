@@ -15,6 +15,7 @@
 @php
     $inputClass = 'w-full min-h-11 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90';
     $labelClass = 'mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400';
+    $sourceOptions = ['PDF', 'E-mel', 'WhatsApp', 'Surat', 'Serahan Tangan', 'Lain-lain'];
     $isEditing = $editing && $quotation && $draft;
     $document = App\Helpers\QuotationDocument::data($draft);
     $recipient = $customers->firstWhere('customer_id', old('customer_id', $quotation->customer_id ?? null));
@@ -108,9 +109,6 @@
     }
 }">
     @csrf
-    @if ($showBack)
-        <div class="flex justify-end"><a @if ($isEditing) href="#" @click.prevent="editing = false" @else href="{{ route('sebut-harga') }}" @endif class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a></div>
-    @endif
     @if ($updateDraft && $isEditing)
         <input type="hidden" name="update_draft_id" value="{{ $draft->quotation_detail_id }}">
     @endif
@@ -178,6 +176,15 @@
             <div>
                 <label for="quotation_title" class="{{ $labelClass }}">Tajuk Sebut Harga</label>
                 <input id="quotation_title" name="quotation_title" value="{{ $isEditing ? $quotation->quotation_title : '' }}" maxlength="255" placeholder="Contoh: Pembekalan peralatan pejabat" class="{{ $inputClass }}">
+            </div>
+            <div>
+                <label for="sumber_sebut_harga" class="{{ $labelClass }}">Sumber Sebut Harga</label>
+                <select id="sumber_sebut_harga" name="sumber_sebut_harga" required class="{{ $inputClass }}">
+                    <option value="">Pilih sumber sebut harga</option>
+                    @foreach ($sourceOptions as $source)
+                        <option value="{{ $source }}" @selected(old('sumber_sebut_harga', $draft->sumber_sebut_harga ?? '') === $source)>{{ $source }}</option>
+                    @endforeach
+                </select>
             </div>
         </x-common.document-card>
 
@@ -324,7 +331,7 @@
             </div>
         </x-common.document-card>
 
-    <div class="flex flex-wrap items-center justify-end gap-3">
+    <div class="flex flex-wrap items-center justify-end gap-3 border-t border-gray-100 pt-5 dark:border-gray-800">
         @if (! $submitAtTop)
             <button type="submit" class="inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white hover:bg-brand-600 dark:bg-brand-500 dark:hover:bg-brand-600">{{ $isEditing && $updateDraft ? 'Kemaskini' : 'Simpan Sebut Harga' }}</button>
         @endif

@@ -88,6 +88,7 @@
                 <div><p class="text-sm text-gray-500 dark:text-gray-400">{{ $isFinalView ? __('Versi') : __('Draf') }}</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $isFinalView ? __('Versi') . ' ' . ($draft->final_no ?? $draft->draft_no) : __('Draf') . ' ' . $draft->draft_no }}</p></div>
                 <div><p class="text-sm text-gray-500 dark:text-gray-400">Kemaskini Terakhir</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $draft->updated_at ? \Carbon\Carbon::parse($draft->updated_at)->format('d/m/Y H:i') : '-' }}</p></div>
                 <div><p class="text-sm text-gray-500 dark:text-gray-400">No. Rujukan Pelanggan</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $quotation->no_rujukan_pelanggan ?: '—' }}</p></div>
+                <div><p class="text-sm text-gray-500 dark:text-gray-400">Sumber Sebut Harga</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $draft->sumber_sebut_harga ?: '—' }}</p></div>
                 @if ($draft->sent_at)
                     <div><p class="text-sm text-gray-500 dark:text-gray-400">{{ __('Dihantar Oleh') }}</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $draft->sent_by ?: '—' }}</p></div>
                     <div><p class="text-sm text-gray-500 dark:text-gray-400">{{ __('Tarikh & Masa Hantar') }}</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ \Carbon\Carbon::parse($draft->sent_at)->format('d/m/Y H:i') }}</p></div>

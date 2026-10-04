@@ -92,6 +92,7 @@
                             </td>
                             <td class="px-4 sm:px-6 py-3.5">
                                 <p class="text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.product"></p>
+                                <p class="mt-1 text-theme-xs text-gray-500 dark:text-gray-400" x-text="'Sumber: ' + (selectedDraft(row).source || '—')"></p>
                             </td>
                             <td class="px-4 sm:px-6 py-3.5">
                                 <select x-model="row.version" x-effect="$nextTick(() => { $el.value = String(row.version); })" aria-label="{{ __('Draf') }}" class="h-10 min-w-40 rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"

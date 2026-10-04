@@ -1,7 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
-    <x-common.page-breadcrumb :pageTitle="$quotation ? __('Edit Sebut Harga Pembekal') : __('Tambah Sebut Harga Pembekal')" />
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ $quotation ? __('Edit Sebut Harga Pembekal') : __('Tambah Sebut Harga Pembekal') }}</h2>
+        <a href="{{ route('sebut-harga-pembekal') }}" class="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
+    </div>
 
     @php
         $initialItems = $items->isNotEmpty()
@@ -167,6 +170,7 @@
                         </div>
                         <div><label for="quotation_no_supplier" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">{{ __('No. Sebut Harga Pembekal') }}</label><input id="quotation_no_supplier" name="quotation_no_supplier" x-model="quotationNoSupplier" required class="w-full min-h-11 rounded-lg border border-gray-300 px-3 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></div>
                         <div><label for="quotation_title" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">{{ __('Tajuk Sebut Harga') }}</label><input id="quotation_title" name="quotation_title" x-model="quotationTitle" class="w-full min-h-11 rounded-lg border border-gray-300 px-3 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></div>
+                        <div><label for="sumber_sebut_harga" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">{{ __('Sumber Sebut Harga') }}</label><select id="sumber_sebut_harga" name="sumber_sebut_harga" required class="w-full min-h-11 rounded-lg border border-gray-300 px-3 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"><option value="">{{ __('Pilih sumber sebut harga') }}</option>@foreach (['PDF', 'E-mel', 'WhatsApp', 'Surat', 'Serahan Tangan', 'Lain-lain'] as $source)<option value="{{ $source }}" @selected(old('sumber_sebut_harga', $quotation?->sumber_sebut_harga) === $source)>{{ $source }}</option>@endforeach</select></div>
                         <div><label for="person_in_charge" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">{{ __('Person In Charge') }}</label><input id="person_in_charge" name="person_in_charge" x-model="personInCharge" class="w-full min-h-11 rounded-lg border border-gray-300 px-3 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></div>
                     </div>
                 </x-common.document-card>
@@ -191,10 +195,7 @@
 
             </div>
 
-            <div class="flex justify-end gap-3">
-                    <a href="{{ route('sebut-harga-pembekal') }}" aria-label="{{ __('Kembali ke Senarai Sebut Harga Pembekal') }}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">
-                        {{ __('Kembali') }}
-                    </a>
+                <div class="flex justify-end border-t border-gray-100 pt-5 dark:border-gray-800">
                     <button class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600">{{ __('Simpan') }}</button>
                 </div>
         </div>

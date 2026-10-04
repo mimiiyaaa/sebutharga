@@ -3,10 +3,10 @@
 <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white pt-4 dark:border-white/[0.05] dark:bg-white/[0.03]">
     <div class="mb-4 flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ __('Senarai LO') }}</h3>
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ __('Senarai Local Order') }}</h3>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('Rekod letter order yang telah diterima.') }}</p>
         </div>
-        <a href="{{ route('lo.create') }}" class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-4 py-3 text-theme-sm font-medium text-white transition hover:bg-brand-600">{{ __('+ Tambah LO') }}</a>
+        <a href="{{ route('lo.create') }}" class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-4 py-3 text-theme-sm font-medium text-white transition hover:bg-brand-600">{{ __('+ Tambah Local Order') }}</a>
     </div>
 
     <div class="max-w-full overflow-x-auto">

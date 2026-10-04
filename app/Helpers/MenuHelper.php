@@ -15,31 +15,6 @@ class MenuHelper
                 ],
             ],
             [
-                'icon' => 'user-profile',
-                'name' => 'User Profile',
-                'path' => '/profile',
-            ],
-            [
-                'icon' => 'user-profile',
-                'name' => 'Syarikat',
-                'path' => '/syarikat',
-            ],
-            [
-                'icon' => 'authentication',
-                'name' => 'Maklumat Login',
-                'path' => '/maklumat-login',
-            ],
-            [
-                'icon' => 'user-profile',
-                'name' => 'Pelanggan',
-                'path' => '/pelanggan',
-            ],
-            [
-                'icon' => 'support-ticket',
-                'name' => 'Pembekal',
-                'path' => '/pembekal',
-            ],
-            [
                 'icon' => 'quotation',
                 'name' => 'Sebut Harga',
                 'subItems' => [
@@ -55,7 +30,7 @@ class MenuHelper
             ],
             [
                 'icon' => 'lo-document',
-                'name' => 'LO',
+                'name' => 'Local Order',
                 'path' => '/lo',
             ],
             [
@@ -67,6 +42,17 @@ class MenuHelper
                 'icon' => 'calendar',
                 'name' => 'Calendar',
                 'path' => '/calendar',
+            ],
+            [
+                'icon' => 'user-profile',
+                'name' => 'Konfigurasi',
+                'subItems' => [
+                    ['name' => 'User Profile', 'path' => '/profile'],
+                    ['name' => 'Syarikat', 'path' => '/syarikat'],
+                    ['name' => 'Pelanggan', 'path' => '/pelanggan'],
+                    ['name' => 'Maklumat Login', 'path' => '/maklumat-login'],
+                    ['name' => 'Pembekal', 'path' => '/pembekal'],
+                ],
             ],
         ];
     }

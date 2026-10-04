@@ -1,7 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
-    <x-common.page-breadcrumb :pageTitle="$company ? __('Edit Syarikat') : __('Tambah Syarikat')" />
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ $company ? __('Edit Syarikat') : __('Tambah Syarikat') }}</h2>
+        <a href="{{ route('syarikat') }}" class="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
+    </div>
 
     <div class="w-full">
         <form method="POST" action="{{ route('companies.save', ['id' => $company?->company_id]) }}" class="space-y-6">
@@ -38,7 +41,6 @@
             </x-common.document-card>
 
             <div class="flex items-center justify-end gap-3 border-t border-gray-200 pt-5 dark:border-gray-800">
-                <a href="{{ route('syarikat') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
                 <button type="submit" class="inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-6 text-sm font-medium text-white transition hover:bg-brand-600">{{ __('Simpan') }}</button>
             </div>
         </form>
