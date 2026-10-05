@@ -71,6 +71,14 @@ input.price-input[type='number']::-webkit-inner-spin-button {
   --color-brand-900: #262e89;
   --color-brand-950: #161950;
 
+  --color-peach-50: #fff8f4;
+  --color-peach-100: #ffede4;
+  --color-peach-200: #ffd9c7;
+  --color-peach-300: #ffc7ad;
+  --color-peach-500: #ffbb91;
+  --color-peach-600: #e58f68;
+  --color-peach-700: #b96848;
+
   --color-blue-light-25: #f5fbff;
   --color-blue-light-50: #f0f9ff;
   --color-blue-light-100: #e0f2fe;

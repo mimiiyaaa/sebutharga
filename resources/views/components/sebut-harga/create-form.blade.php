@@ -215,8 +215,8 @@
             </select>
             <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ __('Pilih sebut harga pembekal untuk memasukkan item secara automatik. Item masih boleh diedit.') }}</p>
         </div>
-        <div class="overflow-x-auto">
-            <table class="w-full min-w-[900px] text-start text-theme-sm text-gray-700 dark:text-gray-300">
+        <div class="overflow-x-auto px-4 pb-4">
+            <table class="w-full min-w-[900px] overflow-hidden rounded-xl text-start text-theme-sm text-gray-700 dark:text-gray-300">
                 <thead class="bg-error-800 text-white dark:bg-error-900 dark:text-white">
                     <tr>
                         @foreach (['Bil.', 'Keterangan / Description', 'Kuantiti', 'Unit', 'Harga Seunit (RM)', 'Jumlah (RM)', 'Tindakan'] as $heading)

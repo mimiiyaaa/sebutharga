@@ -382,6 +382,9 @@ Route::get('/sebut-harga/{id}/pdf', function ($id) {
         ->select('master.*', 'customer.customer_name', 'customer.company_name', 'customer.address', 'customer.phone_no', 'customer.email')
         ->first();
     abort_unless($quotation, 404);
+    $company = $quotation->company_id
+        ? DB::table('companies')->where('company_id', $quotation->company_id)->first()
+        : null;
     $detailId = request('draft') ?: $quotation->quotation_detail_id;
     $detail = DB::table('sebutharga_detail')->where('quotation_detail_id', $detailId)->where('quotation_id', $id)->first();
     abort_unless($detail, 404);
@@ -397,7 +400,7 @@ Route::get('/sebut-harga/{id}/pdf', function ($id) {
         $quotation->$field = $detail->$field ?? $quotation->$field;
     }
     $items = DB::table('sebutharga_item')->where('quotation_detail_id', $detail->quotation_detail_id)->get();
-    return \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.sebut-harga.pdf', compact('quotation', 'detail', 'items'))
+    return \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.sebut-harga.pdf', compact('quotation', 'detail', 'items', 'company'))
         ->setPaper('a4')->setOption('isRemoteEnabled', false)->stream($quotation->quotation_no . '.pdf');
 })->middleware('auth')->name('sebut-harga.pdf');
 
@@ -744,6 +747,9 @@ Route::get('/sebut-harga/{id}/preview', function ($id) {
         ->select('master.*', 'customer.customer_name', 'customer.company_name', 'customer.address', 'customer.phone_no', 'customer.email')
         ->first();
     abort_unless($quotation, 404);
+    $company = $quotation->company_id
+        ? DB::table('companies')->where('company_id', $quotation->company_id)->first()
+        : null;
     $detailId = request('draft') ?: $quotation->quotation_detail_id;
     $draft = DB::table('sebutharga_detail')->where('quotation_detail_id', $detailId)->where('quotation_id', $id)->first();
     abort_unless($draft, 404);
@@ -760,7 +766,7 @@ Route::get('/sebut-harga/{id}/preview', function ($id) {
         }
     }
     $draft->items = DB::table('sebutharga_item')->where('quotation_detail_id', $draft->quotation_detail_id)->get();
-    return view('pages.sebut-harga.preview', compact('quotation', 'draft'));
+    return view('pages.sebut-harga.preview', compact('quotation', 'draft', 'company'));
 })->middleware('auth')->name('sebut-harga.preview');
 
 Route::patch('/sebut-harga/{id}', function (\Illuminate\Http\Request $request, $id) {

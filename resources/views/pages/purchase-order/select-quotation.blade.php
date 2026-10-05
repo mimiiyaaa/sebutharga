@@ -8,7 +8,7 @@
         <p role="alert" class="text-error-600 dark:text-error-400">{{ __('Sila pilih sebut harga Final yang dipersetujui.') }}</p>
     @endif
     @if ($quotations->isEmpty())
-        <p class="rounded-xl bg-warning-50 p-4 text-theme-sm text-warning-700 dark:bg-warning-500/10 dark:text-warning-400">{{ __('Belum ada sebut harga Final yang dipersetujui.') }}</p>
+        <p class="rounded-xl bg-peach-100 p-4 text-theme-sm text-peach-700 dark:bg-peach-500/15 dark:text-peach-300">{{ __('Belum ada sebut harga Final yang dipersetujui.') }}</p>
     @endif
     <form method="GET" action="{{ route('purchase-order.form') }}" class="space-y-6" x-data="{ draftId: {{ Illuminate\Support\Js::from((string) old('quotation_detail_id', '')) }}, quotations: {{ Illuminate\Support\Js::from($quotations) }}, get quotation() { return this.quotations.find(row => String(row.quotation_detail_id) === String(this.draftId)) } }">
         <div>

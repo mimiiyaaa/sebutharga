@@ -27,10 +27,10 @@
         <!-- Notification Badge -->
         <span
             x-show="notifying"
-            class="absolute right-0 top-0.5 z-1 h-2 w-2 rounded-full bg-orange-400"
+            class="absolute right-0 top-0.5 z-1 h-2 w-2 rounded-full bg-peach-500"
         >
             <span
-                class="absolute inline-flex w-full h-full bg-orange-400 rounded-full opacity-75 -z-1 animate-ping"
+                class="absolute inline-flex w-full h-full bg-peach-500 rounded-full opacity-75 -z-1 animate-ping"
             ></span>
         </span>
 

@@ -8,6 +8,13 @@
     foreach (['disediakan_role', 'disediakan_company_name', 'diterima_role'] as $field) {
         if (array_key_exists($field, $document)) $detail->$field = $document[$field];
     }
+    $companyLogo = null;
+    if (isset($company) && $company?->logo_path) {
+        $logoPath = \Illuminate\Support\Facades\Storage::disk('public')->path($company->logo_path);
+        if (is_file($logoPath)) {
+            $companyLogo = 'data:' . (mime_content_type($logoPath) ?: 'image/png') . ';base64,' . base64_encode(file_get_contents($logoPath));
+        }
+    }
 @endphp
 <!doctype html>
 <html lang="ms">
@@ -21,6 +28,9 @@ body { margin: 0; color: #000; background: #fff; font-family: Helvetica, Arial, 
 table { width: 100%; border-collapse: collapse; }
 .header td { vertical-align: top; padding: 0 0 15pt; }
 .company { font-size: 16pt; font-weight: bold; color: #800000; }
+.company-block { width: auto; }
+.company-block td { padding: 0; vertical-align: top; }
+.company-logo { max-width: 42pt; max-height: 38pt; object-fit: contain; margin-right: 8pt; }
 .document-title { font-size: 14pt; font-weight: bold; color: #800000; }
 .contact { font-size: 9pt; }
 .document-meta { width: 32%; text-align: right; }
@@ -54,6 +64,9 @@ table { width: 100%; border-collapse: collapse; }
 <body>
 <table class="header"><tr>
 <td>
+<table class="company-block"><tr>
+@if ($companyLogo)<td><img class="company-logo" src="{{ $companyLogo }}" alt="Logo Syarikat"></td>@endif
+<td>
 <div class="company">{{ (array_key_exists('issuer_name', $document) ? $document['issuer_name'] : config('purchase_order.issuer_name')) }}</div>
 <div class="contact address">{{ (array_key_exists('issuer_address', $document) ? $document['issuer_address'] : ($quotation->alamat_syarikat ?? config('purchase_order.issuer_address'))) }}</div>
 @php
@@ -68,6 +81,7 @@ table { width: 100%; border-collapse: collapse; }
     @if ($issuerPhone && $issuerEmail) | @endif
     @if ($issuerEmail)E-mel: {{ $issuerEmail }}@endif
 </div>
+</td></tr></table>
 </td>
 <td class="document-meta"><div class="document-title">SEBUTHARGA</div>
 <strong>No: {{ $quotation->quotation_no }}</strong>

@@ -6,8 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class LoController extends Controller
 {
@@ -79,8 +79,21 @@ class LoController extends Controller
         $existing = $id ? DB::table('lo_inden_master')->where('lo_inden_id', $id)->firstOrFail() : null;
         $documentPath = $existing?->document_file;
         if ($file = $request->file('document_file')) {
+            if (! $file->isValid() || ! is_file($file->getPathname())) {
+                throw ValidationException::withMessages([
+                    'document_file' => 'Fail tidak dapat dibaca oleh PHP. Sila tetapkan upload_tmp_dir dalam php.ini dan pastikan folder temporary boleh ditulis oleh Apache/Laragon.',
+                ]);
+            }
+
             $extension = strtolower($file->getClientOriginalExtension() ?: 'pdf');
-            $documentPath = $file->storeAs('lo-documents', Str::uuid() . '.' . $extension, 'public');
+            $documentPath = 'lo-documents/' . Str::uuid() . '.' . $extension;
+            $contents = file_get_contents($file->getPathname());
+
+            if ($contents === false || ! Storage::disk('public')->put($documentPath, $contents)) {
+                throw ValidationException::withMessages([
+                    'document_file' => 'Fail tidak dapat disimpan. Sila semak permission folder storage/app/public.',
+                ]);
+            }
         }
 
         $loId = DB::transaction(function () use ($data, $existing, $id, $documentPath, $request) {
@@ -92,7 +105,10 @@ class LoController extends Controller
                 ->lockForUpdate()
                 ->first();
 
-            if (! $quotation || strtolower(trim((string) $quotation->status_draft)) !== 'final' || ! $quotation->sent_at || ! in_array($quotation->status_quotation, [null, 1], true)) {
+            $quotationStatus = $quotation?->status_quotation;
+            $quotationCanReceiveLo = $quotationStatus === null || (int) $quotationStatus === 1;
+
+            if (! $quotation || strtolower(trim((string) $quotation->status_draft)) !== 'final' || ! $quotation->sent_at || ! $quotationCanReceiveLo) {
                 throw ValidationException::withMessages(['quotation_detail_id' => 'Sila pilih Sebut Harga Final yang menunggu LO atau berjaya tetapi belum menerima LO.']);
             }
             $alreadyLinked = DB::table('lo_inden_master')

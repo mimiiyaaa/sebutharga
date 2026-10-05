@@ -152,8 +152,8 @@
     @endphp
     @if ($toastMessage)
         <div x-data="{ visible: true }" x-show="visible" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="translate-y-2 opacity-0" x-transition:enter-end="translate-y-0 opacity-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="translate-y-2 opacity-0" x-init="setTimeout(() => visible = false, 4500)" class="fixed top-6 z-999999 w-[calc(100vw-3rem)] max-w-md ltr:right-6 rtl:right-6" role="alert">
-            <div class="flex items-start gap-3 rounded-2xl border bg-white p-4 shadow-theme-lg dark:bg-gray-900 {{ $toastType === 'success' ? 'border-success-200 dark:border-success-500/30' : ($toastType === 'error' ? 'border-error-200 dark:border-error-500/30' : ($toastType === 'warning' ? 'border-warning-200 dark:border-warning-500/30' : 'border-brand-200 dark:border-brand-500/30')) }}">
-                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full {{ $toastType === 'success' ? 'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-400' : ($toastType === 'error' ? 'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-400' : ($toastType === 'warning' ? 'bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-400' : 'bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400')) }}">
+            <div class="flex items-start gap-3 rounded-2xl border bg-white p-4 shadow-theme-lg dark:bg-gray-900 {{ $toastType === 'success' ? 'border-success-200 dark:border-success-500/30' : ($toastType === 'error' ? 'border-error-200 dark:border-error-500/30' : ($toastType === 'warning' ? 'border-peach-200 dark:border-peach-500/30' : 'border-brand-200 dark:border-brand-500/30')) }}">
+                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full {{ $toastType === 'success' ? 'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-400' : ($toastType === 'error' ? 'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-400' : ($toastType === 'warning' ? 'bg-peach-100 text-peach-700 dark:bg-peach-500/15 dark:text-peach-300' : 'bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400')) }}">
                     @if ($toastType === 'success')
                         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 12 4 4L19 6"/></svg>
                     @elseif ($toastType === 'error')
@@ -162,7 +162,7 @@
                         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
                     @endif
                 </div>
-                <p class="flex-1 pt-1 text-sm font-medium leading-6 {{ $toastType === 'success' ? 'text-success-700 dark:text-success-400' : ($toastType === 'error' ? 'text-error-700 dark:text-error-400' : ($toastType === 'warning' ? 'text-warning-700 dark:text-warning-400' : 'text-brand-700 dark:text-brand-400')) }}">{{ $toastMessage }}</p>
+                <p class="flex-1 pt-1 text-sm font-medium leading-6 {{ $toastType === 'success' ? 'text-success-700 dark:text-success-400' : ($toastType === 'error' ? 'text-error-700 dark:text-error-400' : ($toastType === 'warning' ? 'text-peach-700 dark:text-peach-300' : 'text-brand-700 dark:text-brand-400')) }}">{{ $toastMessage }}</p>
                 <button type="button" @click="visible = false" class="rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200" aria-label="Tutup">&times;</button>
             </div>
         </div>

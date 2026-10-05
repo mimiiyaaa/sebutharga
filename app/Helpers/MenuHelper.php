@@ -10,9 +10,7 @@ class MenuHelper
             [
                 'icon' => 'dashboard',
                 'name' => 'Dashboard',
-                'subItems' => [
-                    ['name' => 'Ecommerce', 'path' => '/dashboard'],
-                ],
+                'path' => '/dashboard',
             ],
             [
                 'icon' => 'quotation',

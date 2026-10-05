@@ -26,7 +26,7 @@
     getStatusClass(status) {
         const classes = {
             'Sudah Difinalisekan': 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400',
-            'Belum Difinalisekan': 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-400',
+            'Belum Difinalisekan': 'bg-peach-200 text-peach-700 dark:bg-peach-500/25 dark:text-peach-300',
         };
         return classes[status] || '';
     }
@@ -79,15 +79,9 @@
                                 </div>
                             </td>
                             <td class="px-4 sm:px-6 py-3.5">
-                                <div class="flex items-center gap-3">
-                                    <div class="flex items-center justify-center shrink-0 w-9 h-9 rounded-full font-medium text-sm"
-                                        :class="[row.avatarBg, row.avatarColor]">
-                                        <span x-text="row.initials"></span>
-                                    </div>
-                                    <div>
-                                        <span class="block font-medium text-theme-sm text-gray-800 dark:text-white/90" x-text="row.customerName"></span>
-                                        <span class="text-gray-500 text-theme-xs dark:text-gray-400" x-text="row.customerEmail"></span>
-                                    </div>
+                                <div>
+                                    <span class="block font-medium text-theme-sm text-gray-800 dark:text-white/90" x-text="row.customerName"></span>
+                                    <span class="text-gray-500 text-theme-xs dark:text-gray-400" x-text="row.customerEmail"></span>
                                 </div>
                             </td>
                             <td class="px-4 sm:px-6 py-3.5">

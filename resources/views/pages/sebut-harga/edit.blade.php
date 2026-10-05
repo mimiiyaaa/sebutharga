@@ -27,10 +27,14 @@
                 'Alamat' => $value('address', $quotation->address),
             ];
         @endphp
-        <div x-show="!editing" x-cloak class="mb-6 shadow-theme-xs rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-            <div class="flex items-center justify-between border-b border-gray-100 px-6 py-5 dark:border-gray-800">
-                <div class="flex w-full items-center justify-between gap-4">
-                    <h3 class="shrink-0 text-lg font-semibold text-gray-800 dark:text-white/90">Maklumat Sebut Harga</h3>
+        <div x-show="!editing" x-cloak class="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
+            <div class="border-b border-gray-200 bg-gray-50 px-6 py-7 dark:border-gray-800 dark:bg-gray-900 sm:px-8">
+                <div class="flex w-full flex-wrap items-center justify-between gap-4">
+                    <div class="min-w-0">
+                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600 dark:text-brand-400">{{ __('Maklumat Utama') }}</p>
+                        <h3 class="mt-2 truncate text-3xl font-semibold tracking-tight text-gray-900 dark:text-white/90">{{ $quotation->quotation_no }}</h3>
+                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ $quotation->company_name ?: $quotation->customer_name ?: __('Tiada pelanggan') }} · {{ __('Ringkasan sebut harga') }}</p>
+                    </div>
                     <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
                         <a href="{{ route('sebut-harga.preview', [$quotation->quotation_id, 'draft' => $draft->quotation_detail_id, 'from' => request('from') === 'final' ? 'final' : 'draft', 'via' => 'detail']) }}" class="inline-flex h-10 items-center gap-2 rounded-lg border border-gray-300 bg-gray-50 px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5" stroke-width="1.8"/></svg>{{ __('Pratonton') }}</a>
                         @if (! $isFinalView)
@@ -56,7 +60,7 @@
                                     @csrf
                                     <button type="submit" class="inline-flex h-11 items-center rounded-lg bg-success-500 px-4 text-sm font-medium text-white transition hover:bg-success-600">{{ __('Setuju') }}</button>
                                 </form>
-                                <span class="inline-flex h-11 items-center rounded-lg bg-warning-50 px-4 text-sm font-medium text-warning-700 dark:bg-warning-500/10 dark:text-warning-400">{{ __('Menunggu LO') }}</span>
+                                <span class="inline-flex h-11 items-center rounded-lg bg-peach-100 px-4 text-sm font-medium text-peach-700 dark:bg-peach-500/15 dark:text-peach-300">{{ __('Menunggu LO') }}</span>
                                 <form method="POST" action="{{ route('sebut-harga.final.undo-send', [$quotation->quotation_id, $draft->quotation_detail_id]) }}">
                                     @csrf
                                     <button type="submit" class="inline-flex h-11 items-center rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Undo Hantar') }}</button>
@@ -81,7 +85,7 @@
                     </div>
                 </div>
             </div>
-            <div class="grid grid-cols-1 gap-6 p-6 sm:grid-cols-2 xl:grid-cols-3">
+            <div class="grid grid-cols-1 gap-4 border-b border-gray-100 bg-gray-50/60 p-6 sm:grid-cols-2 dark:border-gray-800 dark:bg-gray-900/40">
                 <div><p class="text-sm text-gray-500 dark:text-gray-400">No. Sebut Harga</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $quotation->quotation_no }}</p></div>
                 <div><p class="text-sm text-gray-500 dark:text-gray-400">Tarikh</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $quotation->quotation_date }}</p></div>
                 <div><p class="text-sm text-gray-500 dark:text-gray-400">Pelanggan / Syarikat</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $quotation->company_name ?: $quotation->customer_name }}</p></div>
@@ -97,7 +101,7 @@
             <div class="border-t border-gray-100 px-6 py-5 dark:border-gray-800"><p class="text-sm text-gray-500 dark:text-gray-400">Tajuk</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $quotation->quotation_title ?: '-' }}</p></div>
             <div class="grid grid-cols-1 gap-5 border-t border-gray-100 p-6 dark:border-gray-800 lg:grid-cols-2">
                 @foreach (['Maklumat Syarikat Pengeluar' => $issuer, 'Maklumat Pelanggan' => $recipient] as $section => $fields)
-                    <section class="border-t border-gray-100 pt-5 first:border-t-0 first:pt-0 dark:border-gray-800">
+                    <section class="border-t border-gray-200 pt-5 first:border-t-0 first:pt-0 dark:border-gray-800">
                         <h4 class="mb-5 text-base font-semibold text-gray-800 dark:text-white/90">{{ __($section) }}</h4>
                         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                             @foreach ($fields as $label => $fieldValue)
@@ -111,11 +115,11 @@
                 @endforeach
             </div>
             <div class="grid grid-cols-1 gap-5 border-t border-gray-100 p-6 dark:border-gray-800 lg:grid-cols-2">
-                <section class="border-t border-gray-100 pt-5 dark:border-gray-800 lg:border-t-0 lg:border-s lg:ps-6">
+                <section class="border-t border-gray-200 pt-5 dark:border-gray-800 lg:border-t-0 lg:border-s lg:ps-6">
                     <h4 class="mb-3 text-base font-semibold text-gray-800 dark:text-white/90">{{ __('Terma dan Syarat') }}</h4>
                     <p class="whitespace-pre-line text-base leading-6 text-gray-700 dark:text-gray-300">{{ $draft->terma_syarat ?: '—' }}</p>
                 </section>
-                <section class="border-t border-gray-100 pt-5 dark:border-gray-800 lg:border-t-0 lg:border-s lg:ps-6">
+                <section class="border-t border-gray-200 pt-5 dark:border-gray-800 lg:border-t-0 lg:border-s lg:ps-6">
                     <h4 class="mb-3 text-base font-semibold text-gray-800 dark:text-white/90">{{ __('Pengesahan Sebut Harga') }}</h4>
                     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                         <div><p class="text-sm text-gray-500 dark:text-gray-400">{{ __('Disediakan Oleh') }}</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $draft->disediakan_oleh ?: '—' }}</p></div>
@@ -125,9 +129,8 @@
                     </div>
                 </section>
             </div>
-        </div>
-
-        <div x-show="!editing" x-cloak class="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        
+        <div x-show="!editing" x-cloak class="border-t border-gray-200 dark:border-gray-800">
             <div class="border-b border-gray-100 px-6 py-5 dark:border-gray-800">
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ __('Maklumat Tambahan') }}</h3>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('Maklumat dalaman ini dipaparkan dalam sistem sahaja dan tidak dimasukkan ke dalam PDF.') }}</p>
@@ -144,16 +147,16 @@
             </div>
         </div>
 
-        <div x-show="!editing" x-cloak class="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div x-show="!editing" x-cloak class="border-t border-gray-200 dark:border-gray-800">
             <div class="flex items-center justify-between border-b border-gray-100 px-6 py-5 dark:border-gray-800">
                 <div>
                     <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Item Sebut Harga</h3>
                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Maklumat draf ini dalam paparan terkunci</p>
                 </div>
-                <span class="rounded-full bg-warning-50 px-3 py-1 text-xs font-medium text-warning-700 dark:bg-warning-500/10 dark:text-warning-400">{{ $isFinalView ? ($draft->status_draft ?: 'Final') : 'Draf' }}</span>
+                <span class="rounded-full bg-peach-100 px-3 py-1 text-xs font-medium text-peach-700 dark:bg-peach-500/15 dark:text-peach-300">{{ $isFinalView ? ($draft->status_draft ?: 'Final') : 'Draf' }}</span>
             </div>
-            <div class="custom-scrollbar overflow-x-auto">
-                <table class="w-full min-w-[760px] text-start text-theme-sm">
+            <div class="custom-scrollbar overflow-x-auto px-4 pb-4">
+                <table class="w-full min-w-[760px] overflow-hidden rounded-xl text-start text-theme-sm">
                     <thead class="bg-error-800 text-white dark:bg-error-900 dark:text-white">
                         <tr>
                             <th scope="col" class="w-14 px-5 py-4 text-center text-theme-xs font-semibold">{{ __('Bil') }}</th>
@@ -186,6 +189,7 @@
                     <span class="text-xl font-semibold tabular-nums">RM {{ number_format((float) $draft->jumlah_total, 2) }}</span>
                 </div>
             </div>
+        </div>
         </div>
 
         <div x-show="editing && editMode === 'existing'" x-cloak class="space-y-6">
