@@ -7,11 +7,6 @@
         addQuotationOpen: false,
     }" @keydown.escape.window="addQuotationOpen = false">
         <x-common.component-card title="Senarai Sebut Harga Draf">
-            <x-slot:header>
-                <button type="button" @click="addQuotationOpen = true" class="inline-flex h-11 items-center rounded-lg bg-brand-500 px-4 text-sm font-medium text-white transition hover:bg-brand-600">
-                    + {{ __('Tambah Sebut Harga Draf') }}
-                </button>
-            </x-slot:header>
             <x-tables.basic-tables.sebutharga-table :quotations="$quotations" />
         </x-common.component-card>
 

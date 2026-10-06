@@ -1,17 +1,47 @@
-@props(['suppliers' => collect(), 'quotation', 'nextPoNo', 'order' => null, 'initialItems' => [], 'returnToDetail' => false, 'showBack' => true])
+@props(['suppliers' => collect(), 'companies' => collect(), 'quotation', 'nextPoNo', 'order' => null, 'initialItems' => [], 'returnToDetail' => false, 'showBack' => true])
 
 @php
     $inputClass = 'w-full min-h-11 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90';
     $labelClass = 'mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400';
+    $documentData = $order?->document_data ? (json_decode($order->document_data, true) ?: []) : [];
+    $savedIssuerCompanyId = $companies->firstWhere('nama_syarikat', $documentData['issuer_name'] ?? null)?->company_id ?? '';
+    $savedDeliveryCompanyId = $companies->firstWhere('nama_syarikat', $documentData['delivery_company'] ?? null)?->company_id ?? '';
 @endphp
 
 <form method="POST" action="{{ $order ? route('purchase-order.update', $order->purchase_order_id) : route('purchase-order.store') }}" class="space-y-6" x-data="{
     suppliers: {{ Illuminate\Support\Js::from($suppliers) }},
     supplierId: {{ Illuminate\Support\Js::from((string) old('customer_id', $order?->customer_id ?? '')) }},
     supplier: {},
+    companies: {{ Illuminate\Support\Js::from($companies) }},
+    companyId: {{ Illuminate\Support\Js::from((string) old('company_id', $savedIssuerCompanyId)) }},
+    deliveryCompanyId: {{ Illuminate\Support\Js::from((string) old('delivery_company_id', $savedDeliveryCompanyId)) }},
+    issuer: {
+        name: {{ Illuminate\Support\Js::from(old('issuer_name', $documentData['issuer_name'] ?? '')) }},
+        phone: {{ Illuminate\Support\Js::from(old('issuer_phone', $documentData['issuer_phone'] ?? '')) }},
+        email: {{ Illuminate\Support\Js::from(old('issuer_email', $documentData['issuer_email'] ?? '')) }},
+        personInCharge: {{ Illuminate\Support\Js::from(old('issuer_person_in_charge', $documentData['issuer_person_in_charge'] ?? '')) }},
+        address: {{ Illuminate\Support\Js::from(old('issuer_address', $documentData['issuer_address'] ?? '')) }},
+    },
     attentionSupplier: {{ Illuminate\Support\Js::from(old('attention_supplier', $order?->attention_supplier ?? '')) }},
-    delivery: {{ Illuminate\Support\Js::from(['company_name' => config('purchase_order.issuer_name'), 'address' => old('delivery_address', $order?->delivery_address ?? config('purchase_order.issuer_address')), 'phone_no' => config('purchase_order.issuer_phone'), 'attention' => old('attention_delivery', $order?->attention_delivery ?? config('purchase_order.delivery_attention'))]) }},
+    delivery: {{ Illuminate\Support\Js::from(['company_name' => old('delivery_company', $documentData['delivery_company'] ?? ''), 'address' => old('delivery_address', $order?->delivery_address ?? ''), 'phone_no' => old('delivery_phone', $documentData['delivery_phone'] ?? ''), 'attention' => old('attention_delivery', $order?->attention_delivery ?? '')]) }},
     init() { this.supplier = this.suppliers.find(row => String(row.customer_id) === this.supplierId) || {}; },
+    get selectedCompany() { return this.companies.find(row => String(row.company_id) === String(this.companyId)); },
+    selectCompany() {
+        const company = this.selectedCompany;
+        if (!company) return;
+        this.issuer.name = company.nama_syarikat || '';
+        this.issuer.phone = company.no_telefon || '';
+        this.issuer.email = company.emel || '';
+        this.issuer.personInCharge = company.person_in_charge || '';
+        this.issuer.address = company.alamat_syarikat || '';
+    },
+    selectDeliveryCompany() {
+        const company = this.companies.find(row => String(row.company_id) === String(this.deliveryCompanyId));
+        if (!company) return;
+        this.delivery.company_name = company.nama_syarikat || '';
+        this.delivery.phone_no = company.no_telefon || '';
+        this.delivery.address = company.alamat_syarikat || '';
+    },
     selectSupplier() {
         this.supplier = this.suppliers.find(row => String(row.customer_id) === String(this.supplierId)) || {};
         this.attentionSupplier = this.supplier.customer_name || '';
@@ -44,16 +74,32 @@
     @endif
 
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <x-common.document-card :title="__('Maklumat Syarikat Pengeluar PO')">
-            @foreach (['issuer_name' => 'Nama Syarikat', 'issuer_phone' => 'Nombor Telefon', 'issuer_email' => 'E-mel'] as $field => $label)
-                <div>
-                    <label for="{{ $field }}" class="{{ $labelClass }}">{{ __($label) }}</label>
-                    <input id="{{ $field }}" name="{{ $field }}" value="{{ old($field, config('purchase_order.'.$field)) }}" type="{{ $field === 'issuer_email' ? 'email' : ($field === 'issuer_phone' ? 'tel' : 'text') }}" class="{{ $inputClass }}">
-                </div>
-            @endforeach
+        <x-common.document-card :title="__('Maklumat Syarikat')">
+            <div>
+                <label for="company_id" class="{{ $labelClass }}">{{ __('Nama Syarikat') }}</label>
+                <select id="company_id" name="company_id" x-model="companyId" @change="selectCompany()" class="{{ $inputClass }}">
+                    <option value="">{{ __('Pilih syarikat') }}</option>
+                    @foreach ($companies as $company)
+                        <option value="{{ $company->company_id }}">{{ $company->nama_syarikat }}</option>
+                    @endforeach
+                </select>
+                <input type="hidden" name="issuer_name" x-model="issuer.name">
+            </div>
+            <div>
+                <label for="issuer_phone" class="{{ $labelClass }}">{{ __('Nombor Telefon') }}</label>
+                <input id="issuer_phone" name="issuer_phone" x-model="issuer.phone" type="tel" class="{{ $inputClass }}">
+            </div>
+            <div>
+                <label for="issuer_email" class="{{ $labelClass }}">{{ __('E-mel') }}</label>
+                <input id="issuer_email" name="issuer_email" x-model="issuer.email" type="email" class="{{ $inputClass }}">
+            </div>
+            <div>
+                <label for="issuer_person_in_charge" class="{{ $labelClass }}">{{ __('Person In Charge') }}</label>
+                <input id="issuer_person_in_charge" name="issuer_person_in_charge" x-model="issuer.personInCharge" class="{{ $inputClass }}">
+            </div>
             <div>
                 <label for="issuer_address" class="{{ $labelClass }}">{{ __('Alamat Syarikat') }}</label>
-                <textarea id="issuer_address" name="issuer_address" rows="3" class="{{ $inputClass }}">{{ old('issuer_address', config('purchase_order.issuer_address')) }}</textarea>
+                <textarea id="issuer_address" name="issuer_address" rows="3" x-model="issuer.address" class="{{ $inputClass }} h-auto"></textarea>
             </div>
         </x-common.document-card>
         <x-common.document-card :title="__('Maklumat PO')">
@@ -107,7 +153,13 @@
     <x-common.document-card :title="__('Maklumat Penghantaran')">
         <div>
             <label for="delivery_company" class="{{ $labelClass }}">{{ __('Nama Syarikat Penerima') }}</label>
-            <input id="delivery_company" name="delivery_company" x-model="delivery.company_name" class="{{ $inputClass }}">
+            <select id="delivery_company_id" name="delivery_company_id" x-model="deliveryCompanyId" @change="selectDeliveryCompany()" class="{{ $inputClass }}">
+                <option value="">{{ __('Pilih syarikat penerima') }}</option>
+                @foreach ($companies as $company)
+                    <option value="{{ $company->company_id }}">{{ $company->nama_syarikat }}</option>
+                @endforeach
+            </select>
+            <input type="hidden" id="delivery_company" name="delivery_company" x-model="delivery.company_name">
         </div>
         <div>
             <label for="delivery_phone" class="{{ $labelClass }}">{{ __('Nombor Telefon Penerima') }}</label>

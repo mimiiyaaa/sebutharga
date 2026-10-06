@@ -112,7 +112,8 @@ Route::get('/purchase-order/{id}/pdf', function ($id) {
     $order = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier','supplier.customer_id','=','po.customer_id')->leftJoin('sebutharga_master as quotation','quotation.quotation_id','=','po.quotation_id')->where('po.purchase_order_id',$id)->select('po.*','quotation.quotation_no as quotation_reference_no','supplier.company_name','supplier.address as supplier_address','supplier.phone_no as supplier_phone')->first();
     abort_unless($order,404);
     $items = DB::table('purchase_order_item')->where('purchase_order_id',$id)->orderBy('po_item_id')->get();
-    return \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.purchase-order.pdf', compact('order','items'))
+    $document = json_decode($order->document_data ?? '[]', true) ?: [];
+    return \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.purchase-order.pdf', compact('order','items','document'))
         ->setPaper('a4')->setOption('isRemoteEnabled', false)->stream($order->po_no.'.pdf');
 })->middleware('auth')->name('purchase-order.pdf');
 
@@ -123,14 +124,16 @@ Route::get('/purchase-order/{id}/preview', function ($id) {
     $order = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier','supplier.customer_id','=','po.customer_id')->leftJoin('sebutharga_master as quotation','quotation.quotation_id','=','po.quotation_id')->leftJoin('users as creator', 'creator.id', '=', 'po.created_by')->where('po.purchase_order_id',$id)->select('po.*','quotation.quotation_no as quotation_reference_no','supplier.company_name','supplier.address as supplier_address','supplier.phone_no as supplier_phone','creator.name as creator_name','creator.jawatan as creator_jawatan','creator.email as creator_email')->first();
     abort_unless($order,404);
     $items = DB::table('purchase_order_item')->where('purchase_order_id',$id)->orderBy('po_item_id')->get();
-    return view('pages.purchase-order.preview', compact('order','items'));
+    $document = json_decode($order->document_data ?? '[]', true) ?: [];
+    return view('pages.purchase-order.preview', compact('order','items','document'));
 })->whereNumber('id')->middleware('auth')->name('purchase-order.preview');
 
 Route::get('/purchase-order/{id}', function ($id) {
     $order = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier','supplier.customer_id','=','po.customer_id')->leftJoin('sebutharga_master as quotation','quotation.quotation_id','=','po.quotation_id')->leftJoin('users as creator', 'creator.id', '=', 'po.created_by')->where('po.purchase_order_id',$id)->select('po.*','quotation.quotation_no as quotation_reference_no','supplier.company_name','supplier.address as supplier_address','supplier.phone_no as supplier_phone','creator.name as creator_name','creator.jawatan as creator_jawatan','creator.email as creator_email')->first();
     abort_unless($order,404);
     $items = DB::table('purchase_order_item')->where('purchase_order_id',$id)->orderBy('po_item_id')->get();
-    return view('pages.purchase-order.show', compact('order','items'));
+    $document = json_decode($order->document_data ?? '[]', true) ?: [];
+    return view('pages.purchase-order.show', compact('order','items','document'));
 })->whereNumber('id')->middleware('auth')->name('purchase-order.show');
 Route::delete('/purchase-order/{id}', function ($id) { DB::table('purchase_order_item')->where('purchase_order_id',$id)->delete(); DB::table('purchase_order_master')->where('purchase_order_id',$id)->delete(); return redirect()->route('purchase-order.index'); })->middleware('auth')->name('purchase-order.delete');
 

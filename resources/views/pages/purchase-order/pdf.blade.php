@@ -9,7 +9,12 @@
         table { width: 100%; border-collapse: collapse; }
         td, th { vertical-align: top; }
         .header td { vertical-align: top; padding: 0 0 15pt; }
-        .company, .title { color: #800000; font-size: 16pt; font-weight: bold; }
+        .company { color: #800000; font-size: 16pt; font-weight: bold; }
+        .title { color: #800000; font-size: 16pt; font-weight: bold; }
+        .company-block { width: auto; }
+        .company-block td { padding: 0; vertical-align: top; }
+        .company-logo { max-width: 42pt; max-height: 38pt; object-fit: contain; margin-right: 8pt; }
+        .contact { font-size: 9pt; }
         .right { text-align: right; }
         .rule { border-top: 1pt solid #800000; }
         .addresses { margin-bottom: 20px; }
@@ -31,11 +36,33 @@
     </style>
 </head>
 <body>
-    @php($document = $document ?? [])
+    @php
+        $document = $document ?? [];
+        $company = \Illuminate\Support\Facades\DB::table('companies')
+            ->where('nama_syarikat', $document['issuer_name'] ?? '')
+            ->first();
+        $companyLogo = null;
+        if ($company?->logo_path) {
+            $logoPath = \Illuminate\Support\Facades\Storage::disk('public')->path($company->logo_path);
+            if (is_file($logoPath)) {
+                $companyLogo = 'data:' . (mime_content_type($logoPath) ?: 'image/png') . ';base64,' . base64_encode(file_get_contents($logoPath));
+            }
+        }
+        $issuerPersonInCharge = $document['issuer_person_in_charge'] ?? $company?->person_in_charge;
+    @endphp
     <table class="header"><tr>
-        <td><div class="company">{{ $document['issuer_name'] ?? config('purchase_order.issuer_name') }}</div>
-            <div class="lines">{{ $document['issuer_address'] ?? config('purchase_order.issuer_address') }}</div>
-            <div>No. Tel: {{ $document['issuer_phone'] ?? config('purchase_order.issuer_phone') }} | E-mel: {{ $document['issuer_email'] ?? config('purchase_order.issuer_email') }}</div>
+        <td>
+            <table class="company-block"><tr>
+                @if ($companyLogo)<td><img class="company-logo" src="{{ $companyLogo }}" alt="Logo Syarikat"></td>@endif
+                <td>
+                    <div class="company">{{ $document['issuer_name'] ?? config('purchase_order.issuer_name') }}</div>
+                    <div class="contact lines">{{ $document['issuer_address'] ?? config('purchase_order.issuer_address') }}</div>
+                    <div class="contact">
+                        @if ($issuerPersonInCharge)U/P: {{ $issuerPersonInCharge }} | @endif
+                        No. Tel: {{ $document['issuer_phone'] ?? config('purchase_order.issuer_phone') }} | E-mel: {{ $document['issuer_email'] ?? config('purchase_order.issuer_email') }}
+                    </div>
+                </td>
+            </tr></table>
         </td>
         <td class="right"><div class="title">PESANAN BELIAN</div><strong>No: {{ $order->po_no }}</strong><div>Tarikh: {{ \Carbon\Carbon::parse($order->po_date)->locale('ms')->translatedFormat('d F Y') }}</div></td>
     </tr></table>

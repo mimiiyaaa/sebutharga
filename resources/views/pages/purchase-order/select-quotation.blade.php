@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('content')
-<x-common.document-workspace :title="__('Tambah PO')" :subtitle="__('Pilih nombor sebut harga sebelum meneruskan.')">
+<x-common.document-workspace :title="__('Tambah Purchase Order')" :subtitle="__('Pilih nombor sebut harga sebelum meneruskan.')">
 <x-slot:referenceActions><a href="{{ route('purchase-order.index') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">{{ __('Kembali') }}</a></x-slot:referenceActions>
 <x-common.document-card :title="__('Pilih Sebut Harga')">
     <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('Semua sebut harga Final berkeputusan Setuju disenaraikan mengikut nombor sebut harga.') }}</p>

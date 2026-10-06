@@ -2,11 +2,6 @@
 @section('content')
 <x-common.page-breadcrumb :pageTitle="__('Sebut Harga Pembekal')" />
 <x-common.component-card :title="__('Senarai Sebut Harga Pembekal')" x-data="{ filters: { search: '' }, matches(row) { const search = this.filters.search.toLowerCase(); return !search || row.number.toLowerCase().includes(search) || row.company.toLowerCase().includes(search) || row.title.toLowerCase().includes(search) || row.person.toLowerCase().includes(search); }, resetFilters() { this.filters = { search: '' }; } }">
-    <x-slot:header>
-        <a href="{{ route('sebut-harga-pembekal.create') }}" class="inline-flex h-11 items-center rounded-lg bg-brand-500 px-4 text-sm font-medium text-white transition hover:bg-brand-600">
-            + {{ __('Tambah Sebut Harga Pembekal') }}
-        </a>
-    </x-slot:header>
     <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white pt-4 dark:border-white/[0.05] dark:bg-white/[0.03]">
         <div class="mb-4 flex items-center gap-2 px-6">
             <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-1.5 dark:border-gray-700 dark:bg-gray-900/50">
@@ -14,6 +9,7 @@
             </div>
             <div class="contents">
                 <button type="button" @click="resetFilters()" class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">See all</button>
+                <a href="{{ route('sebut-harga-pembekal.create') }}" class="inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-4 text-theme-sm font-medium text-white transition hover:bg-brand-600">{{ __('+ Tambah Sebut Harga Pembekal') }}</a>
             </div>
         </div>
         <div class="max-w-full overflow-x-auto custom-scrollbar"><table class="w-full min-w-[850px] text-theme-sm leading-6 text-gray-700 dark:text-gray-300">
