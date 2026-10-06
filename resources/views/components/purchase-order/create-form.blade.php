@@ -8,7 +8,7 @@
     $savedDeliveryCompanyId = $companies->firstWhere('nama_syarikat', $documentData['delivery_company'] ?? null)?->company_id ?? '';
 @endphp
 
-<form method="POST" action="{{ $order ? route('purchase-order.update', $order->purchase_order_id) : route('purchase-order.store') }}" class="space-y-6" x-data="{
+<form method="POST" action="{{ $order ? route('purchase-order.update', $order->purchase_order_id) : route('purchase-order.store') }}" class="space-y-6 rounded-3xl bg-brand-50/35 p-3 dark:bg-brand-500/5 sm:p-4" x-data="{
     suppliers: {{ Illuminate\Support\Js::from($suppliers) }},
     supplierId: {{ Illuminate\Support\Js::from((string) old('customer_id', $order?->customer_id ?? '')) }},
     supplier: {},
@@ -152,9 +152,9 @@
         </x-common.document-card>
     <x-common.document-card :title="__('Maklumat Penghantaran')">
         <div>
-            <label for="delivery_company" class="{{ $labelClass }}">{{ __('Nama Syarikat Penerima') }}</label>
+            <label for="delivery_company" class="{{ $labelClass }}">{{ __('Nama Syarikat Penghantar') }}</label>
             <select id="delivery_company_id" name="delivery_company_id" x-model="deliveryCompanyId" @change="selectDeliveryCompany()" class="{{ $inputClass }}">
-                <option value="">{{ __('Pilih syarikat penerima') }}</option>
+                <option value="">{{ __('Pilih syarikat penghantar') }}</option>
                 @foreach ($companies as $company)
                     <option value="{{ $company->company_id }}">{{ $company->nama_syarikat }}</option>
                 @endforeach
@@ -162,7 +162,7 @@
             <input type="hidden" id="delivery_company" name="delivery_company" x-model="delivery.company_name">
         </div>
         <div>
-            <label for="delivery_phone" class="{{ $labelClass }}">{{ __('Nombor Telefon Penerima') }}</label>
+            <label for="delivery_phone" class="{{ $labelClass }}">{{ __('Nombor Telefon Penghantar') }}</label>
             <input id="delivery_phone" name="delivery_phone" type="tel" x-model="delivery.phone_no" class="{{ $inputClass }}">
         </div>
         <div>
@@ -170,7 +170,7 @@
             <textarea id="delivery_address" name="delivery_address" rows="3" x-model="delivery.address" class="{{ $inputClass }}"></textarea>
         </div>
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            @foreach (['attention_delivery' => 'Untuk Perhatian Penerima'] as $field => $label)
+            @foreach (['attention_delivery' => 'Untuk Perhatian Penghantar'] as $field => $label)
                 <div>
                     <label for="{{ $field }}" class="{{ $labelClass }}">{{ __($label) }}</label>
                     <input id="{{ $field }}" name="{{ $field }}" x-model="delivery.attention" class="{{ $inputClass }}">

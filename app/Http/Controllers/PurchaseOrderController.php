@@ -22,13 +22,28 @@ class PurchaseOrderController extends Controller
             ->orderByDesc('master.quotation_id')
             ->orderByDesc('detail.draft_no')
             ->orderByDesc('detail.quotation_detail_id')
-            ->select('master.customer_id', 'customer.company_name', 'master.quotation_id', 'master.quotation_no',
-                'master.quotation_title', 'master.quotation_date', 'detail.quotation_detail_id', 'detail.draft_no');
+            ->select('master.customer_id', 'customer.customer_name', 'customer.company_name', 'master.quotation_id', 'master.quotation_no',
+                'master.quotation_title', 'master.quotation_date', 'detail.quotation_detail_id', 'detail.draft_no', 'detail.final_no', 'detail.jumlah_total')
+            ->selectSub(function ($query) {
+                $query->from('sebutharga_item as quotation_item')
+                    ->selectRaw('count(*)')
+                    ->whereColumn('quotation_item.quotation_detail_id', 'detail.quotation_detail_id');
+            }, 'item_count');
     }
 
     public function selectQuotation()
     {
         $quotations = $this->finalQuotations()->get();
+        $itemsByQuotation = DB::table('sebutharga_item')
+            ->whereIn('quotation_detail_id', $quotations->pluck('quotation_detail_id'))
+            ->orderBy('quotation_item_id')
+            ->get(['quotation_detail_id', 'item_description', 'quantity', 'unit', 'unit_price', 'subtotal'])
+            ->groupBy('quotation_detail_id');
+
+        $quotations->each(function ($quotation) use ($itemsByQuotation) {
+            $quotation->items = $itemsByQuotation->get($quotation->quotation_detail_id, collect())->values();
+        });
+
         return view('pages.purchase-order.select-quotation', [
             'quotations' => $quotations,
         ]);
