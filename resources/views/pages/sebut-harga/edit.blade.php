@@ -35,52 +35,52 @@
                         <h3 class="mt-2 truncate text-3xl font-semibold tracking-tight text-gray-900 dark:text-white/90">{{ $quotation->quotation_no }}</h3>
                         <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ $quotation->company_name ?: $quotation->customer_name ?: __('Tiada pelanggan') }} · {{ __('Ringkasan sebut harga') }}</p>
                     </div>
-                    <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
-                        <a href="{{ route('sebut-harga.preview', [$quotation->quotation_id, 'draft' => $draft->quotation_detail_id, 'from' => request('from') === 'final' ? 'final' : 'draft', 'via' => 'detail']) }}" class="inline-flex h-10 items-center gap-2 rounded-lg border border-gray-300 bg-gray-50 px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5" stroke-width="1.8"/></svg>{{ __('Pratonton') }}</a>
+                    <div class="flex shrink-0 flex-wrap items-center justify-end gap-1.5 rounded-xl border border-gray-200 bg-gray-50 p-1.5 dark:border-gray-700 dark:bg-gray-900/60">
+                        <a href="{{ route('sebut-harga.preview', [$quotation->quotation_id, 'draft' => $draft->quotation_detail_id, 'from' => request('from') === 'final' ? 'final' : 'draft', 'via' => 'detail']) }}" class="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-medium text-gray-600 transition hover:bg-white hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5" stroke-width="1.8"/></svg>{{ __('Pratonton') }}</a>
                         @if (! $isFinalView)
-                            <button type="button" @click="editMode = 'existing'; editing = true" class="inline-flex h-10 items-center gap-2 rounded-lg bg-brand-500 px-3 text-sm font-medium text-white transition hover:bg-brand-600"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m14 6 4 4M4 20l4.5-1 9.8-9.8a2.1 2.1 0 0 0-3-3L5.5 16 4 20Z"/></svg>Edit</button>
-                            <button type="button" @click="editMode = 'new'; editing = true" class="inline-flex h-10 items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm7 0v5h5M8 13h6m-6 4h6"/></svg>{{ __('Draf Baharu') }}</button>
+                            <button type="button" @click="editMode = 'existing'; editing = true" class="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-medium text-gray-600 transition hover:bg-white hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m14 6 4 4M4 20l4.5-1 9.8-9.8a2.1 2.1 0 0 0-3-3L5.5 16 4 20Z"/></svg>Edit</button>
+                            <button type="button" @click="editMode = 'new'; editing = true" class="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-medium text-gray-600 transition hover:bg-white hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm7 0v5h5M8 13h6m-6 4h6"/></svg>{{ __('Draf Baharu') }}</button>
                             @if (strtolower(trim((string) $draft->status_draft)) === 'final')
                                 <span class="inline-flex h-10 items-center rounded-lg bg-success-50 px-3 text-sm font-medium text-success-700 dark:bg-success-500/15 dark:text-success-400">{{ __('Sudah Difinalisekan') }}</span>
                             @else
                                 <form class="inline-flex shrink-0" method="POST" action="{{ route('sebut-harga.draft.approve', [$quotation->quotation_id, $draft->quotation_detail_id]) }}" @submit.prevent="$dispatch('confirm-action', { form: $el, message: 'Muktamadkan draf ini? Draf lain akan kekal sebagai draf.', button: 'Muktamadkan' })">
                                     @csrf
-                                    <button type="submit" class="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg bg-brand-500 px-3 text-sm font-medium text-white transition hover:bg-brand-600"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 12 4 4L19 6"/></svg>{{ __('Muktamadkan') }}</button>
+                                    <button type="submit" class="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg bg-brand-500 px-3 text-xs font-semibold text-white transition hover:bg-brand-600"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 12 4 4L19 6"/></svg>{{ __('Muktamadkan') }}</button>
                                 </form>
                             @endif
                         @else
                             <form method="POST" action="{{ route('sebut-harga.final.new', [$quotation->quotation_id, $draft->quotation_detail_id]) }}">
                                 @csrf
-                                <button type="submit" class="inline-flex h-11 items-center rounded-lg border border-brand-300 px-4 text-sm font-medium text-brand-600 transition hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10">{{ __('Cipta Versi Baharu') }}</button>
+                                <button type="submit" class="inline-flex h-9 items-center rounded-lg px-3 text-xs font-medium text-brand-600 transition hover:bg-white dark:text-brand-400 dark:hover:bg-gray-800">{{ __('Cipta Versi Baharu') }}</button>
                             </form>
                             @if (empty($draft->sent_at))
-                                <button type="button" @click="sendModalOpen = true" class="inline-flex h-11 items-center rounded-lg bg-brand-500 px-4 text-sm font-medium text-white transition hover:bg-brand-600">{{ __('Hantar') }}</button>
+                                <button type="button" @click="sendModalOpen = true" class="inline-flex h-9 items-center rounded-lg bg-brand-500 px-3 text-xs font-semibold text-white transition hover:bg-brand-600">{{ __('Hantar') }}</button>
                             @elseif ($draft->status_quotation === null)
                                 <form method="POST" action="{{ route('sebut-harga.final.agree', [$quotation->quotation_id, $draft->quotation_detail_id]) }}" @submit.prevent="$dispatch('confirm-action', { form: $el, message: 'Tandakan sebut harga ini sebagai berjaya?', button: 'Setuju' })">
                                     @csrf
-                                    <button type="submit" class="inline-flex h-11 items-center rounded-lg bg-success-500 px-4 text-sm font-medium text-white transition hover:bg-success-600">{{ __('Setuju') }}</button>
+                                    <button type="submit" class="inline-flex h-9 items-center rounded-lg bg-success-500 px-3 text-xs font-semibold text-white transition hover:bg-success-600">{{ __('Setuju') }}</button>
                                 </form>
-                                <span class="inline-flex h-11 items-center rounded-lg bg-peach-100 px-4 text-sm font-medium text-peach-700 dark:bg-peach-500/15 dark:text-peach-300">{{ __('Menunggu LO') }}</span>
+                                <span class="inline-flex h-9 items-center rounded-lg bg-peach-100 px-3 text-xs font-medium text-peach-700 dark:bg-peach-500/15 dark:text-peach-300">{{ __('Menunggu LO') }}</span>
                                 <form method="POST" action="{{ route('sebut-harga.final.undo-send', [$quotation->quotation_id, $draft->quotation_detail_id]) }}">
                                     @csrf
-                                    <button type="submit" class="inline-flex h-11 items-center rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Undo Hantar') }}</button>
+                                    <button type="submit" class="inline-flex h-9 items-center rounded-lg px-3 text-xs font-medium text-gray-600 transition hover:bg-white hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white">{{ __('Undo Hantar') }}</button>
                                 </form>
                             @else
                                 @if ((int) $draft->status_quotation === 1)
                                     @if ($linkedLo)
-                                        <a href="{{ route('lo.show', $linkedLo->lo_inden_id) }}" class="inline-flex h-11 items-center rounded-lg bg-success-50 px-4 text-sm font-medium text-success-700 transition hover:bg-success-100 dark:bg-success-500/15 dark:text-success-400 dark:hover:bg-success-500/25">{{ __('Berjaya — LO Diterima') }}</a>
+                                        <a href="{{ route('lo.show', $linkedLo->lo_inden_id) }}" class="inline-flex h-9 items-center rounded-lg bg-success-50 px-3 text-xs font-medium text-success-700 transition hover:bg-success-100 dark:bg-success-500/15 dark:text-success-400 dark:hover:bg-success-500/25">{{ __('Berjaya — LO Diterima') }}</a>
                                     @else
-                                        <span class="inline-flex h-11 items-center rounded-lg bg-success-50 px-4 text-sm font-medium text-success-700 dark:bg-success-500/15 dark:text-success-400">{{ __('Berjaya — Belum Ada LO') }}</span>
+                                        <span class="inline-flex h-9 items-center rounded-lg bg-success-50 px-3 text-xs font-medium text-success-700 dark:bg-success-500/15 dark:text-success-400">{{ __('Berjaya — Belum Ada LO') }}</span>
                                     @endif
                                 @else
-                                    <span class="inline-flex h-11 items-center rounded-lg bg-error-50 px-4 text-sm font-medium text-error-700 dark:bg-error-500/15 dark:text-error-400">{{ __('Tidak Berjaya') }}</span>
+                                    <span class="inline-flex h-9 items-center rounded-lg bg-error-50 px-3 text-xs font-medium text-error-700 dark:bg-error-500/15 dark:text-error-400">{{ __('Tidak Berjaya') }}</span>
                                 @endif
                                 <form method="POST" action="{{ route('sebut-harga.final.undo-decision', [$quotation->quotation_id, $draft->quotation_detail_id]) }}">
                                     @csrf
-                                    <button type="submit" class="inline-flex h-11 items-center rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Undo Keputusan') }}</button>
+                                    <button type="submit" class="inline-flex h-9 items-center rounded-lg px-3 text-xs font-medium text-gray-600 transition hover:bg-white hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white">{{ __('Undo Keputusan') }}</button>
                                 </form>
                             @endif
-                            <span class="inline-flex h-11 items-center rounded-lg bg-success-50 px-4 text-sm font-medium text-success-700 dark:bg-success-500/15 dark:text-success-400">{{ __('Final') }} {{ $draft->final_no ?? $draft->draft_no }}</span>
+                            <span class="inline-flex h-9 items-center rounded-lg bg-success-50 px-3 text-xs font-medium text-success-700 dark:bg-success-500/15 dark:text-success-400">{{ __('Final') }} {{ $draft->final_no ?? $draft->draft_no }}</span>
                         @endif
                     </div>
                 </div>

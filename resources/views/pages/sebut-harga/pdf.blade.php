@@ -72,11 +72,8 @@ table { width: 100%; border-collapse: collapse; }
 @php
     $issuerPhone = array_key_exists('issuer_phone', $document) ? $document['issuer_phone'] : config('purchase_order.issuer_phone');
     $issuerEmail = array_key_exists('issuer_email', $document) ? $document['issuer_email'] : config('purchase_order.issuer_email');
-    $issuerPersonInCharge = $document['issuer_person_in_charge'] ?? null;
 @endphp
 <div class="contact">
-    @if ($issuerPersonInCharge)U/P: {{ $issuerPersonInCharge }}@endif
-    @if ($issuerPersonInCharge && ($issuerPhone || $issuerEmail)) | @endif
     @if ($issuerPhone)No. Tel: {{ $issuerPhone }}@endif
     @if ($issuerPhone && $issuerEmail) | @endif
     @if ($issuerEmail)E-mel: {{ $issuerEmail }}@endif

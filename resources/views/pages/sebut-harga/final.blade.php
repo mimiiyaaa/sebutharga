@@ -29,9 +29,9 @@
                         <td class="whitespace-nowrap px-4 py-3.5 text-gray-700 sm:px-6 dark:text-gray-400">{{ $draft->quotation_date }}</td>
                         <td class="whitespace-nowrap px-4 py-3.5 tabular-nums text-gray-700 sm:px-6 dark:text-gray-400">{{ number_format($draft->jumlah_total, 2) }}</td>
                         <td class="whitespace-nowrap px-4 py-3.5 sm:px-6"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium" :class="decisionClass()" x-text="selectedDecision()"></span></td>
-                        <td class="px-4 py-3.5 text-center sm:px-6"><div class="flex items-center justify-center gap-2 whitespace-nowrap">
-                            <a :href="versions.find(version => String(version.id) === String(selectedVersion))?.viewUrl" class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">{{ __('Lihat') }}</a>
-                            <a href="{{ route('sebut-harga.preview', [$draft->quotation_id, 'draft' => $draft->quotation_detail_id, 'from' => 'final']) }}" class="inline-flex items-center rounded-lg border border-brand-200 px-3 py-1.5 text-xs font-medium text-brand-600 transition hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10">{{ __('Pratonton Dokumen') }}</a>
+                        <td class="px-4 py-3.5 text-center sm:px-6"><div class="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-gray-200 bg-gray-50 p-1.5 dark:border-gray-700 dark:bg-gray-900/60">
+                            <a :href="versions.find(version => String(version.id) === String(selectedVersion))?.viewUrl" class="inline-flex h-9 items-center rounded-lg px-3 text-xs font-medium text-gray-600 transition hover:bg-white hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white">{{ __('Lihat') }}</a>
+                            <a href="{{ route('sebut-harga.preview', [$draft->quotation_id, 'draft' => $draft->quotation_detail_id, 'from' => 'final']) }}" class="inline-flex h-9 items-center rounded-lg px-3 text-xs font-medium text-brand-600 transition hover:bg-white hover:text-brand-700 dark:text-brand-400 dark:hover:bg-gray-800 dark:hover:text-brand-300">{{ __('Pratonton Dokumen') }}</a>
                         </div></td>
                     </tr>
                 @empty

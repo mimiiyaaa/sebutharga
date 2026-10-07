@@ -15,8 +15,10 @@ class FinalQuotationController extends Controller
             ->leftJoin('lo_inden_master as lo', 'lo.quotation_detail_id', '=', 'd.quotation_detail_id')
             ->whereRaw('LOWER(TRIM(d.status_draft)) = ?', ['final'])
             ->select('d.*', 'm.quotation_no', 'm.quotation_detail_id as active_detail_id', 'c.company_name', 'lo.lo_inden_no')
-            ->orderBy('d.quotation_id')
-            ->orderBy('d.final_no')
+            ->orderByDesc('d.quotation_date')
+            ->orderByDesc('d.quotation_id')
+            ->orderByDesc('d.final_no')
+            ->orderByDesc('d.quotation_detail_id')
             ->get();
 
         $finals = $drafts

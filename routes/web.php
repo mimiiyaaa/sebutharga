@@ -151,12 +151,15 @@ Route::get('/sebut-harga', function () {
             'customer.customer_name',
             'customer.email',
         ])
-        ->orderBy('quotation.quotation_no')
+        ->orderByDesc('quotation.quotation_date')
+        ->orderByDesc('quotation.quotation_id')
         ->get();
 
     $drafts = DB::table('sebutharga_detail')
         ->whereIn('quotation_id', $quotations->pluck('quotation_id'))
-        ->orderBy('draft_no')
+        ->orderByDesc('quotation_date')
+        ->orderByDesc('draft_no')
+        ->orderByDesc('quotation_detail_id')
         ->get()
         ->groupBy('quotation_id');
 
