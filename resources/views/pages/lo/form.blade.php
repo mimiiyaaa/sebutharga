@@ -28,7 +28,9 @@
                     <label for="quotation_detail_id" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">{{ __('Sebut Harga Final') }} <span class="text-error-500">*</span></label>
                     <select id="quotation_detail_id" name="quotation_detail_id" required x-model="quotationId" @change="selectQuotation" class="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
                         <option value="">{{ __('Pilih Sebut Harga Final yang menunggu LO') }}</option>
-                        <template x-for="quotation in filteredQuotations" :key="quotation.id"><option :value="quotation.id" x-text="`${quotation.number} · Versi ${quotation.version} · ${quotation.customer} · ${quotation.status}`"></option></template>
+                        @foreach($quotationOptions as $quotation)
+                            <option value="{{ $quotation['id'] }}" @selected($selectedQuotationId === $quotation['id']) x-show="!quotationFilter || quotationFilter === @js($quotation['status'])">{{ $quotation['number'] }} · {{ __('Versi') }} {{ $quotation['version'] }} · {{ $quotation['customer'] }} · {{ $quotation['status'] }}</option>
+                        @endforeach
                     </select>
                     <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">{{ __('Pilih quotation yang menunggu LO atau telah berjaya tetapi belum menerima LO.') }}</p>
                     @error('quotation_detail_id')<p class="mt-1 text-sm text-error-600">{{ $message }}</p>@enderror

@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Schema;
 Route::get('/locale/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
 use App\Http\Controllers\DashboardController;
 
+
+
 // dashboard pages
 Route::get('/', function () {
     return redirect()->route('login');
@@ -25,6 +27,64 @@ Route::get('/dashboard', function () {
 Route::get('/calendar', function () {
     return view('pages.calender', ['title' => 'Calendar']);
 })->name('calendar');
+
+Route::get('/delivery-order/tambah', function () {
+    return redirect()->route('delivery-order.supplier.create');
+})->middleware('auth')->name('delivery-order.create');
+
+Route::get('/delivery-order/pembekal/tambah', function () {
+    return view('pages.supplier-document-form', [
+        'title' => 'Tambah DO Daripada Pembekal',
+        'backRoute' => 'delivery-order.supplier',
+        'documentType' => 'Maklumat Delivery Order (DO)',
+        'documentNumberLabel' => 'No. DO',
+        'documentPartyTitle' => 'Dokumen Pembekal',
+        'documentPartyDescription' => 'Upload PDF atau imej untuk semakan dokumen.',
+        'partyNameLabel' => 'Nama Pembekal',
+        'previewDescription' => 'Upload PDF atau imej daripada pembekal untuk melihat dokumen.',
+    ]);
+})->middleware('auth')->name('delivery-order.supplier.create');
+
+Route::get('/delivery-order/pelanggan/tambah', function () {
+    return view('pages.customer-document-start', [
+        'title' => 'Tambah DO Kepada Pelanggan',
+        'backRoute' => 'delivery-order.customer',
+        'documentType' => 'Delivery Order (DO)',
+        'createRoute' => 'delivery-order.customer.form',
+        'createButtonLabel' => 'Cipta Delivery Order (DO)',
+    ]);
+})->middleware('auth')->name('delivery-order.customer.create');
+
+Route::get('/delivery-order/pelanggan/cipta', function () {
+    return view('pages.customer-document-create', [
+        'title' => 'Cipta DO Kepada Pelanggan',
+        'backRoute' => 'delivery-order.customer.create',
+        'documentType' => 'Maklumat Delivery Order (DO)',
+        'documentNumberLabel' => 'No. DO',
+    ]);
+})->middleware('auth')->name('delivery-order.customer.form');
+
+Route::get('/delivery-order', function () {
+    return redirect()->route('delivery-order.supplier');
+})->middleware('auth')->name('delivery-order');
+
+Route::get('/delivery-order/pembekal', function () {
+    return view('pages.delivery-order', [
+        'title' => 'DO Daripada Pembekal',
+        'deliveryOrders' => collect(),
+        'documentType' => 'DO Daripada Pembekal',
+        'createUrl' => route('delivery-order.supplier.create'),
+    ]);
+})->middleware('auth')->name('delivery-order.supplier');
+
+Route::get('/delivery-order/pelanggan', function () {
+    return view('pages.delivery-order', [
+        'title' => 'DO Kepada Pelanggan',
+        'deliveryOrders' => collect(),
+        'documentType' => 'DO Kepada Pelanggan',
+        'createUrl' => route('delivery-order.customer.create'),
+    ]);
+})->middleware('auth')->name('delivery-order.customer');
 
 // profile pages
 Route::get('/profile', function () {
@@ -198,7 +258,7 @@ Route::get('/sebut-harga', function () {
                     'draftNo' => $draft->draft_no,
                     'finalNo' => $draft->final_no,
                     'title' => $draft->quotation_title ?: '-',
-                    'source' => $draft->sumber_sebut_harga ?: '-',
+                    'source' => $draft->sumber_sebut_harga ?? '-',
                     'date' => $draft->quotation_date ?? $quotation->quotation_date,
                     'status' => $draft->status_draft === 'Final' ? 'Final' : 'Draf',
                     'decision' => $finalisationStatus($draft),
@@ -293,10 +353,64 @@ Route::get('/{type}/{id}', [\App\Http\Controllers\ContactController::class, 'sho
 Route::get('/{type}/{id}/edit', [\App\Http\Controllers\ContactController::class, 'form'])->whereIn('type', ['pelanggan','pembekal'])->middleware('auth')->name('contacts.edit');
 Route::delete('/{type}/{id}', [\App\Http\Controllers\ContactController::class, 'delete'])->whereIn('type', ['pelanggan','pembekal'])->middleware('auth')->name('contacts.delete');
 
-// mimi try invoice pages
+// Invoice pages
+Route::get('/invoice/tambah', function () {
+    return redirect()->route('invoice.supplier.create');
+})->middleware('auth')->name('invoice.create');
+
+Route::get('/invoice/pembekal/tambah', function () {
+    return view('pages.supplier-document-form', [
+        'title' => 'Tambah Invoice Daripada Pembekal',
+        'backRoute' => 'invoice.supplier',
+        'documentType' => 'Maklumat Invoice',
+        'documentNumberLabel' => 'No. Invoice',
+        'documentPartyTitle' => 'Dokumen Pembekal',
+        'documentPartyDescription' => 'Upload PDF atau imej untuk semakan dokumen.',
+        'partyNameLabel' => 'Nama Pembekal',
+        'previewDescription' => 'Upload PDF atau imej daripada pembekal untuk melihat dokumen.',
+    ]);
+})->middleware('auth')->name('invoice.supplier.create');
+
+Route::get('/invoice/pelanggan/tambah', function () {
+    return view('pages.customer-document-start', [
+        'title' => 'Tambah Invoice Kepada Pelanggan',
+        'backRoute' => 'invoice.customer',
+        'documentType' => 'Invoice',
+        'createRoute' => 'invoice.customer.form',
+        'createButtonLabel' => 'Cipta Invoice',
+    ]);
+})->middleware('auth')->name('invoice.customer.create');
+
+Route::get('/invoice/pelanggan/cipta', function () {
+    return view('pages.customer-document-create', [
+        'title' => 'Cipta Invoice Kepada Pelanggan',
+        'backRoute' => 'invoice.customer.create',
+        'documentType' => 'Maklumat Invoice',
+        'documentNumberLabel' => 'No. Invoice',
+    ]);
+})->middleware('auth')->name('invoice.customer.form');
+
 Route::get('/invoice', function () {
-    return view('pages.invoice', ['title' => 'Invoice']);
-})->name('invoice');
+    return redirect()->route('invoice.supplier');
+})->middleware('auth')->name('invoice');
+
+Route::get('/invoice/pembekal', function () {
+    return view('pages.invoice', [
+        'title' => 'Invoice Daripada Pembekal',
+        'invoices' => collect(),
+        'documentType' => 'Invoice Daripada Pembekal',
+        'createUrl' => route('invoice.supplier.create'),
+    ]);
+})->middleware('auth')->name('invoice.supplier');
+
+Route::get('/invoice/pelanggan', function () {
+    return view('pages.invoice', [
+        'title' => 'Invoice Kepada Pelanggan',
+        'invoices' => collect(),
+        'documentType' => 'Invoice Kepada Pelanggan',
+        'createUrl' => route('invoice.customer.create'),
+    ]);
+})->middleware('auth')->name('invoice.customer');
 
 Route::get('/lo', [\App\Http\Controllers\LoController::class, 'index'])->middleware('auth')->name('lo');
 Route::get('/lo/tambah', [\App\Http\Controllers\LoController::class, 'form'])->middleware('auth')->name('lo.create');
@@ -927,6 +1041,7 @@ Route::patch('/sebut-harga/{id}/draft/{draftId}', function (\Illuminate\Http\Req
 
 Route::get('/sebut-harga-final', [\App\Http\Controllers\FinalQuotationController::class, 'index'])->middleware('auth')->name('sebut-harga.final');
 Route::post('/sebut-harga-final/{id}/{draftId}/new', [\App\Http\Controllers\FinalQuotationController::class, 'newVersion'])->whereNumber(['id', 'draftId'])->middleware('auth')->name('sebut-harga.final.new');
+Route::delete('/sebut-harga-final/{id}/{draftId}', [\App\Http\Controllers\FinalQuotationController::class, 'destroy'])->whereNumber(['id', 'draftId'])->middleware('auth')->name('sebut-harga.final.destroy');
 Route::post('/sebut-harga/{id}/final/{draftId}/send', [\App\Http\Controllers\FinalQuotationController::class, 'send'])->whereNumber(['id', 'draftId'])->middleware('auth')->name('sebut-harga.final.send');
 Route::post('/sebut-harga/{id}/final/{draftId}/agree', fn (int $id, int $draftId) => app(\App\Http\Controllers\FinalQuotationController::class)->decide($id, $draftId, 1))->whereNumber(['id', 'draftId'])->middleware('auth')->name('sebut-harga.final.agree');
 Route::post('/sebut-harga/{id}/final/{draftId}/disagree', fn (int $id, int $draftId) => app(\App\Http\Controllers\FinalQuotationController::class)->decide($id, $draftId, 0))->whereNumber(['id', 'draftId'])->middleware('auth')->name('sebut-harga.final.disagree');

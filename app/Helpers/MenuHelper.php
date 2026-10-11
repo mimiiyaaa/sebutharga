@@ -32,9 +32,20 @@ class MenuHelper
                 'path' => '/lo',
             ],
             [
+                'icon' => 'delivery-order',
+                'name' => 'Delivery Order (DO)',
+                'subItems' => [
+                    ['name' => 'DO Daripada Pembekal', 'path' => '/delivery-order/pembekal'],
+                    ['name' => 'DO Kepada Pelanggan', 'path' => '/delivery-order/pelanggan'],
+                ],
+            ],
+            [
                 'icon' => 'invoice',
                 'name' => 'Invoice',
-                'path' => '/invoice',
+                'subItems' => [
+                    ['name' => 'Invoice Daripada Pembekal', 'path' => '/invoice/pembekal'],
+                    ['name' => 'Invoice Kepada Pelanggan', 'path' => '/invoice/pelanggan'],
+                ],
             ],
             [
                 'icon' => 'calendar',
@@ -76,6 +87,7 @@ class MenuHelper
             'quotation' => '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 3.75h7l4 4v12.5H7a2 2 0 0 1-2-2V5.75a2 2 0 0 1 2-2Zm7 0v4h4M8.5 12h7m-7 3.5h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
             'purchase-order' => '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 3.75h8v16.5H8a2 2 0 0 1-2-2V5.75a2 2 0 0 1 2-2Zm2.5 5h3m-3 3.5h3m-5 3.5h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="m15.5 15 1.25 1.25L19 13.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
             'lo-document' => '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6.5 4.25h11v15.5h-11a2 2 0 0 1-2-2V6.25a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.6"/><path d="M8 9h8m-8 3.5h8M8 16h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M17.5 6.5h2v10.75a2 2 0 0 1-2 2h-1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+            'delivery-order' => '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3.75 6.5h10.5v9.75H3.75V6.5Zm10.5 3.25h3.5l2.5 2.75v3.75h-6V9.75Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M7.25 19.25a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Zm9.5 0a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Z" stroke="currentColor" stroke-width="1.6"/></svg>',
             'invoice' => '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 3.75h10v16.5l-2.5-1.5-2.5 1.5-2.5-1.5-2.5 1.5V5.75a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9.5 9h5m-5 3.5h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
             'dashboard' => '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M5.5 3.25C4.25736 3.25 3.25 4.25736 3.25 5.5V8.99998C3.25 10.2426 4.25736 11.25 5.5 11.25H9C10.2426 11.25 11.25 10.2426 11.25 8.99998V5.5C11.25 4.25736 10.2426 3.25 9 3.25H5.5ZM4.75 5.5C4.75 5.08579 5.08579 4.75 5.5 4.75H9C9.41421 4.75 9.75 5.08579 9.75 5.5V8.99998C9.75 9.41419 9.41421 9.74998 9 9.74998H5.5C5.08579 9.74998 4.75 9.41419 4.75 8.99998V5.5ZM5.5 12.75C4.25736 12.75 3.25 13.7574 3.25 15V18.5C3.25 19.7426 4.25736 20.75 5.5 20.75H9C10.2426 20.75 11.25 19.7427 11.25 18.5V15C11.25 13.7574 10.2426 12.75 9 12.75H5.5ZM4.75 15C4.75 14.5858 5.08579 14.25 5.5 14.25H9C9.41421 14.25 9.75 14.5858 9.75 15V18.5C9.75 18.9142 9.41421 19.25 9 19.25H5.5C5.08579 19.25 4.75 18.9142 4.75 18.5V15ZM12.75 5.5C12.75 4.25736 13.7574 3.25 15 3.25H18.5C19.7426 3.25 20.75 4.25736 20.75 5.5V8.99998C20.75 10.2426 19.7426 11.25 18.5 11.25H15C13.7574 11.25 12.75 10.2426 12.75 8.99998V5.5ZM15 4.75C14.5858 4.75 14.25 5.08579 14.25 5.5V8.99998C14.25 9.41419 14.5858 9.74998 15 9.74998H18.5C18.9142 9.74998 19.25 9.41419 19.25 8.99998V5.5C19.25 5.08579 18.9142 4.75 18.5 4.75H15ZM15 12.75C13.7574 12.75 12.75 13.7574 12.75 15V18.5C12.75 19.7426 13.7574 20.75 15 20.75H18.5C19.7426 20.75 20.75 19.7427 20.75 18.5V15C20.75 13.7574 19.7426 12.75 18.5 12.75H15ZM14.25 15C14.25 14.5858 14.5858 14.25 15 14.25H18.5C18.9142 14.25 19.25 14.5858 19.25 15V18.5C19.25 18.9142 18.9142 19.25 18.5 19.25H15C14.5858 19.25 14.25 18.9142 14.25 18.5V15Z" fill="currentColor"></path></svg>',
 

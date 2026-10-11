@@ -1,5 +1,8 @@
 @extends('layouts.app')
 
 @section('content')
-    <x-tables.basic-tables.basic-tables-three />
+    <x-common.page-breadcrumb :pageTitle="$title" />
+    <x-common.component-card>
+        <x-tables.basic-tables.supplier-document-table :documents="$invoices" :type="$documentType" :createUrl="isset($createUrl) ? $createUrl : null" />
+    </x-common.component-card>
 @endsection

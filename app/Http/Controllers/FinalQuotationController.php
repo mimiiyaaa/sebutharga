@@ -30,6 +30,7 @@ class FinalQuotationController extends Controller
                     'id' => $version->quotation_detail_id,
                     'label' => 'Versi ' . ($version->final_no ?? $version->draft_no),
                     'viewUrl' => route('sebut-harga.edit', [$version->quotation_id, 'draft' => $version->quotation_detail_id, 'from' => 'final']),
+                    'deleteUrl' => route('sebut-harga.final.destroy', [$version->quotation_id, $version->quotation_detail_id]),
                     'decision' => empty($version->sent_at)
                         ? 'Belum Hantar'
                         : ($version->status_quotation === null
@@ -61,7 +62,7 @@ class FinalQuotationController extends Controller
                 'quotation_date' => $source->quotation_date,
                 'customer_id' => $source->customer_id,
                 'quotation_title' => $source->quotation_title,
-                'sumber_sebut_harga' => $source->sumber_sebut_harga,
+                'sumber_sebut_harga' => $source->sumber_sebut_harga ?? null,
                 'no_rujukan_pelanggan' => $source->no_rujukan_pelanggan,
                 'status_quotation' => null,
                 'draft_name' => null,
@@ -106,6 +107,52 @@ class FinalQuotationController extends Controller
 
         return redirect()->route('sebut-harga.edit', [$id, 'draft' => $newVersionId, 'from' => 'final', 'edit' => 1])
             ->with('success', 'Versi baharu berjaya dicipta daripada sebut harga Final.');
+    }
+
+    public function destroy(int $id, int $draftId)
+    {
+        return DB::transaction(function () use ($id, $draftId) {
+            $master = DB::table('sebutharga_master')->where('quotation_id', $id)->lockForUpdate()->first();
+            abort_unless($master, 404);
+
+            $final = DB::table('sebutharga_detail')
+                ->where('quotation_id', $id)
+                ->where('quotation_detail_id', $draftId)
+                ->lockForUpdate()
+                ->first();
+            abort_unless($final && strtolower(trim((string) $final->status_draft)) === 'final', 404);
+
+            if (DB::table('purchase_order_master')->where('quotation_detail_id', $draftId)->exists()) {
+                return redirect()->route('sebut-harga.final')->with('error', 'Sebut Harga Final ini tidak boleh dipadam kerana sudah digunakan dalam PO.');
+            }
+            if (DB::table('lo_inden_master')->where('quotation_detail_id', $draftId)->exists()) {
+                return redirect()->route('sebut-harga.final')->with('error', 'Sebut Harga Final ini tidak boleh dipadam kerana sudah mempunyai rekod LO.');
+            }
+
+            $remaining = DB::table('sebutharga_detail')
+                ->where('quotation_id', $id)
+                ->where('quotation_detail_id', '<>', $draftId)
+                ->orderByDesc('final_no')
+                ->orderByDesc('draft_no')
+                ->first();
+
+            if ((int) $master->quotation_detail_id === $draftId) {
+                DB::table('sebutharga_master')->where('quotation_id', $id)->update([
+                    'quotation_detail_id' => $remaining?->quotation_detail_id,
+                    'status_quotation' => $remaining?->status_quotation,
+                    'updated_at' => now(),
+                ]);
+            }
+
+            DB::table('sebutharga_item')->where('quotation_detail_id', $draftId)->delete();
+            DB::table('sebutharga_detail')->where('quotation_detail_id', $draftId)->delete();
+
+            if (! $remaining && ! DB::table('purchase_order_master')->where('quotation_id', $id)->exists()) {
+                DB::table('sebutharga_master')->where('quotation_id', $id)->delete();
+            }
+
+            return redirect()->route('sebut-harga.final')->with('success', 'Sebut Harga Final berjaya dipadam.');
+        });
     }
 
     public function undo(int $id, int $draftId)
