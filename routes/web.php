@@ -55,14 +55,7 @@ Route::get('/delivery-order/pelanggan/tambah', function () {
     ]);
 })->middleware('auth')->name('delivery-order.customer.create');
 
-Route::get('/delivery-order/pelanggan/cipta', function () {
-    return view('pages.customer-document-create', [
-        'title' => 'Cipta DO Kepada Pelanggan',
-        'backRoute' => 'delivery-order.customer.create',
-        'documentType' => 'Maklumat Delivery Order (DO)',
-        'documentNumberLabel' => 'No. DO',
-    ]);
-})->middleware('auth')->name('delivery-order.customer.form');
+Route::get('/delivery-order/pelanggan/cipta', [\App\Http\Controllers\DeliveryOrderController::class, 'create'])->middleware('auth')->name('delivery-order.customer.form');
 
 Route::get('/delivery-order', function () {
     return redirect()->route('delivery-order.supplier');
@@ -77,14 +70,7 @@ Route::get('/delivery-order/pembekal', function () {
     ]);
 })->middleware('auth')->name('delivery-order.supplier');
 
-Route::get('/delivery-order/pelanggan', function () {
-    return view('pages.delivery-order', [
-        'title' => 'DO Kepada Pelanggan',
-        'deliveryOrders' => collect(),
-        'documentType' => 'DO Kepada Pelanggan',
-        'createUrl' => route('delivery-order.customer.create'),
-    ]);
-})->middleware('auth')->name('delivery-order.customer');
+Route::get('/delivery-order/pelanggan', [\App\Http\Controllers\DeliveryOrderController::class, 'index'])->middleware('auth')->name('delivery-order.customer');
 
 // profile pages
 Route::get('/profile', function () {
@@ -1091,6 +1077,13 @@ Route::post('/sebut-harga/{id}/draft/{draftId}/reject', function ($id, $draftId)
 })->middleware('auth')->name('sebut-harga.draft.reject');
 
 Route::middleware('auth')->prefix('invoice/pelanggan')->name('invoice.customer.')->controller(\App\Http\Controllers\InvoiceController::class)->group(function () {
+    Route::post('/', 'store')->name('store');
+    Route::post('/pratonton', 'previewDraft')->name('draft-preview');
+    Route::get('/{id}/pratonton', 'preview')->whereNumber('id')->name('preview');
+    Route::get('/{id}/pdf', 'pdf')->whereNumber('id')->name('pdf');
+});
+
+Route::middleware('auth')->prefix('delivery-order/pelanggan')->name('delivery-order.customer.')->controller(\App\Http\Controllers\DeliveryOrderController::class)->group(function () {
     Route::post('/', 'store')->name('store');
     Route::post('/pratonton', 'previewDraft')->name('draft-preview');
     Route::get('/{id}/pratonton', 'preview')->whereNumber('id')->name('preview');
