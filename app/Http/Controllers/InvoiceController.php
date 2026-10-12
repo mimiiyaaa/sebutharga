@@ -37,6 +37,9 @@ class InvoiceController extends Controller
                     'document_date' => $invoice->invoice_date,
                     'amount' => $invoice->total_amount,
                     'preview_url' => route('invoice.customer.preview', $invoice->invoice_id),
+                    'show_url' => route('invoice.customer.show', $invoice->invoice_id),
+                    'edit_url' => route('invoice.customer.edit', $invoice->invoice_id),
+                    'delete_url' => route('invoice.customer.delete', $invoice->invoice_id),
                 ];
             });
         return view('pages.invoice', [
@@ -48,10 +51,10 @@ class InvoiceController extends Controller
         ]);
     }
 
-    private function validated(Request $request): array
+    private function validated(Request $request, ?int $id = null): array
     {
         $data = $request->validate([
-            'invoice_no' => ['required', 'string', 'max:100', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('invoice_master', 'invoice_no')],
+            'invoice_no' => ['required', 'string', 'max:100', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('invoice_master', 'invoice_no')->ignore($id, 'invoice_id')],
             'invoice_date' => 'required|date_format:Y-m-d',
             'customer_id' => ['required', 'integer', Rule::exists('customer_supplier', 'customer_id')->where('jenis_customer', 1)],
             'issuer_name' => 'required|string|max:255', 'issuer_address' => 'required|string|max:2000',
@@ -105,6 +108,76 @@ class InvoiceController extends Controller
             throw ValidationException::withMessages(['invoice_no' => __('Nombor invois sudah digunakan. Sila gunakan nombor lain.')]);
         }
         return redirect()->route('invoice.customer.preview', $id)->with('success', __('Invois berjaya dicipta dan disimpan.'));
+    }
+
+
+    public function show(int $id)
+    {
+        return view('pages.customer-document-show', $this->saved($id) + [
+            'kind' => 'invoice', 'title' => __('Maklumat Invois'),
+        ]);
+    }
+
+    public function edit(int $id)
+    {
+        $saved = $this->saved($id);
+        $invoice = $saved['invoice'];
+        return view('pages.invoice.create', [
+            'title' => __('Edit Invois'), 'editId' => $id, 'nextNumber' => $invoice->invoice_no,
+            'values' => $saved['document'] + ['invoice_no' => $invoice->invoice_no, 'invoice_date' => $invoice->invoice_date, 'customer_id' => $invoice->customer_id],
+            'initialItems' => $saved['items']->map(fn ($item) => [
+                'description' => $item->item_description, 'quantity' => $item->quantity, 'unit' => $item->unit,
+                'price' => $item->unit_price,
+            ])->all(),
+            'customers' => DB::table('customer_supplier')->where('jenis_customer', 1)->orderBy('company_name')->get(),
+            'companies' => DB::table('companies')->orderBy('nama_syarikat')->get(),
+        ]);
+    }
+
+    public function previewEdit(Request $request, int $id)
+    {
+        $this->saved($id);
+        return $this->renderPdf($this->validated($request, $id))->stream('pratonton.pdf');
+    }
+
+    public function update(Request $request, int $id)
+    {
+        $this->saved($id);
+        $validated = $this->validated($request, $id);
+        try {
+            DB::transaction(function () use ($validated, $request, $id) {
+                ['data' => $data, 'invoice' => $invoice, 'document' => $document, 'items' => $items] = $validated;
+                $record = DB::table('invoice_master')->where('invoice_id', $id)->where('document_kind', 'customer')->lockForUpdate()->first();
+                abort_unless($record, 404);
+                DB::table('invoice_master')->where('invoice_id', $id)->update([
+                    'invoice_no' => $invoice->invoice_no, 'invoice_date' => $invoice->invoice_date, 'customer_id' => $data['customer_id'],
+                    'subtotal' => $invoice->total_amount, 'total_amount' => $invoice->total_amount,
+                    'document_data' => json_encode($document, JSON_UNESCAPED_UNICODE),
+                    'updated_by' => $request->user()->id, 'updated_at' => now(),
+                ]);
+                DB::table('invoice_item')->where('invoice_id', $id)->delete();
+                foreach ($items as $item) {
+                    DB::table('invoice_item')->insert((array) $item + ['invoice_id' => $id, 'created_by' => $request->user()->id, 'created_at' => now(), 'updated_at' => now()]);
+                }
+            });
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $exception) {
+            throw ValidationException::withMessages(['invoice_no' => __('Nombor dokumen sudah digunakan. Sila gunakan nombor lain.')]);
+        }
+        return redirect()->route('invoice.customer.show', $id)->with('success', __('Invois berjaya dikemas kini.'));
+    }
+
+    public function destroy(int $id)
+    {
+        DB::transaction(function () use ($id) {
+            $record = DB::table('invoice_master')->where('invoice_id', $id)->where('document_kind', 'customer')->lockForUpdate()->first();
+            abort_unless($record, 404);
+            if (DB::table('delivery_order_master')->where('invoice_id', $id)->exists()) {
+                throw ValidationException::withMessages(['document' => __('Invois ini digunakan oleh DO. Sila padam DO berkaitan terlebih dahulu.')]);
+            }
+            DB::table('invoice_item')->where('invoice_id', $id)->delete();
+            DB::table('invoice_master')->where('invoice_id', $id)->delete();
+        });
+        return redirect()->route('invoice.customer')->with('success', __('Invois berjaya dipadam.'));
     }
 
     private function saved(int $id): array

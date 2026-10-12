@@ -1,6 +1,7 @@
 import { createPopper } from '@popperjs/core';
 import './bootstrap';
 import Alpine from 'alpinejs';
+import supplierDocumentUpload from './components/supplier-document-upload';
 import ApexCharts from 'apexcharts';
 
 // flatpickr
@@ -17,6 +18,7 @@ window.ApexCharts = ApexCharts;
 window.flatpickr = flatpickr;
 window.FullCalendar = Calendar;
 
+Alpine.data('supplierDocumentUpload', supplierDocumentUpload);
 Alpine.start();
 
 // Initialize components on DOM ready
