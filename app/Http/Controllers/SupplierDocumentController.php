@@ -29,7 +29,10 @@ class SupplierDocumentController extends Controller
 
     public function create(Request $request)
     {
-        return view('pages.supplier-documents.form', $this->context($request) + [
+        $context = $this->context($request);
+        $context['title'] = $context['isInvoice'] ? __('Tambah Invois Daripada Pembekal') : __('Tambah Delivery Order Daripada Pembekal');
+
+        return view('pages.supplier-documents.form', $context + [
             'suppliers' => DB::table('customer_supplier')->where('jenis_customer', 2)->orderBy('company_name')->get(['customer_id','company_name']),
         ]);
     }

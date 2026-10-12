@@ -41,6 +41,7 @@
             this.documentUrl = URL.createObjectURL(file);
             this.documentIsImage = file.type.startsWith('image/');
             this.fileName = file.name;
+            this.extractDocument();
         },
         async extractDocument() {
             const file = document.getElementById('supplier_quotation_file').files[0];
@@ -109,10 +110,7 @@
             <section class="w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-800">
                     <div><h2 class="text-base font-semibold text-gray-800 dark:text-white/90">{{ __('Dokumen Pembekal') }}</h2><p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('Upload PDF atau imej dan baca maklumat secara automatik.') }}</p></div>
-                    <div class="flex flex-wrap gap-2">
-                        <label for="supplier_quotation_file" class="inline-flex cursor-pointer items-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Upload Dokumen') }}</label>
-                        <button type="button" x-show="fileName" @click="extractDocument()" :disabled="extracting" class="inline-flex items-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600 disabled:cursor-wait disabled:opacity-60"><span x-text="extracting ? 'Membaca...' : 'Baca Dokumen'"></span></button>
-                    </div>
+                    <label for="supplier_quotation_file" class="inline-flex cursor-pointer items-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Upload Dokumen') }}</label>
                     <input id="supplier_quotation_file" name="supplier_quotation_file" type="file" accept="application/pdf,image/jpeg,image/png" class="sr-only" @change="chooseDocument($event)">
                 </div>
                 <div class="border-b border-gray-100 bg-gray-50/70 px-5 py-3 dark:border-gray-800 dark:bg-gray-900/40">
