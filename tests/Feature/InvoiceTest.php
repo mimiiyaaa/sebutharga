@@ -1,0 +1,106 @@
+<?php
+
+use App\Models\User;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+beforeEach(function () {
+    config(['database.default' => 'sqlite', 'database.connections.sqlite.database' => ':memory:', 'session.driver' => 'array']);
+    DB::purge('sqlite');
+    Schema::create('customer_supplier', function (Blueprint $table) {
+        $table->increments('customer_id'); $table->integer('jenis_customer');
+        $table->string('company_name'); $table->string('customer_name'); $table->text('address');
+    });
+    Schema::create('companies', function (Blueprint $table) {
+        $table->increments('company_id'); $table->string('nama_syarikat');
+    });
+    (require database_path('migrations/2026_10_11_160650_create_invoice_and_delivery_order_tables.php'))->up();
+    (require database_path('migrations/2026_10_12_000000_add_invoice_document_data.php'))->up();
+    DB::table('customer_supplier')->insert(['customer_id'=>1,'jenis_customer'=>1,'company_name'=>'Jabatan Teknologi & Komunikasi','customer_name'=>'Pelanggan','address'=>"Sektor Awam Negeri Kelantan\n15000 Kota Bharu, Kelantan."]);
+    $user = new User(); $user->id = 42; $user->name = 'Tester';
+    $this->actingAs($user);
+    $this->invoiceData = [
+        'invoice_no'=>'K1R-IV-2026-001', 'invoice_date'=>'2026-08-11', 'customer_id'=>1,
+        'issuer_name'=>'K ONE RESOURCES', 'issuer_address'=>"PT 2223, Tingkat 1, Jalan Long Yunus,\n15200 Kota Bharu, Kelantan.",
+        'issuer_phone'=>'+60 19-242 8373', 'issuer_email'=>'wanswh@gmail.com',
+        'customer_name'=>'Jabatan Teknologi & Komunikasi', 'customer_address'=>"Sektor Awam Negeri Kelantan\n15000 Kota Bharu, Kelantan.",
+        'bank_name'=>'Malayan Banking Berhad (Maybank)', 'account_name'=>'K ONE RESOURCES', 'account_no'=>'5530-XXXX-XXXX',
+        'payment_instructions'=>'Sila lakukan pembayaran ke akaun bank korporat kami seperti tertera di bawah:', 'prepared_role'=>'Pengurus Besar',
+        'items'=>[
+            ['description'=>"Laptop Komersial Spesifikasi Tinggi\n(Intel i7, 16GB RAM, 512GB SSD, Windows 11 Pro)",'quantity'=>5,'unit'=>'Unit','price'=>3500],
+            ['description'=>"Pemasangan & Setup Rangkaian Pejabat\n(Termasuk Konfigurasi Router, Switch, Access Point, & Kabel LAN)",'quantity'=>1,'unit'=>'Sesi','price'=>2500],
+            ['description'=>"Pembangunan Aplikasi Sistem Inventori\n(Fasa 1 - Cloud Based Architecture)",'quantity'=>1,'unit'=>'Sistem','price'=>5000],
+        ],
+    ];
+});
+
+test('invoice creation saves snapshot and items with server calculated total', function () {
+    $form = $this->get(route('invoice.customer.form'))->assertOk()->assertSee('Cipta &amp; Simpan Invois', false);
+    if (getenv('INVOICE_VISUAL_CHECK')) file_put_contents(storage_path('app/invoice-form-check.html'), $form->getContent());
+    $response = $this->post(route('invoice.customer.store'), $this->invoiceData + ['total_amount'=>1]);
+    $response->assertSessionHasNoErrors()->assertRedirect(route('invoice.customer.preview', 1));
+    $this->assertDatabaseHas('invoice_master',['invoice_id'=>1,'total_amount'=>25000,'created_by'=>42]);
+    $this->assertDatabaseCount('invoice_item',3);
+    DB::table('customer_supplier')->where('customer_id',1)->update(['company_name'=>'Changed']);
+    $this->get(route('invoice.customer'))->assertOk()->assertSee('Jabatan Teknologi');
+    $this->get(route('invoice.customer.preview',1))->assertOk()->assertSee('Cetak / Buka PDF');
+    $pdf = $this->get(route('invoice.customer.pdf',1))->assertOk()->assertHeader('content-type','application/pdf');
+    expect($pdf->getContent())->toStartWith('%PDF-');
+    if (getenv('INVOICE_VISUAL_CHECK')) file_put_contents(storage_path('app/invoice-sample-check.pdf'),$pdf->getContent());
+    $this->get(route('invoice.customer.pdf',['id'=>1,'download'=>1]))->assertDownload('K1R-IV-2026-001.pdf');
+    $this->post(route('invoice.customer.store'),$this->invoiceData)->assertSessionHasErrors('invoice_no');
+    $this->assertDatabaseCount('invoice_master',1);
+});
+
+test('draft preview produces pdf without saving and validates input', function () {
+    $pdf=$this->post(route('invoice.customer.draft-preview'),$this->invoiceData)->assertOk()->assertHeader('content-type','application/pdf');
+    $this->assertDatabaseCount('invoice_master',0);
+    $bad=$this->invoiceData; $bad['items'][0]['quantity']=-1;
+    $this->post(route('invoice.customer.store'),$bad)->assertSessionHasErrors('items.0.quantity');
+    $bad=$this->invoiceData; $bad['customer_id']=999;
+    $this->post(route('invoice.customer.store'),$bad)->assertSessionHasErrors('customer_id');
+    $this->assertDatabaseCount('invoice_master',0);
+    $this->get(route('invoice.customer.pdf',999))->assertNotFound();
+});
+
+test('long invoice can render multiple pages', function () {
+    $data=$this->invoiceData; $data['items']=array_fill(0,30,$data['items'][1]);
+    $pdf=$this->post(route('invoice.customer.draft-preview'),$data)->assertOk();
+    if(getenv('INVOICE_VISUAL_CHECK')) file_put_contents(storage_path('app/invoice-long-check.pdf'),$pdf->getContent());
+});
+
+test('invoice routes require authentication', function () {
+    auth()->forgetGuards();
+    $this->get(route('invoice.customer.form'))->assertRedirect(route('login'));
+    $this->post(route('invoice.customer.store'),$this->invoiceData)->assertRedirect(route('login'));
+});
+
+
+
+test('customer invoice keeps the original table and intermediate create page', function () {
+    $this->get(route('invoice.customer'))->assertOk()->assertViewIs('pages.invoice')
+        ->assertSee('filters.search', false)
+        ->assertSee('href="'.route('invoice.customer.create').'"', false)
+        ->assertDontSee('href="'.route('invoice.customer.form').'"', false);
+    $this->get(route('invoice.customer.create'))->assertOk()->assertViewIs('pages.customer-document-start')
+        ->assertSee('href="'.route('invoice.customer.form').'"', false);
+    $this->get(route('invoice.customer.form'))->assertOk()
+        ->assertSee('href="'.route('invoice.customer.create').'"', false);
+});
+
+test('signature company supports typed names and saved company choices independently of the issuer', function () {
+    DB::table('companies')->insert(['nama_syarikat'=>'Pilihan Syarikat Sdn Bhd']);
+    $this->get(route('invoice.customer.form'))->assertOk()->assertSee('signature-company-options')->assertSee('Pilihan Syarikat Sdn Bhd');
+    foreach (['Nama Syarikat Manual', 'Pilihan Syarikat Sdn Bhd'] as $index => $name) {
+        $data = $this->invoiceData;
+        $data['invoice_no'] = 'SIGNATURE-'.($index + 1);
+        $data['signature_company'] = $name;
+        $this->post(route('invoice.customer.store'), $data)->assertSessionHasNoErrors();
+        $record = DB::table('invoice_master')->where('invoice_no', $data['invoice_no'])->first();
+        $document = json_decode($record->document_data, true);
+        expect($document['signature_company'])->toBe($name)->and($document['issuer_name'])->toBe('K ONE RESOURCES');
+        $html = view('pages.invoice.pdf', ['invoice'=>$record, 'document'=>$document, 'items'=>collect()])->render();
+        expect($html)->toContain('Pengurus Besar<br>'.$name);
+    }
+});

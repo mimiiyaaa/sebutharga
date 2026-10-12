@@ -381,14 +381,7 @@ Route::get('/invoice/pelanggan/tambah', function () {
     ]);
 })->middleware('auth')->name('invoice.customer.create');
 
-Route::get('/invoice/pelanggan/cipta', function () {
-    return view('pages.customer-document-create', [
-        'title' => 'Cipta Invoice Kepada Pelanggan',
-        'backRoute' => 'invoice.customer.create',
-        'documentType' => 'Maklumat Invoice',
-        'documentNumberLabel' => 'No. Invoice',
-    ]);
-})->middleware('auth')->name('invoice.customer.form');
+Route::get('/invoice/pelanggan/cipta', [\App\Http\Controllers\InvoiceController::class, 'create'])->middleware('auth')->name('invoice.customer.form');
 
 Route::get('/invoice', function () {
     return redirect()->route('invoice.supplier');
@@ -403,14 +396,7 @@ Route::get('/invoice/pembekal', function () {
     ]);
 })->middleware('auth')->name('invoice.supplier');
 
-Route::get('/invoice/pelanggan', function () {
-    return view('pages.invoice', [
-        'title' => 'Invoice Kepada Pelanggan',
-        'invoices' => collect(),
-        'documentType' => 'Invoice Kepada Pelanggan',
-        'createUrl' => route('invoice.customer.create'),
-    ]);
-})->middleware('auth')->name('invoice.customer');
+Route::get('/invoice/pelanggan', [\App\Http\Controllers\InvoiceController::class, 'index'])->middleware('auth')->name('invoice.customer');
 
 Route::get('/lo', [\App\Http\Controllers\LoController::class, 'index'])->middleware('auth')->name('lo');
 Route::get('/lo/tambah', [\App\Http\Controllers\LoController::class, 'form'])->middleware('auth')->name('lo.create');
@@ -1103,3 +1089,10 @@ Route::post('/sebut-harga/{id}/draft/{draftId}/reject', function ($id, $draftId)
 
     return redirect()->route('sebut-harga.edit', [$id, 'draft' => $draftId])->with('success', 'Sebut harga ditandakan sebagai tidak setuju.');
 })->middleware('auth')->name('sebut-harga.draft.reject');
+
+Route::middleware('auth')->prefix('invoice/pelanggan')->name('invoice.customer.')->controller(\App\Http\Controllers\InvoiceController::class)->group(function () {
+    Route::post('/', 'store')->name('store');
+    Route::post('/pratonton', 'previewDraft')->name('draft-preview');
+    Route::get('/{id}/pratonton', 'preview')->whereNumber('id')->name('preview');
+    Route::get('/{id}/pdf', 'pdf')->whereNumber('id')->name('pdf');
+});

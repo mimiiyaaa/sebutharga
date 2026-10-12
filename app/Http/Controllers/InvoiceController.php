@@ -1,0 +1,136 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+
+class InvoiceController extends Controller
+{
+    public function create()
+    {
+        $prefix = 'K1R-IV-'.now()->year.'-';
+        $last = DB::table('invoice_master')->where('invoice_no', 'like', $prefix.'%')->pluck('invoice_no')
+            ->map(fn ($number) => (int) substr($number, strlen($prefix)))->max() ?? 0;
+
+        return view('pages.invoice.create', [
+            'title' => __('Cipta Invois Kepada Pelanggan'),
+            'nextNumber' => $prefix.str_pad((string) ($last + 1), 3, '0', STR_PAD_LEFT),
+            'customers' => DB::table('customer_supplier')->where('jenis_customer', 1)->orderBy('company_name')->get(),
+            'companies' => DB::table('companies')->orderBy('nama_syarikat')->get(),
+        ]);
+    }
+
+    public function index()
+    {
+        $invoices = DB::table('invoice_master')->where('document_kind', 'customer')->orderByDesc('invoice_id')->get()
+            ->map(function ($invoice) {
+                $document = json_decode($invoice->document_data ?? '{}', true);
+                return [
+                    'id' => $invoice->invoice_id,
+                    'document_no' => $invoice->invoice_no,
+                    'po_no' => $document['po_reference'] ?? null,
+                    'company_name' => $document['customer_name'] ?? '',
+                    'document_date' => $invoice->invoice_date,
+                    'amount' => $invoice->total_amount,
+                    'preview_url' => route('invoice.customer.preview', $invoice->invoice_id),
+                ];
+            });
+        return view('pages.invoice', [
+            'title' => __('Invoice Kepada Pelanggan'),
+            'documentType' => __('Invoice Kepada Pelanggan'),
+            'invoices' => $invoices,
+            'createUrl' => route('invoice.customer.create'),
+            'partyLabel' => __('Pelanggan'),
+        ]);
+    }
+
+    private function validated(Request $request): array
+    {
+        $data = $request->validate([
+            'invoice_no' => ['required', 'string', 'max:100', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('invoice_master', 'invoice_no')],
+            'invoice_date' => 'required|date_format:Y-m-d',
+            'customer_id' => ['required', 'integer', Rule::exists('customer_supplier', 'customer_id')->where('jenis_customer', 1)],
+            'issuer_name' => 'required|string|max:255', 'issuer_address' => 'required|string|max:2000',
+            'issuer_phone' => 'nullable|string|max:50', 'issuer_email' => 'nullable|email|max:255',
+            'customer_name' => 'required|string|max:255', 'customer_address' => 'required|string|max:2000',
+            'bank_name' => 'required|string|max:255', 'account_name' => 'required|string|max:255', 'account_no' => 'required|string|max:100',
+            'payment_instructions' => 'required|string|max:3000',
+            'prepared_by' => 'nullable|string|max:255', 'prepared_role' => 'required|string|max:255',
+            'signature_company' => 'sometimes|required|string|max:255',
+            'items' => 'required|array|min:1|max:100', 'items.*' => 'required|array',
+            'items.*.description' => 'required|string|max:2000', 'items.*.quantity' => 'required|numeric|min:0.01|max:1000000|decimal:0,2',
+            'items.*.unit' => 'required|string|max:50', 'items.*.price' => 'required|numeric|min:0|max:1000000|decimal:0,2',
+        ]);
+        $items = collect($data['items'])->map(fn ($item) => (object) [
+            'item_description' => $item['description'], 'quantity' => $item['quantity'], 'unit' => $item['unit'],
+            'unit_price' => $item['price'], 'subtotal' => round($item['quantity'] * $item['price'], 2),
+        ]);
+        $total = round($items->sum('subtotal'), 2);
+        if ($total > 9999999999.99) {
+            throw ValidationException::withMessages(['items' => __('Jumlah invois melebihi had yang dibenarkan.')]);
+        }
+        $document = collect($data)->except(['items', 'invoice_no', 'invoice_date', 'customer_id'])->all();
+        $document['signature_company'] = $data['signature_company'] ?? $data['issuer_name'];
+        $invoice = (object) ['invoice_no' => $data['invoice_no'], 'invoice_date' => $data['invoice_date'], 'total_amount' => $total];
+        return compact('data', 'items', 'document', 'invoice');
+    }
+
+    public function previewDraft(Request $request)
+    {
+        return $this->renderPdf($this->validated($request))->stream('pratonton-invois.pdf');
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $this->validated($request);
+        try {
+            $id = DB::transaction(function () use ($validated, $request) {
+                ['data' => $data, 'invoice' => $invoice, 'document' => $document, 'items' => $items] = $validated;
+                $id = DB::table('invoice_master')->insertGetId([
+                    'invoice_no' => $invoice->invoice_no, 'invoice_date' => $invoice->invoice_date,
+                    'customer_id' => $data['customer_id'], 'subtotal' => $invoice->total_amount, 'total_amount' => $invoice->total_amount,
+                    'document_data' => json_encode($document, JSON_UNESCAPED_UNICODE), 'document_kind' => 'customer',
+                    'created_by' => $request->user()->id, 'created_at' => now(), 'updated_at' => now(),
+                ]);
+                foreach ($items as $item) {
+                    DB::table('invoice_item')->insert((array) $item + ['invoice_id' => $id, 'created_by' => $request->user()->id, 'created_at' => now(), 'updated_at' => now()]);
+                }
+                return $id;
+            });
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $exception) {
+            throw ValidationException::withMessages(['invoice_no' => __('Nombor invois sudah digunakan. Sila gunakan nombor lain.')]);
+        }
+        return redirect()->route('invoice.customer.preview', $id)->with('success', __('Invois berjaya dicipta dan disimpan.'));
+    }
+
+    private function saved(int $id): array
+    {
+        $invoice = DB::table('invoice_master')->where('document_kind', 'customer')->where('invoice_id', $id)->first();
+        abort_unless($invoice, 404);
+        $document = json_decode($invoice->document_data ?? '{}', true);
+        $items = DB::table('invoice_item')->where('invoice_id', $id)->orderBy('invoice_item_id')->get();
+        return compact('invoice', 'document', 'items');
+    }
+
+    public function preview(int $id)
+    {
+        return view('pages.invoice.preview', $this->saved($id));
+    }
+
+    private function renderPdf(array $data)
+    {
+        return Pdf::loadView('pages.invoice.pdf', $data)->setPaper('a4')->setOption('isRemoteEnabled', false);
+    }
+
+    public function pdf(Request $request, int $id)
+    {
+        $data = $this->saved($id);
+        $pdf = $this->renderPdf($data);
+        $filename = preg_replace('/[^A-Za-z0-9._-]/', '-', $data['invoice']->invoice_no).'.pdf';
+        return $request->boolean('download') ? $pdf->download($filename) : $pdf->stream($filename);
+    }
+}
