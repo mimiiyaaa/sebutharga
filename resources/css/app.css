@@ -1388,3 +1388,51 @@ pre code,
   text-align: left !important;
   unicode-bidi: isolate;
 }
+
+@keyframes dashboard-mascot-blink {
+  0%, 91%, 100% {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+
+  93%, 96% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+.dashboard-mascot-eyelid {
+  position: absolute;
+  top: 27.5%;
+  width: 8%;
+  height: 7%;
+  border-radius: 9999px;
+  background: var(--color-peach-300);
+  transform-origin: center;
+  animation: dashboard-mascot-blink 6s ease-in-out infinite;
+}
+
+.dashboard-mascot-eyelid::after {
+  position: absolute;
+  inset-inline-start: 18%;
+  bottom: 19%;
+  width: 64%;
+  height: 2px;
+  border-radius: 9999px;
+  background: var(--color-gray-950);
+  content: '';
+}
+
+.dashboard-mascot-eyelid-start {
+  inset-inline-start: 35%;
+}
+
+.dashboard-mascot-eyelid-end {
+  inset-inline-end: 29%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-mascot-eyelid {
+    animation: none;
+  }
+}
