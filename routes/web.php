@@ -37,18 +37,7 @@ Route::get('/delivery-order/tambah', function () {
     return redirect()->route('delivery-order.supplier.create');
 })->middleware('auth')->name('delivery-order.create');
 
-Route::get('/delivery-order/pembekal/tambah', function () {
-    return view('pages.supplier-document-form', [
-        'title' => 'Tambah DO Daripada Pembekal',
-        'backRoute' => 'delivery-order.supplier',
-        'documentType' => 'Maklumat Delivery Order (DO)',
-        'documentNumberLabel' => 'No. DO',
-        'documentPartyTitle' => 'Dokumen Pembekal',
-        'documentPartyDescription' => 'Upload PDF atau imej untuk semakan dokumen.',
-        'partyNameLabel' => 'Nama Pembekal',
-        'previewDescription' => 'Upload PDF atau imej daripada pembekal untuk melihat dokumen.',
-    ]);
-})->middleware('auth')->name('delivery-order.supplier.create');
+Route::get('/delivery-order/pembekal/tambah', [\App\Http\Controllers\SupplierDocumentController::class, 'create'])->middleware('auth')->name('delivery-order.supplier.create');
 
 Route::get('/delivery-order/pelanggan/tambah', function () {
     return view('pages.customer-document-start', [
@@ -66,14 +55,7 @@ Route::get('/delivery-order', function () {
     return redirect()->route('delivery-order.supplier');
 })->middleware('auth')->name('delivery-order');
 
-Route::get('/delivery-order/pembekal', function () {
-    return view('pages.delivery-order', [
-        'title' => 'DO Daripada Pembekal',
-        'deliveryOrders' => collect(),
-        'documentType' => 'DO Daripada Pembekal',
-        'createUrl' => route('delivery-order.supplier.create'),
-    ]);
-})->middleware('auth')->name('delivery-order.supplier');
+Route::get('/delivery-order/pembekal', [\App\Http\Controllers\SupplierDocumentController::class, 'index'])->middleware('auth')->name('delivery-order.supplier');
 
 Route::get('/delivery-order/pelanggan', [\App\Http\Controllers\DeliveryOrderController::class, 'index'])->middleware('auth')->name('delivery-order.customer');
 
@@ -349,18 +331,7 @@ Route::get('/invoice/tambah', function () {
     return redirect()->route('invoice.supplier.create');
 })->middleware('auth')->name('invoice.create');
 
-Route::get('/invoice/pembekal/tambah', function () {
-    return view('pages.supplier-document-form', [
-        'title' => 'Tambah Invoice Daripada Pembekal',
-        'backRoute' => 'invoice.supplier',
-        'documentType' => 'Maklumat Invoice',
-        'documentNumberLabel' => 'No. Invoice',
-        'documentPartyTitle' => 'Dokumen Pembekal',
-        'documentPartyDescription' => 'Upload PDF atau imej untuk semakan dokumen.',
-        'partyNameLabel' => 'Nama Pembekal',
-        'previewDescription' => 'Upload PDF atau imej daripada pembekal untuk melihat dokumen.',
-    ]);
-})->middleware('auth')->name('invoice.supplier.create');
+Route::get('/invoice/pembekal/tambah', [\App\Http\Controllers\SupplierDocumentController::class, 'create'])->middleware('auth')->name('invoice.supplier.create');
 
 Route::get('/invoice/pelanggan/tambah', function () {
     return view('pages.customer-document-start', [
@@ -378,14 +349,7 @@ Route::get('/invoice', function () {
     return redirect()->route('invoice.supplier');
 })->middleware('auth')->name('invoice');
 
-Route::get('/invoice/pembekal', function () {
-    return view('pages.invoice', [
-        'title' => 'Invoice Daripada Pembekal',
-        'invoices' => collect(),
-        'documentType' => 'Invoice Daripada Pembekal',
-        'createUrl' => route('invoice.supplier.create'),
-    ]);
-})->middleware('auth')->name('invoice.supplier');
+Route::get('/invoice/pembekal', [\App\Http\Controllers\SupplierDocumentController::class, 'index'])->middleware('auth')->name('invoice.supplier');
 
 Route::get('/invoice/pelanggan', [\App\Http\Controllers\InvoiceController::class, 'index'])->middleware('auth')->name('invoice.customer');
 
@@ -1084,6 +1048,11 @@ Route::post('/sebut-harga/{id}/draft/{draftId}/reject', function ($id, $draftId)
 Route::middleware('auth')->prefix('invoice/pelanggan')->name('invoice.customer.')->controller(\App\Http\Controllers\InvoiceController::class)->group(function () {
     Route::post('/', 'store')->name('store');
     Route::post('/pratonton', 'previewDraft')->name('draft-preview');
+    Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+    Route::get('/{id}/edit', 'edit')->whereNumber('id')->name('edit');
+    Route::put('/{id}', 'update')->whereNumber('id')->name('update');
+    Route::put('/{id}/pratonton', 'previewEdit')->whereNumber('id')->name('edit-preview');
+    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('delete');
     Route::get('/{id}/pratonton', 'preview')->whereNumber('id')->name('preview');
     Route::get('/{id}/pdf', 'pdf')->whereNumber('id')->name('pdf');
 });
@@ -1091,6 +1060,27 @@ Route::middleware('auth')->prefix('invoice/pelanggan')->name('invoice.customer.'
 Route::middleware('auth')->prefix('delivery-order/pelanggan')->name('delivery-order.customer.')->controller(\App\Http\Controllers\DeliveryOrderController::class)->group(function () {
     Route::post('/', 'store')->name('store');
     Route::post('/pratonton', 'previewDraft')->name('draft-preview');
+    Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+    Route::get('/{id}/edit', 'edit')->whereNumber('id')->name('edit');
+    Route::put('/{id}', 'update')->whereNumber('id')->name('update');
+    Route::put('/{id}/pratonton', 'previewEdit')->whereNumber('id')->name('edit-preview');
+    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('delete');
     Route::get('/{id}/pratonton', 'preview')->whereNumber('id')->name('preview');
     Route::get('/{id}/pdf', 'pdf')->whereNumber('id')->name('pdf');
+});
+
+Route::middleware('auth')->prefix('invoice/pembekal')->name('invoice.supplier.')->controller(\App\Http\Controllers\SupplierDocumentController::class)->group(function () {
+    Route::post('/extract', 'extract')->name('extract');
+    Route::post('/', 'store')->name('store');
+    Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+    Route::get('/{id}/file', 'file')->whereNumber('id')->name('file');
+    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('delete');
+});
+
+Route::middleware('auth')->prefix('delivery-order/pembekal')->name('delivery-order.supplier.')->controller(\App\Http\Controllers\SupplierDocumentController::class)->group(function () {
+    Route::post('/extract', 'extract')->name('extract');
+    Route::post('/', 'store')->name('store');
+    Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+    Route::get('/{id}/file', 'file')->whereNumber('id')->name('file');
+    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('delete');
 });

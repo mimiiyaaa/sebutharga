@@ -53,7 +53,7 @@ test('delivery order saves snapshot items and renders downloadable pdf', functio
     $this->assertDatabaseHas('delivery_order_master',['do_no'=>'K1R-DO-2026-001','created_by'=>42]);
     DB::table('customer_supplier')->where('customer_id',1)->update(['company_name'=>'Changed']);
     $this->get(route('delivery-order.customer'))->assertOk()->assertSee('Jabatan Teknologi');
-    $this->get(route('delivery-order.customer.preview',1))->assertOk()->assertSee('Cetak / Buka PDF');
+    $this->get(route('delivery-order.customer.preview',1))->assertOk()->assertSee('Cetak PDF')->assertSee('srcdoc=', false)->assertSee('target="_blank"', false);
     $pdf=$this->get(route('delivery-order.customer.pdf',1))->assertOk()->assertHeader('content-type','application/pdf');
     expect($pdf->getContent())->toStartWith('%PDF-');
     $this->get(route('delivery-order.customer.pdf',['id'=>1,'download'=>1]))->assertDownload('K1R-DO-2026-001.pdf');
@@ -90,4 +90,47 @@ test('long delivery order renders and anonymous access is blocked', function () 
     auth()->forgetGuards();
     $this->get(route('delivery-order.customer.form'))->assertRedirect(route('login'));
     $this->post(route('delivery-order.customer.store'),$this->doData)->assertRedirect(route('login'));
+});
+
+
+test('delivery-order supports detail edit update and delete without replacing the record', function () {
+    $this->post(route('delivery-order.customer.store'), $this->doData)->assertSessionHasNoErrors();
+    $this->get(route('delivery-order.customer'))->assertOk()->assertSee('Lihat')->assertSee('Edit')->assertSee('Padam');
+    $this->get(route('delivery-order.customer.show', 1))->assertOk()->assertSee('K ONE RESOURCES')->assertSee('Senarai Item');
+    $this->get(route('delivery-order.customer.edit', 1))->assertOk()->assertSee('Simpan Perubahan')->assertSee($this->doData['do_no'])->assertViewHas('initialItems', fn ($items) => count($items) === 3);
+    $data = $this->doData;
+    $data['customer_name'] = 'Pelanggan Dikemas Kini';
+    $data['items'] = [['description' => 'Item baharu', 'quantity' => 2, 'unit' => 'Unit', 'checked' => 1]];
+    $this->put(route('delivery-order.customer.edit-preview', 1), $data)->assertOk()->assertHeader('content-type', 'application/pdf');
+    $this->assertDatabaseCount('delivery_order_item', 3);
+    $this->put(route('delivery-order.customer.update', 1), $data)->assertSessionHasNoErrors()->assertRedirect(route('delivery-order.customer.show', 1));
+    $this->assertDatabaseCount('delivery_order_master', 1);
+    $this->assertDatabaseCount('delivery_order_item', 1);
+    $this->assertDatabaseHas('delivery_order_item', ['delivery_order_id' => 1, 'remarks' => '/']);
+    $this->get(route('delivery-order.customer.show', 1))->assertOk()->assertSee('Pelanggan Dikemas Kini')->assertSee('Item baharu');
+    $this->get(route('delivery-order.customer.preview', 1))->assertOk()->assertSee('Item baharu');
+    $this->delete(route('delivery-order.customer.delete', 1))->assertRedirect(route('delivery-order.customer'));
+    $this->assertDatabaseCount('delivery_order_master', 0);
+    $this->assertDatabaseCount('delivery_order_item', 0);
+    $this->get(route('delivery-order.customer.show', 1))->assertNotFound();
+});
+
+test('delivery-order rejects duplicate updates and invalid items and scopes customer actions', function () {
+    $this->post(route('delivery-order.customer.store'), $this->doData);
+    $second = $this->doData; $second['do_no'] .= '-2';
+    $this->post(route('delivery-order.customer.store'), $second);
+    $this->put(route('delivery-order.customer.update', 1), $second)->assertSessionHasErrors('do_no');
+    $bad = $this->doData; $bad['items'][0]['quantity'] = -1;
+    $this->put(route('delivery-order.customer.update', 1), $bad)->assertSessionHasErrors('items.0.quantity');
+    $this->assertDatabaseCount('delivery_order_item', 6);
+    DB::table('delivery_order_master')->where('delivery_order_id', 2)->update(['document_kind' => 'supplier']);
+    $this->get(route('delivery-order.customer.show', 2))->assertNotFound();
+    $this->get(route('delivery-order.customer.edit', 2))->assertNotFound();
+    $this->put(route('delivery-order.customer.update', 2), $second)->assertNotFound();
+    $this->delete(route('delivery-order.customer.delete', 2))->assertNotFound();
+    $this->assertDatabaseCount('delivery_order_master', 2);
+    auth()->logout();
+    $this->get(route('delivery-order.customer.show', 1))->assertRedirect(route('login'));
+    $this->put(route('delivery-order.customer.update', 1), $this->doData)->assertRedirect(route('login'));
+    $this->delete(route('delivery-order.customer.delete', 1))->assertRedirect(route('login'));
 });

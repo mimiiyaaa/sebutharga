@@ -44,7 +44,7 @@ test('invoice creation saves snapshot and items with server calculated total', f
     $this->assertDatabaseCount('invoice_item',3);
     DB::table('customer_supplier')->where('customer_id',1)->update(['company_name'=>'Changed']);
     $this->get(route('invoice.customer'))->assertOk()->assertSee('Jabatan Teknologi');
-    $this->get(route('invoice.customer.preview',1))->assertOk()->assertSee('Cetak / Buka PDF');
+    $this->get(route('invoice.customer.preview',1))->assertOk()->assertSee('Cetak PDF')->assertSee('srcdoc=', false)->assertSee('target="_blank"', false);
     $pdf = $this->get(route('invoice.customer.pdf',1))->assertOk()->assertHeader('content-type','application/pdf');
     expect($pdf->getContent())->toStartWith('%PDF-');
     if (getenv('INVOICE_VISUAL_CHECK')) file_put_contents(storage_path('app/invoice-sample-check.pdf'),$pdf->getContent());
@@ -103,4 +103,55 @@ test('signature company supports typed names and saved company choices independe
         $html = view('pages.invoice.pdf', ['invoice'=>$record, 'document'=>$document, 'items'=>collect()])->render();
         expect($html)->toContain('Pengurus Besar<br>'.$name);
     }
+});
+
+
+test('invoice supports detail edit update and delete without replacing the record', function () {
+    $this->post(route('invoice.customer.store'), $this->invoiceData)->assertSessionHasNoErrors();
+    $this->get(route('invoice.customer'))->assertOk()->assertSee('Lihat')->assertSee('Edit')->assertSee('Padam');
+    $this->get(route('invoice.customer.show', 1))->assertOk()->assertSee('K ONE RESOURCES')->assertSee('Senarai Item');
+    $this->get(route('invoice.customer.edit', 1))->assertOk()->assertSee('Simpan Perubahan')->assertSee($this->invoiceData['invoice_no'])->assertViewHas('initialItems', fn ($items) => count($items) === 3);
+    $data = $this->invoiceData;
+    $data['customer_name'] = 'Pelanggan Dikemas Kini';
+    $data['items'] = [['description' => 'Item baharu', 'quantity' => 2, 'unit' => 'Unit', 'price' => 125.50]];
+    $this->put(route('invoice.customer.edit-preview', 1), $data)->assertOk()->assertHeader('content-type', 'application/pdf');
+    $this->assertDatabaseCount('invoice_item', 3);
+    $this->put(route('invoice.customer.update', 1), $data)->assertSessionHasNoErrors()->assertRedirect(route('invoice.customer.show', 1));
+    $this->assertDatabaseCount('invoice_master', 1);
+    $this->assertDatabaseCount('invoice_item', 1);
+    $this->assertDatabaseHas('invoice_master', ['invoice_id' => 1, 'total_amount' => 251, 'updated_by' => 42]);
+    $this->get(route('invoice.customer.show', 1))->assertOk()->assertSee('Pelanggan Dikemas Kini')->assertSee('Item baharu');
+    $this->get(route('invoice.customer.preview', 1))->assertOk()->assertSee('Item baharu');
+    $this->delete(route('invoice.customer.delete', 1))->assertRedirect(route('invoice.customer'));
+    $this->assertDatabaseCount('invoice_master', 0);
+    $this->assertDatabaseCount('invoice_item', 0);
+    $this->get(route('invoice.customer.show', 1))->assertNotFound();
+});
+
+test('invoice rejects duplicate updates and invalid items and scopes customer actions', function () {
+    $this->post(route('invoice.customer.store'), $this->invoiceData);
+    $second = $this->invoiceData; $second['invoice_no'] .= '-2';
+    $this->post(route('invoice.customer.store'), $second);
+    $this->put(route('invoice.customer.update', 1), $second)->assertSessionHasErrors('invoice_no');
+    $bad = $this->invoiceData; $bad['items'][0]['quantity'] = -1;
+    $this->put(route('invoice.customer.update', 1), $bad)->assertSessionHasErrors('items.0.quantity');
+    $this->assertDatabaseCount('invoice_item', 6);
+    DB::table('invoice_master')->where('invoice_id', 2)->update(['document_kind' => 'supplier']);
+    $this->get(route('invoice.customer.show', 2))->assertNotFound();
+    $this->get(route('invoice.customer.edit', 2))->assertNotFound();
+    $this->put(route('invoice.customer.update', 2), $second)->assertNotFound();
+    $this->delete(route('invoice.customer.delete', 2))->assertNotFound();
+    $this->assertDatabaseCount('invoice_master', 2);
+    auth()->logout();
+    $this->get(route('invoice.customer.show', 1))->assertRedirect(route('login'));
+    $this->put(route('invoice.customer.update', 1), $this->invoiceData)->assertRedirect(route('login'));
+    $this->delete(route('invoice.customer.delete', 1))->assertRedirect(route('login'));
+});
+
+test('invoice linked to a delivery order cannot be deleted leaving a dangling reference', function () {
+    $this->post(route('invoice.customer.store'), $this->invoiceData)->assertSessionHasNoErrors();
+    DB::table('delivery_order_master')->insert(['do_no' => 'LINKED-DO', 'invoice_id' => 1, 'customer_id' => 1, 'do_date' => '2026-08-11', 'delivery_address' => 'Alamat pelanggan']);
+    $this->delete(route('invoice.customer.delete', 1))->assertSessionHasErrors('document');
+    $this->assertDatabaseCount('invoice_master', 1);
+    $this->assertDatabaseCount('invoice_item', 3);
 });
