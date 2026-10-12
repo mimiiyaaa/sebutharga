@@ -17,6 +17,11 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+// Temporary deployment smoke test.
+Route::get('/hello-test', function () {
+    return 'Hello from Laravel';
+});
+
 Route::get('/dashboard', function () {
     return view('pages.dashboard.ecommerce', [
         'title' => 'Dashboard'
@@ -150,12 +155,12 @@ Route::get('/purchase-order/create/form', [\App\Http\Controllers\PurchaseOrderCo
 Route::post('/purchase-order', [\App\Http\Controllers\PurchaseOrderController::class, 'store'])
     ->middleware('auth')->name('purchase-order.store');
 Route::get('/purchase-order', function () {
-    $orders = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier', 'supplier.customer_id', '=', 'po.customer_id')->leftJoin('sebutharga_master as quotation', 'quotation.quotation_id', '=', 'po.quotation_id')->orderByDesc('po.purchase_order_id')->get(['po.purchase_order_id','po.po_no','po.quotation_detail_id','quotation.quotation_no as quotation_reference_no','po.po_date','po.net_amount','po.status_po','supplier.company_name']);
+    $orders = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier', 'supplier.customer_id', '=', 'po.customer_id')->leftJoin('sebutharga_master as quotation', 'quotation.quotation_id', '=', 'po.quotation_id')->leftJoin('pembekal_quotation_master as supplierQuotation', 'supplierQuotation.supplier_quotation_id', '=', 'po.supplier_quotation_id')->orderByDesc('po.purchase_order_id')->get(['po.purchase_order_id','po.po_no','po.quotation_detail_id',DB::raw('COALESCE(quotation.quotation_no, supplierQuotation.quotation_no_supplier) as quotation_reference_no'),'po.po_date','po.net_amount','po.status_po','supplier.company_name']);
     return view('pages.purchase-order.index', ['title' => 'Pesanan Belian (PO)', 'orders' => $orders]);
 })->middleware('auth')->name('purchase-order.index');
 
 Route::get('/purchase-order/{id}/pdf', function ($id) {
-    $order = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier','supplier.customer_id','=','po.customer_id')->leftJoin('sebutharga_master as quotation','quotation.quotation_id','=','po.quotation_id')->where('po.purchase_order_id',$id)->select('po.*','quotation.quotation_no as quotation_reference_no','supplier.company_name','supplier.address as supplier_address','supplier.phone_no as supplier_phone')->first();
+    $order = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier','supplier.customer_id','=','po.customer_id')->leftJoin('sebutharga_master as quotation','quotation.quotation_id','=','po.quotation_id')->leftJoin('pembekal_quotation_master as supplierQuotation','supplierQuotation.supplier_quotation_id','=','po.supplier_quotation_id')->where('po.purchase_order_id',$id)->select('po.*',DB::raw('COALESCE(quotation.quotation_no, supplierQuotation.quotation_no_supplier) as quotation_reference_no'),'supplier.company_name','supplier.address as supplier_address','supplier.phone_no as supplier_phone')->first();
     abort_unless($order,404);
     $items = DB::table('purchase_order_item')->where('purchase_order_id',$id)->orderBy('po_item_id')->get();
     $document = json_decode($order->document_data ?? '[]', true) ?: [];
@@ -167,7 +172,7 @@ Route::get('/purchase-order/{id}/edit', [\App\Http\Controllers\PurchaseOrderCont
 Route::put('/purchase-order/{id}', [\App\Http\Controllers\PurchaseOrderController::class, 'store'])->whereNumber('id')->middleware('auth')->name('purchase-order.update');
 
 Route::get('/purchase-order/{id}/preview', function ($id) {
-    $order = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier','supplier.customer_id','=','po.customer_id')->leftJoin('sebutharga_master as quotation','quotation.quotation_id','=','po.quotation_id')->leftJoin('users as creator', 'creator.id', '=', 'po.created_by')->where('po.purchase_order_id',$id)->select('po.*','quotation.quotation_no as quotation_reference_no','supplier.company_name','supplier.address as supplier_address','supplier.phone_no as supplier_phone','creator.name as creator_name','creator.jawatan as creator_jawatan','creator.email as creator_email')->first();
+    $order = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier','supplier.customer_id','=','po.customer_id')->leftJoin('sebutharga_master as quotation','quotation.quotation_id','=','po.quotation_id')->leftJoin('pembekal_quotation_master as supplierQuotation','supplierQuotation.supplier_quotation_id','=','po.supplier_quotation_id')->leftJoin('users as creator', 'creator.id', '=', 'po.created_by')->where('po.purchase_order_id',$id)->select('po.*',DB::raw('COALESCE(quotation.quotation_no, supplierQuotation.quotation_no_supplier) as quotation_reference_no'),'supplier.company_name','supplier.address as supplier_address','supplier.phone_no as supplier_phone','creator.name as creator_name','creator.jawatan as creator_jawatan','creator.email as creator_email')->first();
     abort_unless($order,404);
     $items = DB::table('purchase_order_item')->where('purchase_order_id',$id)->orderBy('po_item_id')->get();
     $document = json_decode($order->document_data ?? '[]', true) ?: [];
@@ -175,7 +180,7 @@ Route::get('/purchase-order/{id}/preview', function ($id) {
 })->whereNumber('id')->middleware('auth')->name('purchase-order.preview');
 
 Route::get('/purchase-order/{id}', function ($id) {
-    $order = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier','supplier.customer_id','=','po.customer_id')->leftJoin('sebutharga_master as quotation','quotation.quotation_id','=','po.quotation_id')->leftJoin('users as creator', 'creator.id', '=', 'po.created_by')->where('po.purchase_order_id',$id)->select('po.*','quotation.quotation_no as quotation_reference_no','supplier.company_name','supplier.address as supplier_address','supplier.phone_no as supplier_phone','creator.name as creator_name','creator.jawatan as creator_jawatan','creator.email as creator_email')->first();
+    $order = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier','supplier.customer_id','=','po.customer_id')->leftJoin('sebutharga_master as quotation','quotation.quotation_id','=','po.quotation_id')->leftJoin('pembekal_quotation_master as supplierQuotation','supplierQuotation.supplier_quotation_id','=','po.supplier_quotation_id')->leftJoin('users as creator', 'creator.id', '=', 'po.created_by')->where('po.purchase_order_id',$id)->select('po.*',DB::raw('COALESCE(quotation.quotation_no, supplierQuotation.quotation_no_supplier) as quotation_reference_no'),'supplier.company_name','supplier.address as supplier_address','supplier.phone_no as supplier_phone','creator.name as creator_name','creator.jawatan as creator_jawatan','creator.email as creator_email')->first();
     abort_unless($order,404);
     $items = DB::table('purchase_order_item')->where('purchase_order_id',$id)->orderBy('po_item_id')->get();
     $document = json_decode($order->document_data ?? '[]', true) ?: [];

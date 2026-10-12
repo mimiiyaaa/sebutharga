@@ -33,15 +33,23 @@ class PurchaseOrderController extends Controller
 
     public function selectQuotation()
     {
-        $quotations = $this->finalQuotations()->get();
-        $itemsByQuotation = DB::table('sebutharga_item')
-            ->whereIn('quotation_detail_id', $quotations->pluck('quotation_detail_id'))
-            ->orderBy('quotation_item_id')
-            ->get(['quotation_detail_id', 'item_description', 'quantity', 'unit', 'unit_price', 'subtotal'])
-            ->groupBy('quotation_detail_id');
+        $quotations = DB::table('pembekal_quotation_master as quotation')
+            ->leftJoin('customer_supplier as supplier', 'supplier.customer_id', '=', 'quotation.supplier_id')
+            ->select('quotation.supplier_quotation_id', 'quotation.quotation_id', 'quotation.quotation_no_supplier as quotation_no',
+                'quotation.quotation_title', DB::raw('DATE(quotation.created_at) as quotation_date'), 'quotation.company_name',
+                'supplier.customer_name', 'supplier.customer_id')
+            ->orderByDesc('quotation.supplier_quotation_id')
+            ->get();
+        $itemsByQuotation = DB::table('pembekal_quotation_item')
+            ->whereIn('supplier_quotation_id', $quotations->pluck('supplier_quotation_id'))
+            ->orderBy('supplier_quotation_item_id')
+            ->get(['supplier_quotation_id', 'item_description', 'quantity', 'unit', 'unit_price', 'subtotal'])
+            ->groupBy('supplier_quotation_id');
 
         $quotations->each(function ($quotation) use ($itemsByQuotation) {
-            $quotation->items = $itemsByQuotation->get($quotation->quotation_detail_id, collect())->values();
+            $quotation->items = $itemsByQuotation->get($quotation->supplier_quotation_id, collect())->values();
+            $quotation->item_count = $quotation->items->count();
+            $quotation->jumlah_total = $quotation->items->sum('subtotal');
         });
 
         return view('pages.purchase-order.select-quotation', [
@@ -52,18 +60,23 @@ class PurchaseOrderController extends Controller
     public function create(Request $request)
     {
         $validated = $request->validate([
-            'quotation_detail_id' => ['required', 'integer'],
+            'supplier_quotation_id' => ['required', 'integer', 'exists:pembekal_quotation_master,supplier_quotation_id'],
         ]);
-        $quotation = $this->finalQuotations()->where('detail.quotation_detail_id', $validated['quotation_detail_id'])->first();
+        $quotation = DB::table('pembekal_quotation_master as source')
+            ->leftJoin('customer_supplier as supplier', 'supplier.customer_id', '=', 'source.supplier_id')
+            ->where('source.supplier_quotation_id', $validated['supplier_quotation_id'])
+            ->select('source.*', 'source.quotation_no_supplier as quotation_no', 'source.quotation_id',
+                'source.company_name', 'supplier.customer_name', 'supplier.customer_id')
+            ->first();
         if (!$quotation) {
-            return redirect()->route('purchase-order.create')->withErrors(['quotation_detail_id' => __('Sila pilih sebut harga Final yang dipersetujui.')]);
+            return redirect()->route('purchase-order.create')->withErrors(['supplier_quotation_id' => __('Sila pilih sebut harga pembekal.')]);
         }
 
         // Isi item PO dengan item daripada sebut harga terpilih sebagai nilai awal.
         // Pengguna masih boleh mengedit, membuang atau menambah item dalam form.
-        $initialItems = DB::table('sebutharga_item')
-            ->where('quotation_detail_id', $quotation->quotation_detail_id)
-            ->orderBy('quotation_item_id')
+        $initialItems = DB::table('pembekal_quotation_item')
+            ->where('supplier_quotation_id', $quotation->supplier_quotation_id)
+            ->orderBy('supplier_quotation_item_id')
             ->get(['item_description', 'quantity', 'unit', 'unit_price'])
             ->map(fn ($item, $index) => [
                 'id' => $index + 1,
@@ -71,9 +84,7 @@ class PurchaseOrderController extends Controller
                 'quantity' => $item->quantity,
                 'unit' => $item->unit,
                 'price' => $item->unit_price,
-            ])
-            ->values()
-            ->all();
+            ])->values()->all();
 
         return view('pages.purchase-order.create', [
             'title' => 'Tambah Purchase Order',
@@ -82,8 +93,6 @@ class PurchaseOrderController extends Controller
             'nextPoNo' => $this->nextPoNumber(),
             'suppliers' => DB::table('customer_supplier')->where('jenis_customer', 2)->orderBy('company_name')
                 ->get(['customer_id', 'customer_name', 'company_name', 'address', 'phone_no', 'email', 'reference_no']),
-            'customers' => DB::table('customer_supplier')->where('jenis_customer', 1)->orderBy('company_name')
-                ->get(['customer_id', 'customer_name', 'company_name', 'address', 'phone_no']),
             'companies' => DB::table('companies')->orderBy('nama_syarikat')->get(),
         ]);
     }
@@ -107,11 +116,16 @@ class PurchaseOrderController extends Controller
         $existing = $id ? DB::table('purchase_order_master')->where('purchase_order_id',$id)->first() : null;
         if ($id) {
             abort_unless($existing,404);
-            $request->merge(['quotation_id'=>$existing->quotation_id,'quotation_detail_id'=>$existing->quotation_detail_id]);
+            $request->merge([
+                'quotation_id'=>$existing->quotation_id,
+                'quotation_detail_id'=>$existing->quotation_detail_id,
+                'supplier_quotation_id'=>$existing->supplier_quotation_id,
+            ]);
         }
         $data = $request->validate([
-            'quotation_id'=>['required','integer','exists:sebutharga_master,quotation_id'],
-            'quotation_detail_id'=>['required','integer',Rule::exists('sebutharga_detail','quotation_detail_id')->where('quotation_id',$request->quotation_id)],
+            'quotation_id'=>['nullable','integer','exists:sebutharga_master,quotation_id'],
+            'quotation_detail_id'=>['nullable','integer',Rule::exists('sebutharga_detail','quotation_detail_id')->where('quotation_id',$request->quotation_id)],
+            'supplier_quotation_id'=>['nullable','integer','exists:pembekal_quotation_master,supplier_quotation_id'],
             'customer_id'=>['required','integer',Rule::exists('customer_supplier','customer_id')->where('jenis_customer',2)],
             'po_date'=>'required|date','items_json'=>'required|json',
             'discount_percent'=>'nullable|numeric|min:0|max:100',
@@ -132,7 +146,7 @@ class PurchaseOrderController extends Controller
         $items = json_decode($data['items_json'], true);
         $termsConditions = $this->termsConditions($data);
         if (! $existing) {
-            abort_unless($this->finalQuotations()->where('detail.quotation_detail_id', $data['quotation_detail_id'])->exists(), 422, __('Sila pilih sebut harga Final yang dipersetujui.'));
+            abort_unless($data['supplier_quotation_id'], 422, __('Sila pilih sebut harga pembekal.'));
         }
         validator(['items'=>$items], [
             'items'=>'required|array|min:1', 'items.*'=>'required|array',
@@ -165,9 +179,14 @@ class PurchaseOrderController extends Controller
                 ->setPaper('a4')->setOption('isRemoteEnabled',false)->download($order->po_no.'.pdf');
         }
         return DB::transaction(function () use ($request,$data,$document,$items,$gross,$discount,$sstRate,$sst,$net,$existing,$id,$termsConditions) {
-        DB::table('sebutharga_master')->where('quotation_id',$data['quotation_id'])->lockForUpdate()->first();
+        if (!empty($data['quotation_id'])) {
+            DB::table('sebutharga_master')->where('quotation_id',$data['quotation_id'])->lockForUpdate()->first();
+        }
+        if (!empty($data['supplier_quotation_id'])) {
+            DB::table('pembekal_quotation_master')->where('supplier_quotation_id',$data['supplier_quotation_id'])->lockForUpdate()->first();
+        }
         $poNo = $existing ? $existing->po_no : $this->nextPoNumber($data['po_date']);
-        $record = ['po_no'=>$poNo,'quotation_id'=>$data['quotation_id'],'quotation_detail_id'=>$data['quotation_detail_id'],'customer_id'=>$data['customer_id'],'po_date'=>$data['po_date'],'delivery_address'=>$request->delivery_address,'attention_supplier'=>$request->attention_supplier,'attention_delivery'=>$request->attention_delivery,'gross_amount'=>$gross,'discount_percent'=>$data['discount_percent'] ?? 0,'discount_amount'=>$discount,'sst_percent'=>$sstRate,'sst_amount'=>$sst,'net_amount'=>$net,'terms_conditions'=>$termsConditions,'document_data'=>json_encode($document, JSON_UNESCAPED_UNICODE),'prepared_by'=>$request->prepared_by,'approved_by'=>$request->approved_by,'updated_at'=>now()];
+        $record = ['po_no'=>$poNo,'quotation_id'=>$data['quotation_id'] ?? null,'quotation_detail_id'=>$data['quotation_detail_id'] ?? null,'supplier_quotation_id'=>$data['supplier_quotation_id'] ?? null,'customer_id'=>$data['customer_id'],'po_date'=>$data['po_date'],'delivery_address'=>$request->delivery_address,'attention_supplier'=>$request->attention_supplier,'attention_delivery'=>$request->attention_delivery,'gross_amount'=>$gross,'discount_percent'=>$data['discount_percent'] ?? 0,'discount_amount'=>$discount,'sst_percent'=>$sstRate,'sst_amount'=>$sst,'net_amount'=>$net,'terms_conditions'=>$termsConditions,'document_data'=>json_encode($document, JSON_UNESCAPED_UNICODE),'prepared_by'=>$request->prepared_by,'approved_by'=>$request->approved_by,'updated_at'=>now()];
         if ($existing) {
             $record['updated_by']=$request->user()?->id;
             DB::table('purchase_order_master')->where('purchase_order_id',$id)->update($record);
@@ -200,6 +219,13 @@ class PurchaseOrderController extends Controller
         ];
 
         $additional = trim((string) ($data['additional_terms'] ?? ''));
+        if (preg_match('/^\s*1\.\s*/', $additional)) {
+            $lines = collect(preg_split('/\R/u', $additional) ?: [])
+                ->map(fn ($line) => preg_replace('/^\s*\d+\.\s*/', '', trim($line)))
+                ->filter(fn ($line) => $line !== '')
+                ->values();
+            return $lines->map(fn ($line, $index) => ($index + 1) . '. ' . $line)->implode("\n");
+        }
         $additional = preg_match('/^\d+\.\s*$/', $additional) ? '' : $additional;
         return implode("\n", $terms).($additional !== '' ? "\n".$additional : '');
     }

@@ -215,29 +215,27 @@
             </select>
             <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ __('Pilih sebut harga pembekal untuk memasukkan item secara automatik. Item masih boleh diedit.') }}</p>
         </div>
-        <div class="overflow-x-auto px-4 pb-4">
-            <table class="w-full min-w-[900px] overflow-hidden rounded-xl text-start text-theme-sm text-gray-700 dark:text-gray-300">
-                <thead class="bg-error-800 text-white dark:bg-error-900 dark:text-white">
-                    <tr>
-                        @foreach (['Bil.', 'Keterangan / Description', 'Kuantiti', 'Unit', 'Harga Seunit (RM)', 'Jumlah (RM)', 'Tindakan'] as $heading)
-                            <th scope="col" class="whitespace-nowrap px-3 py-3 text-start text-theme-xs font-semibold">{{ $heading }}</th>
-                        @endforeach
-                    </tr>
-                </thead>
-                <tbody>
-                    <template x-for="(item, index) in items" :key="item.id">
-                        <tr class="border-b border-gray-100 dark:border-gray-800">
-                            <td class="p-3 text-center tabular-nums" x-text="index + 1"></td>
-                            <td class="min-w-60 p-3"><textarea :name="`items[${index}][description]`" x-model="item.description" rows="3" required class="{{ $inputClass }}" placeholder="Nama item / perkhidmatan"></textarea></td>
-                            <td class="min-w-32 p-3"><input :name="`items[${index}][quantity]`" type="number" min="1" step="1" x-model.number="item.quantity" required class="{{ $inputClass }} text-center"></td>
-                            <td class="min-w-32 p-3"><input :name="`items[${index}][unit]`" x-model="item.unit" required class="{{ $inputClass }} text-center" placeholder="Unit"></td>
-                            <td class="min-w-40 p-3"><input :name="`items[${index}][price]`" type="number" min="0" step="0.01" x-model.number="item.price" required class="{{ $inputClass }} price-input text-end"></td>
-                            <td class="whitespace-nowrap p-3" x-text="money(subtotal(item))"></td>
-                            <td class="p-3"><button type="button" @click="items.splice(index, 1)" :disabled="items.length === 1" class="text-error-600 disabled:cursor-not-allowed disabled:opacity-40 dark:text-error-400">Buang</button></td>
-                        </tr>
-                    </template>
-                </tbody>
-            </table>
+        <div class="px-4 pb-4">
+            <div class="grid w-full grid-cols-12 overflow-hidden rounded-xl text-start text-theme-sm text-gray-700 dark:text-gray-300">
+                <div class="col-span-1 whitespace-nowrap bg-error-800 px-2 py-3 text-center text-theme-xs font-semibold text-white dark:bg-error-900">Bil.</div>
+                <div class="col-span-4 whitespace-nowrap bg-error-800 px-2 py-3 text-start text-theme-xs font-semibold text-white dark:bg-error-900">Keterangan / Description</div>
+                <div class="col-span-2 whitespace-nowrap bg-error-800 px-2 py-3 text-start text-theme-xs font-semibold text-white dark:bg-error-900">Kuantiti</div>
+                <div class="col-span-1 whitespace-nowrap bg-error-800 px-2 py-3 text-start text-theme-xs font-semibold text-white dark:bg-error-900">Unit</div>
+                <div class="col-span-2 whitespace-nowrap bg-error-800 px-2 py-3 text-start text-theme-xs font-semibold text-white dark:bg-error-900">Harga Seunit (RM)</div>
+                <div class="col-span-1 whitespace-nowrap bg-error-800 px-2 py-3 text-start text-theme-xs font-semibold text-white dark:bg-error-900">Jumlah (RM)</div>
+                <div class="col-span-1 whitespace-nowrap bg-error-800 px-2 py-3 text-start text-theme-xs font-semibold text-white dark:bg-error-900">Tindakan</div>
+                <template x-for="(item, index) in items" :key="item.id">
+                    <div class="col-span-12 grid grid-cols-12 items-center border-b border-gray-100 py-3 dark:border-gray-800">
+                        <div class="col-span-1 px-1 text-center tabular-nums" x-text="index + 1"></div>
+                        <div class="col-span-4 px-1"><textarea :name="`items[${index}][description]`" x-model="item.description" rows="4" required class="{{ $inputClass }} w-full max-w-full" placeholder="Nama item / perkhidmatan"></textarea></div>
+                        <div class="col-span-2 px-1"><input :name="`items[${index}][quantity]`" type="number" min="1" step="1" x-model.number="item.quantity" required class="{{ $inputClass }} w-full text-center"></div>
+                        <div class="col-span-1 px-1"><input :name="`items[${index}][unit]`" x-model="item.unit" required class="{{ $inputClass }} w-full text-center" placeholder="Unit"></div>
+                        <div class="col-span-2 px-1"><input :name="`items[${index}][price]`" type="number" min="0" step="0.01" x-model.number="item.price" required class="{{ $inputClass }} w-full price-input text-end"></div>
+                        <div class="col-span-1 whitespace-nowrap px-1" x-text="money(subtotal(item))"></div>
+                        <div class="col-span-1 px-1"><button type="button" @click="items.splice(index, 1)" :disabled="items.length === 1" class="text-error-600 disabled:cursor-not-allowed disabled:opacity-40 dark:text-error-400">Buang</button></div>
+                    </div>
+                </template>
+            </div>
         </div>
 
         <button type="button" @click="addItem()" class="rounded-lg border border-brand-300 px-4 py-2 text-sm font-medium text-brand-600 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10">+ Tambah Item</button>

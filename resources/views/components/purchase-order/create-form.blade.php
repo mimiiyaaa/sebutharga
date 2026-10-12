@@ -5,16 +5,19 @@
     $labelClass = 'mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400';
     $documentData = $order?->document_data ? (json_decode($order->document_data, true) ?: []) : [];
     $savedIssuerCompanyId = $companies->firstWhere('nama_syarikat', $documentData['issuer_name'] ?? null)?->company_id ?? '';
+    $defaultIssuerCompanyId = $companies->firstWhere('nama_syarikat', config('purchase_order.issuer_name'))?->company_id ?? '';
     $savedDeliveryCompanyId = $companies->firstWhere('nama_syarikat', $documentData['delivery_company'] ?? null)?->company_id ?? '';
 @endphp
 
 <form method="POST" action="{{ $order ? route('purchase-order.update', $order->purchase_order_id) : route('purchase-order.store') }}" class="space-y-6 rounded-3xl bg-brand-50/35 p-3 dark:bg-brand-500/5 sm:p-4" x-data="{
     suppliers: {{ Illuminate\Support\Js::from($suppliers) }},
-    supplierId: {{ Illuminate\Support\Js::from((string) old('customer_id', $order?->customer_id ?? '')) }},
+    supplierId: {{ Illuminate\Support\Js::from((string) old('customer_id', $order?->customer_id ?? ($quotation->customer_id ?? ''))) }},
     supplier: {},
     companies: {{ Illuminate\Support\Js::from($companies) }},
-    companyId: {{ Illuminate\Support\Js::from((string) old('company_id', $savedIssuerCompanyId)) }},
+    companyId: {{ Illuminate\Support\Js::from((string) old('company_id', $savedIssuerCompanyId ?: $defaultIssuerCompanyId)) }},
+    deliveryRecipientType: {{ Illuminate\Support\Js::from(old('delivery_recipient_type', $savedDeliveryCompanyId !== '' ? 'company' : '')) }},
     deliveryCompanyId: {{ Illuminate\Support\Js::from((string) old('delivery_company_id', $savedDeliveryCompanyId)) }},
+    deliveryCustomerId: {{ Illuminate\Support\Js::from((string) old('delivery_customer_id', '')) }},
     issuer: {
         name: {{ Illuminate\Support\Js::from(old('issuer_name', $documentData['issuer_name'] ?? '')) }},
         phone: {{ Illuminate\Support\Js::from(old('issuer_phone', $documentData['issuer_phone'] ?? '')) }},
@@ -24,7 +27,10 @@
     },
     attentionSupplier: {{ Illuminate\Support\Js::from(old('attention_supplier', $order?->attention_supplier ?? '')) }},
     delivery: {{ Illuminate\Support\Js::from(['company_name' => old('delivery_company', $documentData['delivery_company'] ?? ''), 'address' => old('delivery_address', $order?->delivery_address ?? ''), 'phone_no' => old('delivery_phone', $documentData['delivery_phone'] ?? ''), 'attention' => old('attention_delivery', $order?->attention_delivery ?? '')]) }},
-    init() { this.supplier = this.suppliers.find(row => String(row.customer_id) === this.supplierId) || {}; },
+    init() {
+        this.supplier = this.suppliers.find(row => String(row.customer_id) === this.supplierId) || {};
+        if (this.companyId && !this.issuer.name) this.selectCompany();
+    },
     get selectedCompany() { return this.companies.find(row => String(row.company_id) === String(this.companyId)); },
     selectCompany() {
         const company = this.selectedCompany;
@@ -41,6 +47,13 @@
         this.delivery.company_name = company.nama_syarikat || '';
         this.delivery.phone_no = company.no_telefon || '';
         this.delivery.address = company.alamat_syarikat || '';
+    },
+    selectDeliveryCustomer() {
+        const customer = this.suppliers.find(row => String(row.customer_id) === String(this.deliveryCustomerId));
+        if (!customer) return;
+        this.delivery.company_name = customer.company_name || customer.customer_name || '';
+        this.delivery.phone_no = customer.phone_no || '';
+        this.delivery.address = customer.address || '';
     },
     selectSupplier() {
         this.supplier = this.suppliers.find(row => String(row.customer_id) === String(this.supplierId)) || {};
@@ -64,8 +77,9 @@
     @endif
     @if ($order) @method('PUT') @endif
     @if ($order && $returnToDetail)<input type="hidden" name="from" value="show">@endif
-    <input type="hidden" name="quotation_id" value="{{ $quotation->quotation_id }}">
-    <input type="hidden" name="quotation_detail_id" value="{{ $quotation->quotation_detail_id }}">
+    <input type="hidden" name="quotation_id" value="{{ $quotation->quotation_id ?? '' }}">
+    <input type="hidden" name="quotation_detail_id" value="{{ $quotation->quotation_detail_id ?? '' }}">
+    <input type="hidden" name="supplier_quotation_id" value="{{ $quotation->supplier_quotation_id ?? '' }}">
     <input type="hidden" name="items_json" :value="JSON.stringify(items)">
     @if ($errors->any())
         <ul role="alert" class="rounded-lg bg-error-50 p-4 text-error-700 dark:bg-error-500/10 dark:text-error-400">
@@ -111,8 +125,6 @@
                 <label for="po_date" class="{{ $labelClass }}">{{ __('Tarikh PO') }}</label>
                 <input id="po_date" name="po_date" type="date" value="{{ old('po_date', $order?->po_date ?? now()->format('Y-m-d')) }}" required class="{{ $inputClass }}">
             </div>
-<input type="hidden" name="quotation_id" value="{{ $quotation->quotation_id }}">
-<input type="hidden" name="quotation_detail_id" value="{{ $quotation->quotation_detail_id }}">
             <div>
                 <label for="lo_inden_id" class="{{ $labelClass }}">{{ __('LO / Inden (pilihan)') }}</label>
                 <select id="lo_inden_id" disabled class="{{ $inputClass }}">
@@ -152,17 +164,39 @@
         </x-common.document-card>
     <x-common.document-card :title="__('Maklumat Penghantaran')">
         <div>
-            <label for="delivery_company" class="{{ $labelClass }}">{{ __('Nama Syarikat Penghantar') }}</label>
-            <select id="delivery_company_id" name="delivery_company_id" x-model="deliveryCompanyId" @change="selectDeliveryCompany()" class="{{ $inputClass }}">
-                <option value="">{{ __('Pilih syarikat penghantar') }}</option>
+            <span class="{{ $labelClass }}">{{ __('Hantar kepada') }}</span>
+            <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+                <label class="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-700 transition hover:text-brand-600 dark:text-gray-300 dark:hover:text-brand-400">
+                    <input type="radio" name="delivery_recipient_type" value="company" x-model="deliveryRecipientType" class="peer h-4 w-4 border-gray-300 text-brand-600 focus:ring-brand-500">
+                    <span class="peer-checked:font-semibold peer-checked:text-brand-600 dark:peer-checked:text-brand-400">{{ __('Syarikat') }}</span>
+                </label>
+                <label class="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-700 transition hover:text-brand-600 dark:text-gray-300 dark:hover:text-brand-400">
+                    <input type="radio" name="delivery_recipient_type" value="customer" x-model="deliveryRecipientType" class="peer h-4 w-4 border-gray-300 text-brand-600 focus:ring-brand-500">
+                    <span class="peer-checked:font-semibold peer-checked:text-brand-600 dark:peer-checked:text-brand-400">{{ __('Pelanggan') }}</span>
+                </label>
+            </div>
+        </div>
+        <div x-show="deliveryRecipientType === 'company'" x-cloak>
+            <label for="delivery_company_id" class="{{ $labelClass }}">{{ __('Pilih syarikat') }}</label>
+            <select id="delivery_company_id" name="delivery_company_id" x-model="deliveryCompanyId" @change="selectDeliveryCompany()" :required="deliveryRecipientType === 'company'" class="{{ $inputClass }}">
+                <option value="">{{ __('Pilih syarikat') }}</option>
                 @foreach ($companies as $company)
                     <option value="{{ $company->company_id }}">{{ $company->nama_syarikat }}</option>
                 @endforeach
             </select>
-            <input type="hidden" id="delivery_company" name="delivery_company" x-model="delivery.company_name">
         </div>
+        <div x-show="deliveryRecipientType === 'customer'" x-cloak>
+            <label for="delivery_customer_id" class="{{ $labelClass }}">{{ __('Pilih pelanggan') }}</label>
+            <select id="delivery_customer_id" name="delivery_customer_id" x-model="deliveryCustomerId" @change="selectDeliveryCustomer()" :required="deliveryRecipientType === 'customer'" class="{{ $inputClass }}">
+                <option value="">{{ __('Pilih pelanggan') }}</option>
+                @foreach ($suppliers as $supplier)
+                    <option value="{{ $supplier->customer_id }}">{{ $supplier->company_name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <input type="hidden" id="delivery_company" name="delivery_company" x-model="delivery.company_name">
         <div>
-            <label for="delivery_phone" class="{{ $labelClass }}">{{ __('Nombor Telefon Penghantar') }}</label>
+            <label for="delivery_phone" class="{{ $labelClass }}">{{ __('Nombor Telefon') }}</label>
             <input id="delivery_phone" name="delivery_phone" type="tel" x-model="delivery.phone_no" class="{{ $inputClass }}">
         </div>
         <div>
@@ -172,7 +206,7 @@
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
             @foreach (['attention_delivery' => 'Untuk Perhatian Penghantar'] as $field => $label)
                 <div>
-                    <label for="{{ $field }}" class="{{ $labelClass }}">{{ __($label) }}</label>
+                    <label for="{{ $field }}" class="{{ $labelClass }}">{{ __('Untuk Perhatian') }}</label>
                     <input id="{{ $field }}" name="{{ $field }}" x-model="delivery.attention" class="{{ $inputClass }}">
                 </div>
             @endforeach
@@ -182,28 +216,26 @@
 
     <x-common.document-card :title="__('Item PO')">
         <div class="overflow-x-auto">
-            <table class="w-full min-w-[900px] text-start text-theme-sm text-gray-700 dark:text-gray-300">
-                <thead class="bg-error-800 text-white dark:bg-error-900 dark:text-white">
-                    <tr>
-                        @foreach (['Bil.', 'Keterangan / Description', 'Kuantiti', 'Unit', 'Harga Seunit (RM)', 'Jumlah (RM)', 'Tindakan'] as $heading)
-                            <th scope="col" class="whitespace-nowrap px-3 py-3 text-start text-theme-xs font-semibold">{{ __($heading) }}</th>
-                        @endforeach
-                    </tr>
-                </thead>
-                <tbody>
-                    <template x-for="(item, index) in items" :key="item.id">
-                        <tr class="border-b border-gray-100 dark:border-gray-800">
-                            <td class="p-3 text-center tabular-nums" x-text="index + 1"></td>
-                            <td class="min-w-60 p-3"><textarea rows="3" required x-model="item.description" aria-label="{{ __('Keterangan / Description') }}" placeholder="{{ __('Nama item / perkhidmatan') }}" class="{{ $inputClass }}"></textarea></td>
-                            <td class="min-w-32 p-3"><input type="number" min="1" step="1" required x-model.number="item.quantity" aria-label="{{ __('Kuantiti') }}" class="{{ $inputClass }} text-center"></td>
-                            <td class="min-w-32 p-3"><input required x-model="item.unit" aria-label="{{ __('Unit') }}" placeholder="{{ __('Unit') }}" class="{{ $inputClass }} text-center"></td>
-                            <td class="min-w-40 p-3"><input type="number" min="0" step="0.01" required x-model.number="item.price" aria-label="{{ __('Harga Seunit (RM)') }}" class="{{ $inputClass }} price-input text-end"></td>
-                            <td class="whitespace-nowrap p-3" x-text="money(subtotal(item))"></td>
-                            <td class="p-3"><button type="button" @click="items.splice(index, 1)" :disabled="items.length === 1" class="text-error-600 disabled:cursor-not-allowed disabled:opacity-40 dark:text-error-400">{{ __('Buang') }}</button></td>
-                        </tr>
-                    </template>
-                </tbody>
-            </table>
+            <div class="grid w-full grid-cols-12 overflow-hidden rounded-xl text-theme-sm text-gray-700 dark:text-gray-300">
+                <div class="col-span-1 whitespace-nowrap bg-error-800 px-2 py-3 text-center text-theme-xs font-semibold text-white dark:bg-error-900">{{ __('Bil.') }}</div>
+                <div class="col-span-4 whitespace-nowrap bg-error-800 px-2 py-3 text-start text-theme-xs font-semibold text-white dark:bg-error-900">{{ __('Keterangan / Description') }}</div>
+                <div class="col-span-2 whitespace-nowrap bg-error-800 px-2 py-3 text-start text-theme-xs font-semibold text-white dark:bg-error-900">{{ __('Kuantiti') }}</div>
+                <div class="col-span-1 whitespace-nowrap bg-error-800 px-2 py-3 text-start text-theme-xs font-semibold text-white dark:bg-error-900">{{ __('Unit') }}</div>
+                <div class="col-span-2 whitespace-nowrap bg-error-800 px-2 py-3 text-start text-theme-xs font-semibold text-white dark:bg-error-900">{{ __('Harga Seunit (RM)') }}</div>
+                <div class="col-span-1 whitespace-nowrap bg-error-800 px-2 py-3 text-start text-theme-xs font-semibold text-white dark:bg-error-900">{{ __('Jumlah (RM)') }}</div>
+                <div class="col-span-1 whitespace-nowrap bg-error-800 px-2 py-3 text-center text-theme-xs font-semibold text-white dark:bg-error-900">{{ __('Tindakan') }}</div>
+                <template x-for="(item, index) in items" :key="item.id">
+                    <div class="col-span-12 grid grid-cols-12 items-center border-b border-gray-100 py-3 dark:border-gray-800">
+                        <div class="col-span-1 px-1 text-center tabular-nums" x-text="index + 1"></div>
+                        <div class="col-span-4 px-1"><textarea rows="4" required x-model="item.description" aria-label="{{ __('Keterangan / Description') }}" placeholder="{{ __('Nama item / perkhidmatan') }}" class="{{ $inputClass }} w-full max-w-full"></textarea></div>
+                        <div class="col-span-2 px-1"><input type="number" min="1" step="1" required x-model.number="item.quantity" aria-label="{{ __('Kuantiti') }}" class="{{ $inputClass }} w-full text-center"></div>
+                        <div class="col-span-1 px-1"><input required x-model="item.unit" aria-label="{{ __('Unit') }}" placeholder="{{ __('Unit') }}" class="{{ $inputClass }} w-full text-center"></div>
+                        <div class="col-span-2 px-1"><input type="number" min="0" step="0.01" required x-model.number="item.price" aria-label="{{ __('Harga Seunit (RM)') }}" class="{{ $inputClass }} w-full price-input text-end"></div>
+                        <div class="col-span-1 whitespace-nowrap px-1" x-text="money(subtotal(item))"></div>
+                        <div class="col-span-1 px-1 text-center"><button type="button" @click="items.splice(index, 1)" :disabled="items.length === 1" class="mx-auto text-error-600 disabled:cursor-not-allowed disabled:opacity-40 dark:text-error-400">{{ __('Buang') }}</button></div>
+                    </div>
+                </template>
+            </div>
         </div>
         <button type="button" @click="addItem()" class="rounded-lg border border-brand-300 px-4 py-2 text-sm font-medium text-brand-600 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10">{{ __('+ Tambah Item') }}</button>
         <div class="ms-auto max-w-sm space-y-4 text-sm text-gray-700 dark:text-gray-300" aria-live="polite">
@@ -226,21 +258,27 @@
         $storedTerms = old('terms_conditions', $order?->terms_conditions ?? config('purchase_order.terms'));
         preg_match('/tempoh\s+(\d+)\s+hari bekerja/i', $storedTerms, $deliveryMatch);
         preg_match('/tempoh\s+(\d+)\s+hari\s+\(Kredit\)/i', $storedTerms, $paymentMatch);
-        $additionalTerms = implode("\n", array_slice(preg_split('/\r?\n/', $storedTerms), 4));
+        $termLines = collect(preg_split('/\R/u', trim($storedTerms)) ?: [])
+            ->map(fn ($line) => preg_replace('/^\s*\d+\.\s*/', '', trim($line)))
+            ->filter(fn ($line) => $line !== '')
+            ->values();
+        if ($termLines->isEmpty() || ! preg_match('/^\s*1\.\s*/', trim($storedTerms))) {
+            $termLines = collect([
+                'Sila nyatakan nombor Purchase Order (PO) ini di dalam Invois dan Nota Serahan (DO) rasmi anda.',
+                'Penghantaran mestilah menepati spesifikasi teknikal yang dipesan. Barangan rosak/salah akan dipulangkan.',
+                'Sila hantar bekalan dalam tempoh ' . ($deliveryMatch[1] ?? 14) . ' hari bekerja dari tarikh dokumen ini dikeluarkan.',
+                'Pembayaran penuh akan diproses dalam tempoh ' . ($paymentMatch[1] ?? 30) . ' hari (Kredit) selepas pengesahan penerimaan DO & Invois.',
+            ])->merge($termLines);
+        }
+        $termsText = $termLines->map(fn ($line, $index) => ($index + 1) . '. ' . $line)->implode("\n") . "\n" . ($termLines->count() + 1) . '. ';
     @endphp
-    <x-common.document-card :title="__('Terma dan Syarat Pembelian')" x-data="{ periods: { delivery: {{ old('delivery_days', $deliveryMatch[1] ?? 14) }}, payment: {{ old('payment_days', $paymentMatch[1] ?? 30) }} }, insertNextTerm(event) { const field = event.target; const before = field.value.slice(0, field.selectionStart); const after = field.value.slice(field.selectionEnd); const nextNumber = 5 + before.split(/\r?\n/).filter(Boolean).length; const insertion = `\n${nextNumber}. `; field.value = before + insertion + after; field.dispatchEvent(new Event('input', { bubbles: true })); requestAnimationFrame(() => { const cursor = before.length + insertion.length; field.setSelectionRange(cursor, cursor); }); } }">
+    <x-common.document-card :title="__('Terma dan Syarat Pembelian')" x-data="{ periods: { delivery: {{ old('delivery_days', $deliveryMatch[1] ?? 14) }}, payment: {{ old('payment_days', $paymentMatch[1] ?? 30) }} }, termsText: {{ Illuminate\Support\Js::from($termsText) }}, buildTerms() { const lines = this.termsText.split(/\r?\n/); const extras = lines.slice(4).map(line => line.replace(/^\s*\d+\.\s*/, '').trim()).filter(Boolean); return `1. Sila nyatakan nombor Purchase Order (PO) ini di dalam Invois dan Nota Serahan (DO) rasmi anda.\n2. Penghantaran mestilah menepati spesifikasi teknikal yang dipesan. Barangan rosak/salah akan dipulangkan.\n3. Sila hantar bekalan dalam tempoh ${this.periods.delivery || '—'} hari bekerja dari tarikh dokumen ini dikeluarkan.\n4. Pembayaran penuh akan diproses dalam tempoh ${this.periods.payment || '—'} hari (Kredit) selepas pengesahan penerimaan DO & Invois.` + extras.map((line, index) => `\n${index + 5}. ${line}`).join('') + `\n${extras.length + 5}. `; }, syncTerms() { this.termsText = this.buildTerms(); }, insertNextTerm(event) { const field = event.target; const before = field.value.slice(0, field.selectionStart); const after = field.value.slice(field.selectionEnd); const nextNumber = before.split(/\r?\n/).filter(Boolean).length + 1; const insertion = `\n${nextNumber}. `; field.value = before + insertion + after; field.dispatchEvent(new Event('input', { bubbles: true })); requestAnimationFrame(() => { const cursor = before.length + insertion.length; field.setSelectionRange(cursor, cursor); }); } }">
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            <div><label for="delivery_days" class="{{ $labelClass }}">{{ __('Tempoh Penghantaran (Hari)') }}</label><input id="delivery_days" name="delivery_days" type="number" min="1" max="3650" required x-model="periods.delivery" class="{{ $inputClass }}"></div>
-            <div><label for="payment_days" class="{{ $labelClass }}">{{ __('Tempoh Pembayaran (Hari)') }}</label><input id="payment_days" name="payment_days" type="number" min="1" max="3650" required x-model="periods.payment" class="{{ $inputClass }}"></div>
+            <div><label for="delivery_days" class="{{ $labelClass }}">{{ __('Tempoh Penghantaran (Hari)') }}</label><input id="delivery_days" name="delivery_days" type="number" min="1" max="3650" required x-model="periods.delivery" @input="syncTerms()" class="{{ $inputClass }}"></div>
+            <div><label for="payment_days" class="{{ $labelClass }}">{{ __('Tempoh Pembayaran (Hari)') }}</label><input id="payment_days" name="payment_days" type="number" min="1" max="3650" required x-model="periods.payment" @input="syncTerms()" class="{{ $inputClass }}"></div>
         </div>
         <p class="text-sm text-gray-600 dark:text-gray-300">{{ __('Tempoh penghantaran dan pembayaran dikira dari tarikh PO dikeluarkan serta pengesahan penerimaan dokumen.') }}</p>
-        <div class="space-y-2 text-sm leading-6 text-gray-700 dark:text-gray-300">
-            <p>1. {{ __('Sila nyatakan nombor Purchase Order (PO) ini di dalam Invois dan Nota Serahan (DO) rasmi anda.') }}</p>
-            <p>2. {{ __('Penghantaran mestilah menepati spesifikasi teknikal yang dipesan. Barangan rosak/salah akan dipulangkan.') }}</p>
-            <p>3. {{ __('Sila hantar bekalan dalam tempoh') }} <span class="font-semibold" x-text="periods.delivery || '—'"></span> {{ __('hari bekerja dari tarikh dokumen ini dikeluarkan.') }}</p>
-            <p>4. {{ __('Pembayaran penuh akan diproses dalam tempoh') }} <span class="font-semibold" x-text="periods.payment || '—'"></span> {{ __('hari (Kredit) selepas pengesahan penerimaan DO & Invois.') }}</p>
-        </div>
-        <div><label for="additional_terms" class="{{ $labelClass }}">{{ __('Terma Tambahan') }}</label><textarea id="additional_terms" name="additional_terms" rows="4" maxlength="10000" @keydown.enter.prevent="insertNextTerm($event)" class="{{ $inputClass }}">{{ old('additional_terms', $additionalTerms) }}</textarea><p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('Tekan Enter untuk sambung nombor terma secara automatik bermula daripada 5.') }}</p></div>
+        <div><label for="additional_terms" class="{{ $labelClass }}">{{ __('Terma dan Syarat (boleh diubah)') }}</label><textarea id="additional_terms" name="additional_terms" x-model="termsText" rows="9" maxlength="10000" @keydown.enter.prevent="insertNextTerm($event)" class="{{ $inputClass }}"></textarea><p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('Semua ayat boleh diubah. Tekan Enter untuk sambung nombor terma seterusnya.') }}</p></div>
     </x-common.document-card>
     <x-common.document-card :title="__('Pengesahan PO')">
         <div class="grid grid-cols-1 gap-6 md:grid-cols-2">

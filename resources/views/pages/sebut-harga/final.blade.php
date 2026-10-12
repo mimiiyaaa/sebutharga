@@ -14,7 +14,7 @@
         <div class="max-w-full overflow-x-auto">
         <table class="w-full text-theme-sm leading-6 text-gray-700 dark:text-gray-300">
             <thead class="border-y border-gray-100 bg-gray-50 dark:border-white/[0.05] dark:bg-gray-900"><tr>
-                @foreach (['No. Sebut Harga', 'Pelanggan', 'Versi', 'Tajuk', 'Tarikh', 'Jumlah (RM)', 'Status', 'Tindakan'] as $label)
+                @foreach (['No. Sebut Harga', 'Pelanggan', 'Versi', 'Tajuk', 'Jumlah (RM)', 'Status', 'Tindakan'] as $label)
                     <th class="px-6 py-3 {{ $label === 'Tindakan' ? 'text-center' : 'text-start' }} text-theme-sm font-semibold text-gray-500 dark:text-gray-400">{{ __($label) }}</th>
                 @endforeach
             </tr></thead>
@@ -22,11 +22,10 @@
                 @forelse ($finals as $draft)
                     @php $document = App\Helpers\QuotationDocument::data($draft); @endphp
                     <tr x-data="{ selectedVersion: @js((string) $draft->quotation_detail_id), versions: @js($draft->versions), selectedDecision() { return this.versions.find(version => String(version.id) === String(this.selectedVersion))?.decision || 'Belum Hantar'; }, decisionClass() { return { 'Berjaya — Belum Ada LO': 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400', 'Berjaya — LO Diterima': 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400', 'Tidak Berjaya': 'bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400', 'Menunggu LO': 'bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400' }[this.selectedDecision()] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'; } }" x-show="matches({ customer: @js($document['company_name'] ?? $draft->company_name), date: @js($draft->quotation_date), title: @js($draft->quotation_title ?? ''), status: selectedDecision() })" class="border-b border-gray-100 hover:bg-gray-50 dark:border-white/[0.05] dark:hover:bg-white/[0.03]">
-                        <td class="whitespace-nowrap px-4 py-3.5 font-medium text-gray-700 sm:px-6 dark:text-gray-400">{{ $draft->quotation_no }}</td>
+                        <td class="whitespace-nowrap px-4 py-3.5 font-medium text-gray-700 sm:px-6 dark:text-gray-400"><span class="block">{{ $draft->quotation_no }}</span><span class="mt-0.5 block text-xs font-normal text-gray-500 dark:text-gray-400">{{ $draft->quotation_date }}</span></td>
                         <td class="px-4 py-3.5 text-gray-800 sm:px-6 dark:text-white/90">{{ $document['company_name'] ?? $draft->company_name }}</td>
                         <td class="whitespace-nowrap px-4 py-3.5 sm:px-6"><select x-model="selectedVersion" @click.stop class="h-10 min-w-30 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">@foreach ($draft->versions as $version)<option value="{{ $version['id'] }}">{{ $version['label'] }}</option>@endforeach</select></td>
                         <td class="px-4 py-3.5 text-gray-700 sm:px-6 dark:text-gray-400">{{ $draft->quotation_title }}</td>
-                        <td class="whitespace-nowrap px-4 py-3.5 text-gray-700 sm:px-6 dark:text-gray-400">{{ $draft->quotation_date }}</td>
                         <td class="whitespace-nowrap px-4 py-3.5 tabular-nums text-gray-700 sm:px-6 dark:text-gray-400">{{ number_format($draft->jumlah_total, 2) }}</td>
                         <td class="whitespace-nowrap px-4 py-3.5 sm:px-6"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium" :class="decisionClass()" x-text="selectedDecision()"></span></td>
                         <td class="px-4 py-3.5 text-center sm:px-6"><div class="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-gray-200 bg-gray-50 p-1.5 dark:border-gray-700 dark:bg-gray-900/60">
@@ -36,7 +35,7 @@
                         </div></td>
                     </tr>
                 @empty
-                    <tr><td colspan="8" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">{{ __('Tiada sebut harga dimuktamadkan.') }}</td></tr>
+                    <tr><td colspan="7" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">{{ __('Tiada sebut harga dimuktamadkan.') }}</td></tr>
                 @endforelse
             </tbody>
         </table>
