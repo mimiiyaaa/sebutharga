@@ -5,7 +5,7 @@
 <x-common.document-card :title="$invoice ? __('Item Invois') : __('Item Penghantaran')" :desc="__('Masukkan keterangan, kuantiti dan unit bagi setiap item.')">
     <div class="custom-scrollbar overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
         <table class="w-full text-start text-sm text-gray-700 dark:text-gray-300">
-            <thead class="border-b border-gray-200 bg-gray-50 text-theme-xs uppercase text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+            <thead class="border-b border-error-800 bg-error-800 text-theme-xs text-white dark:border-error-900 dark:bg-error-900 dark:text-white">
                 <tr>
                     <th scope="col" class="p-3">{{ __('Bil') }}</th>
                     <th scope="col" class="p-3 text-start">{{ __('Keterangan / Description') }}</th>

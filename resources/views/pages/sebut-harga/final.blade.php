@@ -30,7 +30,6 @@
                         <td data-label="{{ __('Status') }}" class="whitespace-normal px-4 py-3.5 sm:px-6"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium" :class="decisionClass()" x-text="selectedDecision()"></span></td>
                         <td data-label="{{ __('Tindakan') }}" class="px-4 py-3.5 text-center sm:px-6"><div class="document-actions">
                             <a :href="versions.find(version => String(version.id) === String(selectedVersion))?.viewUrl" class="document-action">{{ __('Lihat') }}</a>
-                            <a href="{{ route('sebut-harga.preview', [$draft->quotation_id, 'draft' => $draft->quotation_detail_id, 'from' => 'final']) }}" class="document-action document-action-primary" title="{{ __('Pratonton PDF') }}" aria-label="{{ __('Pratonton PDF') }}">PDF</a>
                             <form method="POST" :action="versions.find(version => String(version.id) === String(selectedVersion))?.deleteUrl" @submit.prevent="$dispatch('confirm-action', { form: $el, message: 'Padam Sebut Harga Final ini bersama semua itemnya?', button: 'Padam' })">@csrf @method('DELETE')<button type="submit" class="document-action document-action-delete" title="{{ __('Padam') }}" aria-label="{{ __('Padam') }}"><svg class="h-4 w-4 stroke-current" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 7h12m-9 0V5h6v2m-7 0 1 13h6l1-13M10 11v5m4-5v5"/></svg></button></form>
                         </div></td>
                     </tr>
