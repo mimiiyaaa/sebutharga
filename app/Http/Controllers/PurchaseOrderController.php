@@ -125,7 +125,7 @@ class PurchaseOrderController extends Controller
         $data = $request->validate([
             'quotation_id'=>['nullable','integer','exists:sebutharga_master,quotation_id'],
             'quotation_detail_id'=>['nullable','integer',Rule::exists('sebutharga_detail','quotation_detail_id')->where('quotation_id',$request->quotation_id)],
-            'supplier_quotation_id'=>['nullable','integer','exists:pembekal_quotation_master,supplier_quotation_id'],
+            'supplier_quotation_id'=>[Rule::requiredIf(!$existing), 'nullable','integer','exists:pembekal_quotation_master,supplier_quotation_id'],
             'customer_id'=>['required','integer',Rule::exists('customer_supplier','customer_id')->where('jenis_customer',2)],
             'po_date'=>'required|date','items_json'=>'required|json',
             'discount_percent'=>'nullable|numeric|min:0|max:100',
@@ -145,9 +145,6 @@ class PurchaseOrderController extends Controller
         ]);
         $items = json_decode($data['items_json'], true);
         $termsConditions = $this->termsConditions($data);
-        if (! $existing) {
-            abort_unless($data['supplier_quotation_id'], 422, __('Sila pilih sebut harga pembekal.'));
-        }
         validator(['items'=>$items], [
             'items'=>'required|array|min:1', 'items.*'=>'required|array',
             'items.*.description'=>'required|string','items.*.quantity'=>'required|integer|min:1|max:1000000',

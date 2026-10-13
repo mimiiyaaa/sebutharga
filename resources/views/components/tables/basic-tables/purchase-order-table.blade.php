@@ -47,8 +47,8 @@
             </div>
         </div>
 
-        <div class="max-w-full overflow-x-auto">
-            <table class="w-full text-theme-sm leading-6 text-gray-700 dark:text-gray-300">
+        <div class="min-w-0 max-w-full">
+            <table class="document-list-table w-full text-theme-sm leading-6 text-gray-700 dark:text-gray-300">
                 <thead class="border-y border-gray-100 bg-gray-50 dark:border-white/[0.05] dark:bg-gray-900">
                     <tr>
                         <th class="px-4 py-3 text-start font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">No. Purchase Order</th>
@@ -62,18 +62,18 @@
                 <tbody>
                     <template x-for="row in filteredRows" :key="row.purchase_order_id">
                         <tr class="border-b border-gray-100 hover:bg-gray-50 dark:border-white/[0.05] dark:hover:bg-white/[0.03]">
-                            <td class="px-4 py-3.5 sm:px-6"><span class="block whitespace-nowrap font-medium text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.po_no"></span></td>
-                            <td class="px-4 py-3.5 sm:px-6"><span class="block whitespace-nowrap text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.quotation_reference_no || row.quotation_detail_id || '—'"></span></td>
-                            <td class="px-4 py-3.5 sm:px-6"><span class="block min-w-52 font-medium text-theme-sm text-gray-800 dark:text-white/90" x-text="row.company_name || '—'"></span></td>
-                            <td class="px-4 py-3.5 sm:px-6"><p class="whitespace-nowrap text-gray-700 text-theme-sm dark:text-gray-400" x-text="formatDate(row.po_date)"></p></td>
-                            <td class="px-4 py-3.5 text-end tabular-nums sm:px-6"><span class="whitespace-nowrap font-medium text-gray-800 dark:text-white/90" x-text="Number(row.net_amount || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"></span></td>
-                            <td class="px-4 py-3.5 text-center sm:px-6">
-                                <div class="flex items-center justify-center gap-2">
-                                    <a :href="'{{ url('/purchase-order') }}/' + row.purchase_order_id" class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">{{ __('Lihat') }}</a>
-                                    <a :href="'{{ url('/purchase-order') }}/' + row.purchase_order_id + '/edit'" class="inline-flex items-center rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-brand-600">{{ __('Edit') }}</a>
+                            <td data-label="{{ __('No. Purchase Order') }}" class="px-4 py-3.5 sm:px-6"><span class="block whitespace-normal font-medium text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.po_no"></span></td>
+                            <td data-label="{{ __('Sebut Harga') }}" class="px-4 py-3.5 sm:px-6"><span class="block whitespace-normal text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.quotation_reference_no || row.quotation_detail_id || '—'"></span></td>
+                            <td data-label="{{ __('Pembekal') }}" class="px-4 py-3.5 sm:px-6"><span class="block min-w-0 font-medium text-theme-sm text-gray-800 dark:text-white/90" x-text="row.company_name || '—'"></span></td>
+                            <td data-label="{{ __('Tarikh') }}" class="px-4 py-3.5 sm:px-6"><p class="whitespace-normal text-gray-700 text-theme-sm dark:text-gray-400" x-text="formatDate(row.po_date)"></p></td>
+                            <td data-label="{{ __('Jumlah (RM)') }}" class="px-4 py-3.5 text-end tabular-nums sm:px-6"><span class="whitespace-normal font-medium text-gray-800 dark:text-white/90" x-text="Number(row.net_amount || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"></span></td>
+                            <td data-label="{{ __('Tindakan') }}" class="px-4 py-3.5 text-center sm:px-6">
+                                <div class="document-actions">
+                                    <a :href="'{{ url('/purchase-order') }}/' + row.purchase_order_id" class="document-action">{{ __('Lihat') }}</a>
+                                    <a :href="'{{ url('/purchase-order') }}/' + row.purchase_order_id + '/edit'" class="document-action document-action-primary">{{ __('Edit') }}</a>
                                     <form :action="'{{ url('/purchase-order') }}/' + row.purchase_order_id" method="POST" @submit.prevent="$dispatch('confirm-action', { form: $el, message: 'Padam Purchase Order ini?' })">
                                         <input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="_method" value="DELETE">
-                                        <button type="submit" title="{{ __('Padam') }}" aria-label="{{ __('Padam') }}" class="inline-flex items-center justify-center rounded-lg border border-error-200 p-2 text-error-600 transition hover:bg-error-50 dark:border-error-700 dark:text-error-400 dark:hover:bg-error-500/10"><svg class="h-4 w-4 stroke-current" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M6 7h12m-9 0V5h6v2m-7 0 1 13h6l1-13M10 11v5m4-5v5"/></svg></button>
+                                        <button type="submit" title="{{ __('Padam') }}" aria-label="{{ __('Padam') }}" class="document-action document-action-delete"><svg class="h-4 w-4 stroke-current" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 7h12m-9 0V5h6v2m-7 0 1 13h6l1-13M10 11v5m4-5v5"/></svg></button>
                                     </form>
                                 </div>
                             </td>

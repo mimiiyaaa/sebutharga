@@ -1436,3 +1436,78 @@ pre code,
     animation: none;
   }
 }
+
+/* Shared document lists: compact desktop columns and stacked mobile records. */
+.document-list-table {
+  width: 100%;
+  table-layout: fixed;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+.document-list-table th,
+.document-list-table td {
+  padding: 0.75rem 0.625rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
+}
+.document-list-table th:last-child {
+  width: max(24%, 190px);
+}
+.document-list-table select {
+  max-width: 100%;
+  font-size: 0.75rem;
+  padding-inline: 0.5rem;
+}
+.document-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.document-action {
+  @apply inline-flex h-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+.document-action-primary {
+  @apply border-brand-500 bg-brand-500 text-white hover:border-brand-600 hover:bg-brand-600 dark:border-brand-500 dark:bg-brand-500 dark:text-white dark:hover:border-brand-600 dark:hover:bg-brand-600;
+}
+.document-action-delete {
+  @apply w-10 border-error-200 p-2 text-base text-error-600 hover:bg-error-50 dark:border-error-700 dark:text-error-400 dark:hover:bg-error-500/10;
+}
+@media (max-width: 767px) {
+  .document-list-table,
+  .document-list-table tbody {
+    display: block;
+  }
+  .document-list-table thead {
+    display: none;
+  }
+  .document-list-table tbody > tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 0.5rem;
+  }
+  .document-list-table td {
+    display: block;
+    min-width: 0;
+    text-align: start;
+  }
+  .document-list-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.375rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    @apply text-gray-500 dark:text-gray-400;
+  }
+  .document-list-table td:last-child,
+  .document-list-table td[colspan] {
+    grid-column: 1 / -1;
+  }
+  .document-actions {
+    justify-content: flex-start;
+  }
+}
