@@ -6,7 +6,7 @@
         <a href="{{ $lo ? route('lo.show', $lo->lo_inden_id) : route('lo') }}" class="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
     </div>
     @php
-        $selectedQuotationId = (string) old('quotation_detail_id', $lo->quotation_detail_id ?? '');
+        $selectedQuotationId = (string) old('quotation_detail_id', $lo->quotation_detail_id ?? request('quotation_detail_id', ''));
         $quotationOptions = $finalQuotations->map(fn ($quotation) => [
             'id' => (string) $quotation->quotation_detail_id,
             'customer' => $quotation->company_name ?: $quotation->customer_name,
@@ -16,8 +16,10 @@
             'amount' => (string) $quotation->jumlah_total,
             'status' => $quotation->lo_inden_no ? 'Berjaya — LO Diterima' : ((int) $quotation->status_quotation === 1 ? 'Berjaya — Belum Ada LO' : 'Menunggu LO'),
         ])->values();
+        $selectedQuotation = $finalQuotations->firstWhere('quotation_detail_id', (int) $selectedQuotationId);
+        $defaultAmount = old('amount', $lo->amount ?? ($selectedQuotation->jumlah_total ?? '0.00'));
     @endphp
-    <form method="POST" enctype="multipart/form-data" action="{{ $lo ? route('lo.update', $lo->lo_inden_id) : route('lo.store') }}" class="space-y-6 font-outfit" x-data="{ quotationId: @js($selectedQuotationId), quotationFilter: '', quotations: @js($quotationOptions), amount: @js((string) old('amount', $lo->amount ?? '0.00')), fileName: '', get selectedQuotation() { return this.quotations.find(quotation => quotation.id === String(this.quotationId)); }, get filteredQuotations() { return this.quotations.filter(quotation => !this.quotationFilter || quotation.status === this.quotationFilter); }, selectQuotation() { if (this.selectedQuotation) this.amount = this.selectedQuotation.amount; } }">
+    <form method="POST" enctype="multipart/form-data" action="{{ $lo ? route('lo.update', $lo->lo_inden_id) : route('lo.store') }}" class="space-y-6 font-outfit" x-data="{ quotationId: @js($selectedQuotationId), quotationFilter: '', quotations: @js($quotationOptions), amount: @js((string) $defaultAmount), fileName: '', get selectedQuotation() { return this.quotations.find(quotation => quotation.id === String(this.quotationId)); }, get filteredQuotations() { return this.quotations.filter(quotation => !this.quotationFilter || quotation.status === this.quotationFilter); }, selectQuotation() { if (this.selectedQuotation) this.amount = this.selectedQuotation.amount; } }">
         @csrf
         @if($lo) @method('PUT') @endif
         <x-common.document-card :title="$lo ? __('Maklumat LO') : __('Maklumat LO Baharu')">

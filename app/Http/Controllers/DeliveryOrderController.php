@@ -19,6 +19,7 @@ class DeliveryOrderController extends Controller
             ...\App\Services\CustomerDocumentLo::defaults($request),
             'title' => __('Cipta DO Kepada Pelanggan'),
             'nextNumber' => $prefix.str_pad((string) ($last + 1), 3, '0', STR_PAD_LEFT),
+            'localOrders' => \App\Services\CustomerDocumentLo::options(),
             'customers' => DB::table('customer_supplier')->where('jenis_customer', 1)->orderBy('company_name')->get(),
             'companies' => DB::table('companies')->orderBy('nama_syarikat')->get(),
         ]);
@@ -101,7 +102,7 @@ class DeliveryOrderController extends Controller
         } catch (\Illuminate\Database\UniqueConstraintViolationException $exception) {
             throw ValidationException::withMessages(['do_no' => __('Nombor DO sudah digunakan. Sila gunakan nombor lain.')]);
         }
-        return redirect()->route('delivery-order.customer.preview', $id)->with('success', __('DO berjaya dicipta dan disimpan.'));
+        return redirect()->route('delivery-order.customer')->with('success', __('DO berjaya dicipta dan disimpan.'));
     }
 
 
