@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use App\Services\SupplierQuotationOcr;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -54,6 +55,7 @@ class SupplierQuotationController extends Controller
             'data' => [
                 'supplier_id' => $supplier?->customer_id,
                 'quotation_no_supplier' => $parsed['quotation_no'],
+                'quotation_date' => $this->normaliseDate($parsed['quotation_date']),
                 'quotation_title' => $parsed['quotation_title'],
                 'person_in_charge' => $parsed['person_in_charge'],
                 'items' => $parsed['items'],
@@ -242,12 +244,30 @@ class SupplierQuotationController extends Controller
         ];
     }
 
+    private function normaliseDate(?string $value): ?string
+    {
+        if (! $value) {
+            return null;
+        }
+
+        foreach (['d/m/Y', 'd-m-Y', 'Y-m-d', 'd.m.Y'] as $format) {
+            try {
+                return Carbon::createFromFormat($format, trim($value))->format('Y-m-d');
+            } catch (\Throwable) {
+                // Try the next common date format.
+            }
+        }
+
+        return null;
+    }
+
     public function save(Request $request, ?int $id = null)
     {
         $data = $request->validate([
             'quotation_id' => ['nullable', 'integer', 'exists:sebutharga_master,quotation_id'],
             'supplier_id' => ['required', 'integer', Rule::exists('customer_supplier', 'customer_id')->where('jenis_customer', 2)],
             'quotation_no_supplier' => ['required', 'string', 'max:100'],
+            'quotation_date' => ['required', 'date'],
             'quotation_title' => ['nullable', 'string', 'max:255'],
             'sumber_sebut_harga' => ['required', 'in:PDF,E-mel,WhatsApp,Surat,Serahan Tangan,Lain-lain'],
             'person_in_charge' => ['nullable', 'string', 'max:255'],
@@ -283,6 +303,7 @@ class SupplierQuotationController extends Controller
                 'quotation_id' => $data['quotation_id'] ?? null,
                 'supplier_id' => $data['supplier_id'],
                 'quotation_no_supplier' => $data['quotation_no_supplier'],
+                'quotation_date' => $data['quotation_date'],
                 'company_name' => $supplier->company_name,
                 'quotation_title' => $data['quotation_title'] ?? null,
                 'sumber_sebut_harga' => $data['sumber_sebut_harga'],

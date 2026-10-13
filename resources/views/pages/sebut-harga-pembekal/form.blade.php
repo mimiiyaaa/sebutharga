@@ -21,6 +21,7 @@
         supplierName: '',
         suppliers: @js($suppliers->map(fn ($supplier) => ['customer_id' => $supplier->customer_id, 'company_name' => $supplier->company_name])->values()),
         quotationNoSupplier: {{ Illuminate\Support\Js::from(old('quotation_no_supplier', $quotation?->quotation_no_supplier ?? '')) }},
+        quotationDate: {{ Illuminate\Support\Js::from(old('quotation_date', $quotation?->quotation_date ?? now()->format('Y-m-d'))) }},
         quotationTitle: {{ Illuminate\Support\Js::from(old('quotation_title', $quotation?->quotation_title ?? '')) }},
         personInCharge: {{ Illuminate\Support\Js::from(old('person_in_charge', $quotation?->person_in_charge ?? '')) }},
         documentUrl: {{ Illuminate\Support\Js::from($existingDocumentUrl) }},
@@ -65,6 +66,7 @@
                 this.showSupplierRegistration = false;
                 if (this.supplierName && !data.supplier_id) this.newSupplier.company_name = this.supplierName;
                 if (data.quotation_no_supplier) this.quotationNoSupplier = data.quotation_no_supplier;
+                if (data.quotation_date) this.quotationDate = data.quotation_date;
                 if (data.quotation_title) this.quotationTitle = data.quotation_title;
                 if (data.person_in_charge) this.personInCharge = data.person_in_charge;
                 if (Array.isArray(data.items) && data.items.length) this.items = data.items.map((item, index) => ({ ...item, id: index + 1 }));
@@ -167,6 +169,7 @@
                             </div>
                         </div>
                         <div><label for="quotation_no_supplier" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">{{ __('No. Sebut Harga Pembekal') }}</label><input id="quotation_no_supplier" name="quotation_no_supplier" x-model="quotationNoSupplier" required class="w-full min-h-11 rounded-lg border border-gray-300 px-3 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></div>
+                        <div><label for="quotation_date" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">{{ __('Tarikh Sebut Harga') }}</label><input id="quotation_date" name="quotation_date" type="date" x-model="quotationDate" required class="w-full min-h-11 rounded-lg border border-gray-300 px-3 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></div>
                         <div><label for="quotation_title" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">{{ __('Tajuk Sebut Harga') }}</label><input id="quotation_title" name="quotation_title" x-model="quotationTitle" class="w-full min-h-11 rounded-lg border border-gray-300 px-3 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></div>
                         <div><label for="sumber_sebut_harga" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">{{ __('Sumber Sebut Harga') }}</label><select id="sumber_sebut_harga" name="sumber_sebut_harga" required class="w-full min-h-11 rounded-lg border border-gray-300 px-3 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"><option value="">{{ __('Pilih sumber sebut harga') }}</option>@foreach (['PDF', 'E-mel', 'WhatsApp', 'Surat', 'Serahan Tangan', 'Lain-lain'] as $source)<option value="{{ $source }}" @selected(old('sumber_sebut_harga', $quotation?->sumber_sebut_harga) === $source)>{{ $source }}</option>@endforeach</select></div>
                         <div><label for="person_in_charge" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">{{ __('Person In Charge') }}</label><input id="person_in_charge" name="person_in_charge" x-model="personInCharge" class="w-full min-h-11 rounded-lg border border-gray-300 px-3 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></div>

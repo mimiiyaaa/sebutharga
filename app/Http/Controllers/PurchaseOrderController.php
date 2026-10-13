@@ -36,7 +36,7 @@ class PurchaseOrderController extends Controller
         $quotations = DB::table('pembekal_quotation_master as quotation')
             ->leftJoin('customer_supplier as supplier', 'supplier.customer_id', '=', 'quotation.supplier_id')
             ->select('quotation.supplier_quotation_id', 'quotation.quotation_id', 'quotation.quotation_no_supplier as quotation_no',
-                'quotation.quotation_title', DB::raw('DATE(quotation.created_at) as quotation_date'), 'quotation.company_name',
+                'quotation.quotation_title', 'quotation.quotation_date', 'quotation.company_name',
                 'supplier.customer_name', 'supplier.customer_id')
             ->orderByDesc('quotation.supplier_quotation_id')
             ->get();
