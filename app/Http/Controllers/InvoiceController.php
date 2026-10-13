@@ -10,13 +10,14 @@ use Illuminate\Validation\ValidationException;
 
 class InvoiceController extends Controller
 {
-    public function create()
+    public function create(Request $request)
     {
         $prefix = 'K1R-IV-'.now()->year.'-';
         $last = DB::table('invoice_master')->where('invoice_no', 'like', $prefix.'%')->pluck('invoice_no')
             ->map(fn ($number) => (int) substr($number, strlen($prefix)))->max() ?? 0;
 
         return view('pages.invoice.create', [
+            ...\App\Services\CustomerDocumentLo::defaults($request),
             'title' => __('Cipta Invois Kepada Pelanggan'),
             'nextNumber' => $prefix.str_pad((string) ($last + 1), 3, '0', STR_PAD_LEFT),
             'customers' => DB::table('customer_supplier')->where('jenis_customer', 1)->orderBy('company_name')->get(),
@@ -32,7 +33,7 @@ class InvoiceController extends Controller
                 return [
                     'id' => $invoice->invoice_id,
                     'document_no' => $invoice->invoice_no,
-                    'po_no' => $document['po_reference'] ?? null,
+                    'lo_no' => $document['lo_reference'] ?? null,
                     'company_name' => $document['customer_name'] ?? '',
                     'document_date' => $invoice->invoice_date,
                     'amount' => $invoice->total_amount,
@@ -53,9 +54,12 @@ class InvoiceController extends Controller
 
     private function validated(Request $request, ?int $id = null): array
     {
+        \App\Services\CustomerDocumentLo::bind($request);
         $data = $request->validate([
+            'lo_inden_id' => 'nullable|integer',
             'invoice_no' => ['required', 'string', 'max:100', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('invoice_master', 'invoice_no')->ignore($id, 'invoice_id')],
             'invoice_date' => 'required|date_format:Y-m-d',
+            'lo_reference' => 'nullable|string|max:100',
             'customer_id' => ['required', 'integer', Rule::exists('customer_supplier', 'customer_id')->where('jenis_customer', 1)],
             'issuer_name' => 'required|string|max:255', 'issuer_address' => 'required|string|max:2000',
             'issuer_phone' => 'nullable|string|max:50', 'issuer_email' => 'nullable|email|max:255',
@@ -123,6 +127,7 @@ class InvoiceController extends Controller
         $saved = $this->saved($id);
         $invoice = $saved['invoice'];
         return view('pages.invoice.create', [
+            'localOrders' => \App\Services\CustomerDocumentLo::options(),
             'title' => __('Edit Invois'), 'editId' => $id, 'nextNumber' => $invoice->invoice_no,
             'values' => $saved['document'] + ['invoice_no' => $invoice->invoice_no, 'invoice_date' => $invoice->invoice_date, 'customer_id' => $invoice->customer_id],
             'initialItems' => $saved['items']->map(fn ($item) => [
@@ -152,7 +157,7 @@ class InvoiceController extends Controller
                 DB::table('invoice_master')->where('invoice_id', $id)->update([
                     'invoice_no' => $invoice->invoice_no, 'invoice_date' => $invoice->invoice_date, 'customer_id' => $data['customer_id'],
                     'subtotal' => $invoice->total_amount, 'total_amount' => $invoice->total_amount,
-                    'document_data' => json_encode($document, JSON_UNESCAPED_UNICODE),
+                    'document_data' => json_encode(array_replace(json_decode($record->document_data ?? '{}', true) ?: [], $document), JSON_UNESCAPED_UNICODE),
                     'updated_by' => $request->user()->id, 'updated_at' => now(),
                 ]);
                 DB::table('invoice_item')->where('invoice_id', $id)->delete();

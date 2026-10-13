@@ -10,12 +10,13 @@ use Illuminate\Validation\ValidationException;
 
 class DeliveryOrderController extends Controller
 {
-    public function create()
+    public function create(Request $request)
     {
         $prefix = 'K1R-DO-'.now()->year.'-';
         $last = DB::table('delivery_order_master')->where('do_no', 'like', $prefix.'%')->pluck('do_no')
             ->map(fn ($number) => (int) substr($number, strlen($prefix)))->max() ?? 0;
         return view('pages.delivery-order.create', [
+            ...\App\Services\CustomerDocumentLo::defaults($request),
             'title' => __('Cipta DO Kepada Pelanggan'),
             'nextNumber' => $prefix.str_pad((string) ($last + 1), 3, '0', STR_PAD_LEFT),
             'customers' => DB::table('customer_supplier')->where('jenis_customer', 1)->orderBy('company_name')->get(),
@@ -32,7 +33,7 @@ class DeliveryOrderController extends Controller
             $document = json_decode($order->document_data ?? '{}', true);
             return [
                 'id' => $order->delivery_order_id, 'document_no' => $order->do_no,
-                'po_no' => $document['po_reference'] ?? null, 'company_name' => $document['customer_name'] ?? $order->recipient_name,
+                'lo_no' => $document['lo_reference'] ?? null, 'company_name' => $document['customer_name'] ?? $order->recipient_name,
                 'document_date' => $order->do_date, 'quantity' => (float) ($quantities[$order->delivery_order_id] ?? 0),
                 'preview_url' => route('delivery-order.customer.preview', $order->delivery_order_id),
                     'show_url' => route('delivery-order.customer.show', $order->delivery_order_id),
@@ -49,14 +50,16 @@ class DeliveryOrderController extends Controller
 
     private function validated(Request $request, ?int $id = null): array
     {
+        \App\Services\CustomerDocumentLo::bind($request);
         $data = $request->validate([
+            'lo_inden_id' => 'nullable|integer',
             'do_no' => ['required', 'string', 'max:100', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('delivery_order_master', 'do_no')->ignore($id, 'delivery_order_id')],
             'do_date' => 'required|date_format:Y-m-d',
             'customer_id' => ['required', 'integer', Rule::exists('customer_supplier', 'customer_id')->where('jenis_customer', 1)],
             'issuer_name' => 'required|string|max:255', 'issuer_address' => 'required|string|max:2000',
             'issuer_phone' => 'nullable|string|max:50', 'issuer_email' => 'nullable|email|max:255',
             'customer_name' => 'required|string|max:255', 'customer_address' => 'required|string|max:2000',
-            'po_reference' => 'nullable|string|max:100', 'notes' => 'required|string|max:3000',
+            'lo_reference' => 'nullable|string|max:100', 'notes' => 'required|string|max:3000',
             'delivered_by' => 'nullable|string|max:255', 'signature_company' => 'required|string|max:255',
             'recipient_name' => 'nullable|string|max:255', 'received_date' => 'nullable|date_format:Y-m-d|after_or_equal:do_date',
             'items' => 'required|array|min:1|max:100', 'items.*' => 'required|array',
@@ -114,6 +117,7 @@ class DeliveryOrderController extends Controller
         $saved = $this->saved($id);
         $order = $saved['order'];
         return view('pages.delivery-order.create', [
+            'localOrders' => \App\Services\CustomerDocumentLo::options(),
             'title' => __('Edit DO'), 'editId' => $id, 'nextNumber' => $order->do_no,
             'values' => $saved['document'] + ['do_no' => $order->do_no, 'do_date' => $order->do_date, 'customer_id' => $order->customer_id],
             'initialItems' => $saved['items']->map(fn ($item) => [
@@ -143,7 +147,7 @@ class DeliveryOrderController extends Controller
                 DB::table('delivery_order_master')->where('delivery_order_id', $id)->update([
                     'do_no' => $order->do_no, 'do_date' => $order->do_date, 'customer_id' => $data['customer_id'],
                     'delivery_address' => $data['customer_address'], 'recipient_name' => $data['recipient_name'] ?? null, 'remarks' => $data['notes'],
-                    'document_data' => json_encode($document, JSON_UNESCAPED_UNICODE),
+                    'document_data' => json_encode(array_replace(json_decode($record->document_data ?? '{}', true) ?: [], $document), JSON_UNESCAPED_UNICODE),
                     'updated_by' => $request->user()->id, 'updated_at' => now(),
                 ]);
                 DB::table('delivery_order_item')->where('delivery_order_id', $id)->delete();

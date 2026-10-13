@@ -36,7 +36,7 @@
             <dl class="grid gap-6 text-sm sm:grid-cols-3">
                 <div><dt class="text-gray-500 dark:text-gray-400">{{ __('No. Dokumen') }}</dt><dd class="mt-2 font-semibold">{{ $number }}</dd></div>
                 <div><dt class="text-gray-500 dark:text-gray-400">{{ __('Tarikh') }}</dt><dd class="mt-2 font-semibold">{{ \Illuminate\Support\Carbon::parse($date)->format('d/m/Y') }}</dd></div>
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('No. Purchase Order') }}</dt><dd class="mt-2 font-semibold">{{ $document['po_reference'] ?? '—' }}</dd></div>
+                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('No. Local Order (LO)') }}</dt><dd class="mt-2 font-semibold">{{ $document['lo_reference'] ?? '—' }}</dd></div>
             </dl>
         </x-common.document-card>
         <div class="grid gap-6 lg:grid-cols-2">

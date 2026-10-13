@@ -380,5 +380,15 @@
   "DO berjaya dikemas kini.": "DO berjaya dikemas kini.",
   "DO berjaya dipadam.": "DO berjaya dipadam.",
   "Simpan Perubahan": "Simpan Perubahan",
-  "Jumlah": "Jumlah"
+  "Jumlah": "Jumlah",
+  "No. Local Order (LO)": "No. Local Order (LO)",
+  "No. Rujukan LO (pilihan)": "No. Rujukan LO (pilihan)",
+  "No. Rujukan LO:": "No. Rujukan LO:",
+  "Pilih Local Order (LO)": "Pilih Local Order (LO)",
+  "Sila pilih Local Order yang sah.": "Sila pilih Local Order yang sah.",
+  "Pelanggan mesti sama dengan Local Order yang dipilih.": "Pelanggan mesti sama dengan Local Order yang dipilih.",
+  "Pilih LO dahulu. Maklumat pelanggan dan item sebut harga berkaitan akan diisi dalam borang.": "Pilih LO dahulu. Maklumat pelanggan dan item sebut harga berkaitan akan diisi dalam borang.",
+  "Tiada Local Order tersedia. Tambah LO terlebih dahulu.": "Tiada Local Order tersedia. Tambah LO terlebih dahulu.",
+  "Rujukan sedia ada:": "Rujukan sedia ada:",
+  "Pilih LO bagi pelanggan dokumen ini. Item sedia ada dikekalkan.": "Pilih LO bagi pelanggan dokumen ini. Item sedia ada dikekalkan."
 }

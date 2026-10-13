@@ -18,6 +18,11 @@ beforeEach(function () {
     (require database_path('migrations/2026_10_11_160650_create_invoice_and_delivery_order_tables.php'))->up();
     (require database_path('migrations/2026_10_12_010000_add_delivery_order_document_data.php'))->up();
     DB::table('customer_supplier')->insert(['customer_id'=>1,'jenis_customer'=>1,'company_name'=>'Jabatan Teknologi & Komunikasi','customer_name'=>'Pelanggan','address'=>"Sektor Awam Negeri Kelantan\n15000 Kota Bharu, Kelantan."]);
+    Schema::create('lo_inden_master', function (Blueprint $table) {
+        $table->increments('lo_inden_id'); $table->string('lo_inden_no'); $table->integer('customer_id');
+        $table->date('lo_inden_date'); $table->integer('quotation_id')->nullable(); $table->integer('quotation_detail_id')->nullable();
+    });
+    DB::table('lo_inden_master')->insert(['lo_inden_id'=>1,'lo_inden_no'=>'LO-SELECT-001','customer_id'=>1,'lo_inden_date'=>'2026-10-13']);
     $user = new User(); $user->id = 42; $user->name = 'Tester';
     $this->actingAs($user);
     $this->doData = [
@@ -40,7 +45,7 @@ test('delivery order preserves list intermediate and create navigation', functio
     $this->get(route('delivery-order.customer'))->assertOk()->assertViewIs('pages.delivery-order')
         ->assertSee('href="'.route('delivery-order.customer.create').'"',false)->assertSee('Jumlah Kuantiti');
     $this->get(route('delivery-order.customer.create'))->assertOk()->assertViewIs('pages.customer-document-start')
-        ->assertSee('href="'.route('delivery-order.customer.form').'"',false);
+        ->assertSee('action="'.route('delivery-order.customer.form').'"',false);
     $form=$this->get(route('delivery-order.customer.form'))->assertOk()->assertSee('Cipta &amp; Simpan DO',false)
         ->assertSee('href="'.route('delivery-order.customer.create').'"',false)->assertDontSee('Harga Seunit');
     if(getenv('DO_VISUAL_CHECK')) file_put_contents(storage_path('app/do-form-check.html'),$form->getContent());
@@ -133,4 +138,68 @@ test('delivery-order rejects duplicate updates and invalid items and scopes cust
     $this->get(route('delivery-order.customer.show', 1))->assertRedirect(route('login'));
     $this->put(route('delivery-order.customer.update', 1), $this->doData)->assertRedirect(route('login'));
     $this->delete(route('delivery-order.customer.delete', 1))->assertRedirect(route('login'));
+});
+
+
+test('delivery-order saves and displays LO reference independently from historical PO references', function () {
+    $data = $this->doData; $data['lo_reference'] = 'LO-2026-123';
+    $this->post(route('delivery-order.customer.store'), $data)->assertSessionHasNoErrors();
+    $this->get(route('delivery-order.customer'))->assertOk()->assertSee('No. Local Order (LO)')->assertSee('LO-2026-123')->assertDontSee('No. Purchase Order');
+    $this->get(route('delivery-order.customer.show', 1))->assertOk()->assertSee('LO-2026-123');
+    $this->get(route('delivery-order.customer.edit', 1))->assertOk()->assertSee('LO-2026-123')->assertSee('name="lo_inden_id"', false);
+    $this->get(route('delivery-order.customer.preview', 1))->assertOk()->assertDontSee('LO-2026-123')->assertDontSee('No. Rujukan LO:');
+    $snapshot = json_decode(DB::table('delivery_order_master')->where('delivery_order_id', 1)->value('document_data'), true);
+    $snapshot['po_reference'] = 'OLD-PO-999';
+    DB::table('delivery_order_master')->where('delivery_order_id', 1)->update(['document_data' => json_encode($snapshot)]);
+    $data['lo_reference'] = 'LO-2026-456';
+    $this->put(route('delivery-order.customer.update', 1), $data)->assertSessionHasNoErrors();
+    $snapshot = json_decode(DB::table('delivery_order_master')->where('delivery_order_id', 1)->value('document_data'), true);
+    expect($snapshot['lo_reference'])->toBe('LO-2026-456');
+    expect($snapshot['po_reference'])->toBe('OLD-PO-999');
+    $this->get(route('delivery-order.customer'))->assertOk()->assertSee('LO-2026-456')->assertDontSee('OLD-PO-999');
+});
+
+
+test('delivery-order starts from selected LO and validates customer relationship', function () {
+    $this->get(route('delivery-order.customer.create'))->assertOk()->assertSee('LO-SELECT-001')->assertSee('name="lo_inden_id"', false);
+    $this->get(route('delivery-order.customer.form', ['lo_inden_id'=>1]))->assertOk()->assertViewHas('values', fn($values) => $values['lo_reference'] === 'LO-SELECT-001' && $values['customer_id'] === 1);
+    $this->get(route('delivery-order.customer.form', ['lo_inden_id'=>999]))->assertSessionHasErrors('lo_inden_id');
+    $data=$this->doData; $data['lo_inden_id']=1; $data['lo_reference']='FORGED';
+    $this->post(route('delivery-order.customer.store'), $data)->assertSessionHasNoErrors();
+    $this->get(route('delivery-order.customer.show', 1))->assertOk()->assertSee('LO-SELECT-001')->assertDontSee('FORGED');
+    $data['customer_id']=999;
+    $this->post(route('delivery-order.customer.store'), $data)->assertSessionHasErrors('customer_id');
+});
+
+
+test('delivery-order prefills items from the quotation linked to the selected LO', function () {
+    Schema::create('sebutharga_detail', function (Blueprint $table) {
+        $table->increments('quotation_detail_id'); $table->integer('quotation_id'); $table->text('document_data')->nullable();
+    });
+    Schema::create('sebutharga_item', function (Blueprint $table) {
+        $table->increments('quotation_item_id'); $table->integer('quotation_detail_id');
+        $table->string('item_description'); $table->decimal('quantity',12,2); $table->string('unit'); $table->decimal('unit_price',12,2);
+    });
+    DB::table('sebutharga_detail')->insert(['quotation_detail_id'=>7,'quotation_id'=>3,'document_data'=>json_encode(['company_name'=>'Pelanggan Snapshot','address'=>'Alamat Snapshot'])]);
+    DB::table('sebutharga_item')->insert(['quotation_detail_id'=>7,'item_description'=>'Item daripada LO','quantity'=>2,'unit'=>'Unit','unit_price'=>125]);
+    DB::table('lo_inden_master')->where('lo_inden_id',1)->update(['quotation_id'=>3,'quotation_detail_id'=>7]);
+    $this->get(route('delivery-order.customer.form',['lo_inden_id'=>1]))->assertOk()
+        ->assertViewHas('values',fn($values)=>$values['customer_name']==='Pelanggan Snapshot')
+        ->assertViewHas('initialItems',fn($items)=>$items[0]['description']==='Item daripada LO' && (float)$items[0]['price']===125.0);
+});
+
+
+test('delivery-order can change its LO from the edit dropdown', function () {
+    DB::table('lo_inden_master')->insert(['lo_inden_id'=>2,'lo_inden_no'=>'LO-SELECT-002','customer_id'=>1,'lo_inden_date'=>'2026-10-13']);
+    $data=$this->doData; $data['lo_inden_id']=1;
+    $this->post(route('delivery-order.customer.store'),$data)->assertSessionHasNoErrors();
+    $this->get(route('delivery-order.customer.edit',1))->assertOk()->assertSee('LO-SELECT-001')->assertSee('LO-SELECT-002')->assertSee('value="1" selected',false);
+    $data['lo_inden_id']=2;
+    $this->put(route('delivery-order.customer.update',1),$data)->assertSessionHasNoErrors();
+    $document=json_decode(DB::table('delivery_order_master')->value('document_data'),true);
+    expect((int)$document['lo_inden_id'])->toBe(2);
+    expect($document['lo_reference'])->toBe('LO-SELECT-002');
+    $this->get(route('delivery-order.customer'))->assertOk()->assertSee('LO-SELECT-002');
+    $data['lo_inden_id']=999;
+    $this->put(route('delivery-order.customer.update',1),$data)->assertSessionHasErrors('lo_inden_id');
 });

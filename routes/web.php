@@ -41,6 +41,7 @@ Route::get('/delivery-order/pembekal/tambah', [\App\Http\Controllers\SupplierDoc
 
 Route::get('/delivery-order/pelanggan/tambah', function () {
     return view('pages.customer-document-start', [
+        'localOrders' => \App\Services\CustomerDocumentLo::options(),
         'title' => 'Tambah DO Kepada Pelanggan',
         'backRoute' => 'delivery-order.customer',
         'documentType' => 'Delivery Order (DO)',
@@ -335,6 +336,7 @@ Route::get('/invoice/pembekal/tambah', [\App\Http\Controllers\SupplierDocumentCo
 
 Route::get('/invoice/pelanggan/tambah', function () {
     return view('pages.customer-document-start', [
+        'localOrders' => \App\Services\CustomerDocumentLo::options(),
         'title' => 'Tambah Invoice Kepada Pelanggan',
         'backRoute' => 'invoice.customer',
         'documentType' => 'Invoice',

@@ -19,6 +19,7 @@
         money(value) { return new Intl.NumberFormat('en-MY',{style:'currency',currency:'MYR'}).format(value); }
     }">
         @csrf
+        @if(!$editId && !empty($values['lo_inden_id']))<input type="hidden" name="lo_inden_id" value="{{ $values['lo_inden_id'] }}">@endif
         @if($editId) @method('PUT') @endif
         @if ($errors->any())
             <ul role="alert" class="rounded-xl bg-error-50 p-5 text-sm text-error-700 dark:bg-error-500/10 dark:text-error-400">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
@@ -33,6 +34,21 @@
             <x-common.document-card :title="__('Maklumat Invois')">
                 <x-supplier-document.field name="invoice_no" :label="__('No. Dokumen')" :value="$values['invoice_no'] ?? $nextNumber" required maxlength="100" pattern="[A-Za-z0-9._\-]+" />
                 <x-supplier-document.field name="invoice_date" :label="__('Tarikh Invois')" type="date" :value="now()->format('Y-m-d')" required />
+                @if($editId)
+                    <div>
+                        <label for="lo_inden_id" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('No. Local Order (LO)') }}</label>
+                        <select id="lo_inden_id" name="lo_inden_id" required class="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
+                            <option value="">{{ __('Pilih Local Order (LO)') }}</option>
+                            @foreach($localOrders as $lo)
+                                <option value="{{ $lo->lo_inden_id }}" @selected((string) old('lo_inden_id', $values['lo_inden_id'] ?? '') === (string) $lo->lo_inden_id)>{{ $lo->lo_inden_no }} — {{ $lo->company_name ?: $lo->customer_name }}</option>
+                            @endforeach
+                        </select>
+                        @if(empty($values['lo_inden_id']) && !empty($values['lo_reference']))<p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('Rujukan sedia ada:') }} {{ $values['lo_reference'] }}</p>@endif
+                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('Pilih LO bagi pelanggan dokumen ini. Item sedia ada dikekalkan.') }}</p>
+                    </div>
+                @else
+                <x-supplier-document.field name="lo_reference" :label="__('No. Rujukan LO (pilihan)')" maxlength="100" :value="$values['lo_reference'] ?? ''" />
+                @endif
                 <p class="rounded-xl bg-gray-50 p-4 text-sm leading-6 text-gray-500 dark:bg-gray-800 dark:text-gray-400">{{ __('Invois dijana dalam format A4 dengan kepala surat, butiran bil, item, arahan pembayaran dan tandatangan.') }}</p>
             </x-common.document-card>
         </div>
