@@ -65,7 +65,6 @@
                         <th class="px-6 py-3 font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400 text-start">Tajuk</th>
                         <th class="px-6 py-3 font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400 text-start">{{ __('Draf') }}</th>
                         <th class="px-6 py-3 font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400 text-start">Status</th>
-                        <th class="px-6 py-3 font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400 text-start">Tarikh</th>
                         <th class="px-6 py-3 text-center font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">Tindakan</th>
                     </tr>
                 </thead>
@@ -74,9 +73,7 @@
                         <tr class="border-b border-gray-100 dark:border-white/[0.05] hover:bg-gray-50 dark:hover:bg-white/[0.03]">
                             <td class="px-4 sm:px-6 py-3.5">
                                 <div>
-                                    <div>
-                                        <span class="block whitespace-nowrap font-medium text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.quotationNo"></span>
-                                    </div>
+                                    <div><span class="block whitespace-nowrap font-medium text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.quotationNo"></span><span class="mt-1 block text-theme-xs text-gray-500 dark:text-gray-400" x-text="row.closeDate || '—'"></span></div>
                                 </div>
                             </td>
                             <td class="px-4 sm:px-6 py-3.5">
@@ -102,9 +99,6 @@
                                     :class="getStatusClass(selectedDraft(row).decision)"
                                     x-text="selectedDraft(row).decision"></span>
                             </td>
-                            <td class="px-4 sm:px-6 py-3.5">
-                                <p class="whitespace-nowrap text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.closeDate"></p>
-                            </td>
                             <td class="px-4 py-3.5 text-center sm:px-6">
                                 <div class="flex items-center justify-center gap-2">
                                     <a :href="'{{ url('/sebut-harga') }}/' + row.id + '/edit?draft=' + row.version" class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">{{ __('Lihat') }}</a>
@@ -118,7 +112,7 @@
                         </tr>
                     </template>
                     <template x-if="filteredRows.length === 0">
-                        <tr><td colspan="7" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">Tiada sebut harga sepadan dengan filter.</td></tr>
+                        <tr><td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">Tiada sebut harga sepadan dengan filter.</td></tr>
                     </template>
                 </tbody>
             </table>

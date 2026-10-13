@@ -34,7 +34,6 @@
                     <tr>
                         <th class="px-4 py-3 text-start font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">No. LO</th>
                         <th class="px-4 py-3 text-start font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">Pelanggan / Syarikat</th>
-                        <th class="px-4 py-3 text-start font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">Tarikh LO</th>
                         <th class="px-4 py-3 text-end font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">Jumlah (RM)</th>
                         <th class="px-4 py-3 text-start font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">Dokumen</th>
                         <th class="px-4 py-3 text-center font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">Tindakan</th>
@@ -43,9 +42,8 @@
                 <tbody>
                     <template x-for="row in filteredRows" :key="row.lo_inden_id">
                         <tr class="border-b border-gray-100 hover:bg-gray-50 dark:border-white/[0.05] dark:hover:bg-white/[0.03]">
-                            <td class="px-4 py-3.5 sm:px-6"><span class="block whitespace-nowrap font-medium text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.lo_inden_no"></span></td>
+                            <td class="px-4 py-3.5 sm:px-6"><span class="block whitespace-nowrap font-medium text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.lo_inden_no"></span><span class="mt-1 block text-theme-xs text-gray-500 dark:text-gray-400" x-text="formatDate(row.lo_inden_date)"></span></td>
                             <td class="px-4 py-3.5 sm:px-6"><span class="block min-w-60 font-medium text-theme-sm text-gray-800 dark:text-white/90" x-text="row.company_name || row.customer_name || '—'"></span></td>
-                            <td class="px-4 py-3.5 sm:px-6"><span class="whitespace-nowrap text-gray-700 text-theme-sm dark:text-gray-400" x-text="formatDate(row.lo_inden_date)"></span></td>
                             <td class="px-4 py-3.5 text-end tabular-nums sm:px-6"><span class="whitespace-nowrap font-medium text-gray-800 dark:text-white/90" x-text="Number(row.amount || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"></span></td>
                             <td class="px-4 py-3.5 sm:px-6">
                                 <template x-if="row.document_file"><a :href="'{{ url('/lo') }}/' + row.lo_inden_id + '/dokumen'" target="_blank" rel="noopener" class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">{{ __('Lihat Dokumen') }}</a></template>
@@ -63,7 +61,7 @@
                             </td>
                         </tr>
                     </template>
-                    <template x-if="filteredRows.length === 0"><tr><td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">Tiada Local Order sepadan dengan filter.</td></tr></template>
+                    <template x-if="filteredRows.length === 0"><tr><td colspan="5" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">Tiada Local Order sepadan dengan filter.</td></tr></template>
                 </tbody>
             </table>
         </div>

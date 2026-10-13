@@ -54,7 +54,6 @@
                         <th class="px-4 py-3 text-start font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">No. Purchase Order</th>
                         <th class="px-4 py-3 text-start font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">Sebut Harga</th>
                         <th class="px-4 py-3 text-start font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">Pembekal</th>
-                        <th class="px-4 py-3 text-start font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">Tarikh</th>
                         <th class="px-4 py-3 text-end font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">Jumlah (RM)</th>
                         <th class="px-4 py-3 text-center font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">Tindakan</th>
                     </tr>
@@ -62,10 +61,9 @@
                 <tbody>
                     <template x-for="row in filteredRows" :key="row.purchase_order_id">
                         <tr class="border-b border-gray-100 hover:bg-gray-50 dark:border-white/[0.05] dark:hover:bg-white/[0.03]">
-                            <td data-label="{{ __('No. Purchase Order') }}" class="px-4 py-3.5 sm:px-6"><span class="block whitespace-normal font-medium text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.po_no"></span></td>
+                            <td data-label="{{ __('No. Purchase Order') }}" class="px-4 py-3.5 sm:px-6"><span class="block whitespace-normal font-medium text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.po_no"></span><span class="mt-1 block text-theme-xs text-gray-500 dark:text-gray-400" x-text="formatDate(row.po_date)"></span></td>
                             <td data-label="{{ __('Sebut Harga') }}" class="px-4 py-3.5 sm:px-6"><span class="block whitespace-normal text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.quotation_reference_no || row.quotation_detail_id || '—'"></span></td>
                             <td data-label="{{ __('Pembekal') }}" class="px-4 py-3.5 sm:px-6"><span class="block min-w-0 font-medium text-theme-sm text-gray-800 dark:text-white/90" x-text="row.company_name || '—'"></span></td>
-                            <td data-label="{{ __('Tarikh') }}" class="px-4 py-3.5 sm:px-6"><p class="whitespace-normal text-gray-700 text-theme-sm dark:text-gray-400" x-text="formatDate(row.po_date)"></p></td>
                             <td data-label="{{ __('Jumlah (RM)') }}" class="px-4 py-3.5 text-end tabular-nums sm:px-6"><span class="whitespace-normal font-medium text-gray-800 dark:text-white/90" x-text="Number(row.net_amount || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"></span></td>
                             <td data-label="{{ __('Tindakan') }}" class="px-4 py-3.5 text-center sm:px-6">
                                 <div class="document-actions">
@@ -79,7 +77,7 @@
                             </td>
                         </tr>
                     </template>
-                    <template x-if="filteredRows.length === 0"><tr><td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">Tiada Purchase Order sepadan dengan filter.</td></tr></template>
+                    <template x-if="filteredRows.length === 0"><tr><td colspan="5" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">Tiada Purchase Order sepadan dengan filter.</td></tr></template>
                 </tbody>
             </table>
         </div>
