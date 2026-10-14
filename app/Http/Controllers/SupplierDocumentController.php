@@ -24,7 +24,11 @@ class SupplierDocumentController extends Controller
     {
         $context = $this->context($request);
         $context['title'] = $context['isInvoice'] ? __('Senarai Invois Daripada Pembekal') : __('Senarai DO Daripada Pembekal');
-        $documents = DB::table('supplier_documents')->where('kind', $context['kind'])->orderByDesc('id')->get();
+        $documents = DB::table('supplier_documents')->where('kind', $context['kind'])->orderByDesc('id')->get()->map(function ($document) {
+            $items = json_decode($document->items, true) ?: [];
+            $document->items_total = collect($items)->sum(fn ($item) => (float) ($item['price'] ?? 0));
+            return $document;
+        });
         return view('pages.supplier-documents.index', $context + compact('documents'));
     }
 
@@ -106,11 +110,11 @@ class SupplierDocumentController extends Controller
             'source_details' => 'nullable|string|max:1000','notes' => 'nullable|string|max:3000',
             'items' => 'required|array|min:1|max:100','items.*' => 'required|array',
             'items.*.description' => 'required|string|max:2000', 'items.*.quantity' => 'required|numeric|min:0.01|max:1000000|decimal:0,2',
-            'items.*.unit' => 'required|string|max:50','items.*.price' => $context['isInvoice'] ? 'required|numeric|min:0|max:1000000|decimal:0,2' : 'nullable|numeric|min:0|max:1000000',
+            'items.*.unit' => 'required|string|max:50','items.*.price' => 'required|numeric|min:0|max:1000000|decimal:0,2',
             'total_amount' => $context['isInvoice'] ? 'required|numeric|min:0|max:9999999999.99|decimal:0,2' : 'nullable',
             'reviewed' => 'accepted',
         ]);
-        $items = collect($data['items'])->map(fn ($item) => ['description'=>$item['description'],'quantity'=>(float)$item['quantity'],'unit'=>$item['unit'],'price'=>$context['isInvoice'] ? (float)$item['price'] : 0])->values()->all();
+        $items = collect($data['items'])->map(fn ($item) => ['description'=>$item['description'],'quantity'=>(float)$item['quantity'],'unit'=>$item['unit'],'price'=>(float)$item['price']])->values()->all();
         $file = $request->file('document_file');
         $path = $file ? $file->store('supplier-documents/'.$context['kind'], 'local') : $existing->file_path;
         if (!$path) throw ValidationException::withMessages(['document_file'=>__('Fail tidak dapat disimpan. Sila cuba semula.')]);
