@@ -16,6 +16,10 @@ beforeEach(function () {
     });
     DB::table('users')->insert(['id'=>42,'name'=>'Pencipta Asal','email'=>'creator@example.test','jawatan'=>'Pengurus']);
     Schema::create('customer_supplier',function(Blueprint $table){$table->increments('customer_id');$table->integer('jenis_customer');$table->string('company_name');});
+    Schema::create('lo_inden_master', function (Blueprint $table) {
+        $table->increments('lo_inden_id'); $table->string('lo_inden_no'); $table->integer('customer_id');
+    });
+    DB::table('lo_inden_master')->insert(['lo_inden_no'=>'LO-EDIT','customer_id'=>2]);
     (require database_path('migrations/2026_10_12_020000_create_supplier_documents.php'))->up();
     DB::table('customer_supplier')->insert([['customer_id'=>1,'jenis_customer'=>2,'company_name'=>'K ONE RESOURCES'],['customer_id'=>2,'jenis_customer'=>1,'company_name'=>'Customer']]);
     $user=new User();$user->id=42;$user->name='Tester';$this->actingAs($user);
@@ -86,16 +90,17 @@ test('supplier documents can be edited without reuploading or losing creator inf
     $editor = new User(); $editor->id=99; $editor->name='Editor'; $this->actingAs($editor);
     $data=$this->supplierData;
     $data['items'][0]['description']='Updated laptop'; $data['items'][0]['quantity']=3;
-    $data['notes']='Updated notes'; $data['po_reference']='PO-EDIT'; $data['source']='';
+    $data['notes']='Updated notes'; $data['lo_reference']='LO-EDIT'; $data['source']='';
     $this->put(route($prefix.'.update', $original->id), $data)->assertSessionHasNoErrors()->assertRedirect(route($prefix.'.show',$original->id));
     $updated=DB::table('supplier_documents')->first();
     expect($updated->file_path)->toBe($original->file_path)
         ->and($updated->created_by)->toBe(42)->and($updated->created_at)->toBe($original->created_at)
-        ->and($updated->source)->toBe('WhatsApp')->and($updated->po_reference)->toBe('PO-EDIT')
+        ->and($updated->source)->toBe('WhatsApp')->and($updated->po_reference)->toBe('LO-EDIT')
         ->and(json_decode($updated->items,true)[0]['description'])->toBe('Updated laptop');
     $this->assertDatabaseCount('supplier_documents',1);
     Storage::disk('local')->assertExists($original->file_path);
-    $this->get(route($prefix.'.show',$original->id))->assertOk()->assertSee('Updated laptop')->assertSee('Updated notes');
+    $this->get(route($prefix.'.show',$original->id))->assertOk()->assertSee('Updated laptop')->assertSee('Updated notes')->assertSee('No. Rujukan LO')->assertSee('LO-EDIT')->assertDontSee('No. PO');
+    $this->get(route($prefix.'.edit',$original->id))->assertOk()->assertSee('name="lo_reference"',false)->assertSee('value="LO-EDIT"',false)->assertDontSee('No. Rujukan PO');
 })->with(['invoice.supplier','delivery-order.supplier']);
 
 test('supplier document replacement validates first and cleans up only the replaced file', function (string $prefix) {
@@ -124,3 +129,30 @@ test('supplier edit rejects duplicate numbers wrong document types and unauthent
     $this->get(route('invoice.supplier.edit',1))->assertRedirect(route('login'));
     $this->put(route('invoice.supplier.update',1),$this->supplierData)->assertRedirect(route('login'));
 });
+
+test('supplier LO dropdown saves valid choices and preserves legacy references', function (string $prefix) {
+    $this->get(route($prefix.'.create'))->assertOk()->assertSee('<select id="lo_reference"',false)->assertSee('LO-EDIT');
+    $data=$this->supplierData+['lo_reference'=>'LO-EDIT','document_file'=>supplierTestPdf()];
+    $this->post(route($prefix.'.store'),$data)->assertSessionHasNoErrors();
+    $record=DB::table('supplier_documents')->first();
+    $this->get(route($prefix.'.edit',$record->id))->assertOk()->assertSee('value="LO-EDIT" selected',false);
+    $update=$this->supplierData+['lo_reference'=>'INVALID-LO'];
+    $this->put(route($prefix.'.update',$record->id),$update)->assertSessionHasErrors('lo_reference');
+    $this->assertDatabaseHas('supplier_documents',['id'=>$record->id,'po_reference'=>'LO-EDIT']);
+    session()->forget('_old_input');
+    DB::table('supplier_documents')->where('id',$record->id)->update(['po_reference'=>'LEGACY-LO']);
+    $this->get(route($prefix.'.edit',$record->id))->assertOk()->assertSee('value="LEGACY-LO" selected',false);
+    $update['lo_reference']='LEGACY-LO';
+    $this->put(route($prefix.'.update',$record->id),$update)->assertSessionHasNoErrors();
+    $update['lo_reference']='LO-EDIT';
+    $this->put(route($prefix.'.update',$record->id),$update)->assertSessionHasNoErrors();
+    $this->assertDatabaseHas('supplier_documents',['id'=>$record->id,'po_reference'=>'LO-EDIT']);
+})->with(['invoice.supplier','delivery-order.supplier']);
+
+
+test('supplier lists render matching headers and empty states without a quantity column', function (string $prefix) {
+    $response=$this->get(route($prefix))->assertOk()->assertDontSee('Jumlah Kuantiti');
+    $response->assertSee('colspan="'.($prefix === 'invoice.supplier' ? 6 : 5).'"',false);
+    if ($prefix === 'invoice.supplier') $response->assertSee('Jumlah (RM)');
+    else $response->assertDontSee('Jumlah (RM)');
+})->with(['invoice.supplier','delivery-order.supplier']);

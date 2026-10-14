@@ -34,8 +34,17 @@ class SupplierDocumentController extends Controller
         $context['title'] = $context['isInvoice'] ? __('Tambah Invois Daripada Pembekal') : __('Tambah Delivery Order Daripada Pembekal');
 
         return view('pages.supplier-documents.form', $context + [
+            'localOrders' => $this->localOrders(),
             'suppliers' => DB::table('customer_supplier')->where('jenis_customer', 2)->orderBy('company_name')->get(['customer_id','company_name']),
         ]);
+    }
+
+    private function localOrders()
+    {
+        return DB::table('lo_inden_master as lo')
+            ->leftJoin('customer_supplier as customer', 'customer.customer_id', '=', 'lo.customer_id')
+            ->orderByDesc('lo.lo_inden_id')
+            ->get(['lo.lo_inden_no', 'customer.company_name']);
     }
 
     private function extractionKey(Request $request, $file): string
@@ -70,6 +79,7 @@ class SupplierDocumentController extends Controller
 
         return view('pages.supplier-documents.form', $context + [
             'document' => $document,
+            'localOrders' => $this->localOrders(),
             'suppliers' => DB::table('customer_supplier')->where('jenis_customer', 2)->orderBy('company_name')->get(['customer_id', 'company_name']),
         ]);
     }
@@ -86,7 +96,12 @@ class SupplierDocumentController extends Controller
             'document_file' => ($existing ? 'nullable' : 'required').'|file|mimes:pdf,jpg,jpeg,png|max:10240',
             'supplier_id' => ['required','integer',Rule::exists('customer_supplier','customer_id')->where('jenis_customer',2)],
             'document_no' => ['required','string','max:100', Rule::unique('supplier_documents')->where('kind',$context['kind'])->where('supplier_id',$request->input('supplier_id'))->ignore($existing?->id)],
-            'document_date' => 'required|date_format:Y-m-d', 'po_reference' => 'nullable|string|max:100',
+            'document_date' => 'required|date_format:Y-m-d', 'lo_reference' => ['nullable', 'string', 'max:100', function ($attribute, $value, $fail) use ($existing) {
+                if ($existing && $value === $existing->po_reference) return;
+                if (!DB::table('lo_inden_master')->where('lo_inden_no', $value)->exists()) {
+                    $fail(__('Sila pilih Local Order yang sah.'));
+                }
+            }],
             'source' => [$existing ? 'nullable' : 'required',Rule::in(['PDF','E-mel','WhatsApp','Surat','Serahan Tangan','Lain-lain'])],
             'source_details' => 'nullable|string|max:1000','notes' => 'nullable|string|max:3000',
             'items' => 'required|array|min:1|max:100','items.*' => 'required|array',
@@ -100,10 +115,11 @@ class SupplierDocumentController extends Controller
         $path = $file ? $file->store('supplier-documents/'.$context['kind'], 'local') : $existing->file_path;
         if (!$path) throw ValidationException::withMessages(['document_file'=>__('Fail tidak dapat disimpan. Sila cuba semula.')]);
         try {
+            // Keep the legacy storage column so existing document references remain available.
             $values = [
                 'kind'=>$context['kind'],'supplier_id'=>$data['supplier_id'],
                 'supplier_name'=>DB::table('customer_supplier')->where('customer_id',$data['supplier_id'])->value('company_name'),
-                'document_no'=>$data['document_no'],'document_date'=>$data['document_date'],'po_reference'=>$data['po_reference'] ?? null,
+                'document_no'=>$data['document_no'],'document_date'=>$data['document_date'],'po_reference'=>$data['lo_reference'] ?? null,
                 'source'=>$data['source'] ?? $existing?->source,'source_details'=>$data['source_details'] ?? null,
                 'file_path'=>$path,'file_name'=>$file ? mb_substr(basename($file->getClientOriginalName()),0,255) : $existing->file_name,'file_mime'=>$file ? $file->getMimeType() : $existing->file_mime,
                 'extraction_method'=>$file ? Cache::get($this->extractionKey($request,$file),__('Semakan manual')) : $existing->extraction_method,
