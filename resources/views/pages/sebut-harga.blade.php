@@ -1,14 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Sebut Harga Draf" />
+    <x-common.page-breadcrumb pageTitle="Senarai Sebut Harga Draf" />
 
     <div class="space-y-6" x-data="{
         addQuotationOpen: false,
     }" @keydown.escape.window="addQuotationOpen = false">
-        <x-common.component-card title="Senarai Sebut Harga Draf">
-            <x-tables.basic-tables.sebutharga-table :quotations="$quotations" />
-        </x-common.component-card>
+        <x-tables.basic-tables.sebutharga-table :quotations="$quotations" />
 
         <div x-cloak x-show="addQuotationOpen" x-transition.opacity class="fixed inset-0 z-999999 flex items-center justify-center overflow-y-auto bg-gray-900/50 p-4 sm:p-8" @click.self="addQuotationOpen = false">
             <section x-show="addQuotationOpen" x-transition class="w-full max-w-2xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-xl dark:border-gray-700 dark:bg-gray-900" role="dialog" aria-modal="true" aria-labelledby="add-quotation-title">

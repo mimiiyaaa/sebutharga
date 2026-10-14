@@ -15,6 +15,7 @@ class LoController extends Controller
     {
         $loDocuments = DB::table('lo_inden_master as lo')
             ->leftJoin('customer_supplier as customer', 'customer.customer_id', '=', 'lo.customer_id')
+            ->leftJoin('sebutharga_detail as quotation_detail', 'quotation_detail.quotation_detail_id', '=', 'lo.quotation_detail_id')
             ->orderByDesc('lo.lo_inden_date')
             ->orderByDesc('lo.lo_inden_id')
             ->get([
@@ -27,6 +28,7 @@ class LoController extends Controller
                 'lo.quotation_detail_id',
                 'customer.customer_name',
                 'customer.company_name',
+                'quotation_detail.quotation_title',
             ]);
 
         return view('pages.lo', compact('loDocuments'));

@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('content')
-<x-common.page-breadcrumb :pageTitle="__('Sebut Harga Pembekal')" />
-<x-common.component-card :title="__('Senarai Sebut Harga Pembekal')" x-data="{ filters: { search: '', date: '' }, matches(row) { const search = this.filters.search.toLowerCase(); return (!search || row.number.toLowerCase().includes(search) || row.company.toLowerCase().includes(search) || row.title.toLowerCase().includes(search) || row.person.toLowerCase().includes(search)) && (!this.filters.date || row.date === this.filters.date); }, resetFilters() { this.filters = { search: '', date: '' }; } }">
+<x-common.page-breadcrumb :pageTitle="__('Senarai Sebut Harga Pembekal')" />
+<div class="font-outfit" x-data="{ filters: { search: '', date: '' }, matches(row) { const search = this.filters.search.toLowerCase(); return (!search || row.number.toLowerCase().includes(search) || row.company.toLowerCase().includes(search) || row.title.toLowerCase().includes(search) || row.person.toLowerCase().includes(search)) && (!this.filters.date || row.date === this.filters.date); }, resetFilters() { this.filters = { search: '', date: '' }; } }">
     <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white pt-4 dark:border-white/[0.05] dark:bg-white/[0.03]">
         <div class="mb-4 px-6">
             <div class="flex w-full flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-1.5 dark:border-gray-700 dark:bg-gray-900/50">
@@ -11,7 +11,7 @@
                 <a href="{{ route('sebut-harga-pembekal.create') }}" class="inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-4 text-theme-sm font-medium text-white transition hover:bg-brand-600">{{ __('+ Tambah Sebut Harga Pembekal') }}</a>
             </div>
         </div>
-        <div class="max-w-full overflow-x-auto custom-scrollbar"><table class="w-full min-w-[850px] text-theme-sm leading-6 text-gray-700 dark:text-gray-300">
+        <div class="max-w-full overflow-x-auto custom-scrollbar px-6"><table class="w-full min-w-[850px] text-theme-sm font-medium leading-6 text-gray-700 dark:text-gray-300">
             <thead class="border-y border-gray-100 bg-gray-50 dark:border-white/[0.05] dark:bg-gray-900"><tr>@foreach (['No. Sebut Harga', 'Pembekal', 'Tajuk', 'Sumber', 'Person In Charge', 'Tindakan'] as $heading)<th class="px-6 py-3 {{ $heading === 'Tindakan' ? 'text-center' : 'text-start' }} text-theme-sm font-semibold text-gray-500 dark:text-gray-400">{{ __($heading) }}</th>@endforeach</tr></thead>
             <tbody>@forelse ($quotations as $quotation)<tr x-show="matches({ number: @js($quotation->quotation_no_supplier ?? ''), company: @js($quotation->company_name ?? ''), title: @js($quotation->quotation_title ?? ''), person: @js($quotation->person_in_charge ?? ''), date: @js($quotation->quotation_date ?? '') })" class="border-b border-gray-100 hover:bg-gray-50 dark:border-white/[0.05] dark:hover:bg-white/[0.03]">
                 <td class="px-4 py-3.5 text-gray-700 sm:px-6 dark:text-gray-400"><span class="block">{{ $quotation->quotation_no_supplier }}</span><span class="mt-1 block text-theme-xs text-gray-500 dark:text-gray-400">{{ $quotation->quotation_date ? \Carbon\Carbon::parse($quotation->quotation_date)->format('Y-m-d') : '—' }}</span></td>
@@ -19,5 +19,5 @@
             </tr>@empty<tr><td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">{{ __('Tiada rekod untuk dipaparkan.') }}</td></tr>@endforelse</tbody>
         </table></div>
     </div>
-</x-common.component-card>
+</div>
 @endsection

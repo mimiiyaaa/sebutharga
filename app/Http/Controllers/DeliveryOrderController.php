@@ -28,14 +28,24 @@ class DeliveryOrderController extends Controller
     public function index()
     {
         $orders = DB::table('delivery_order_master')->where('document_kind', 'customer')->orderByDesc('delivery_order_id')->get();
-        $quantities = DB::table('delivery_order_item')->whereIn('delivery_order_id', $orders->pluck('delivery_order_id'))
-            ->select('delivery_order_id')->selectRaw('SUM(quantity) as quantity')->groupBy('delivery_order_id')->pluck('quantity', 'delivery_order_id');
-        $rows = $orders->map(function ($order) use ($quantities) {
+        $localOrders = DB::table('lo_inden_master')
+            ->whereIn('lo_inden_no', $orders->map(fn ($order) => data_get(json_decode($order->document_data ?? '{}', true), 'lo_reference'))->filter())
+            ->get(['lo_inden_no', 'amount', 'quotation_detail_id'])
+            ->keyBy('lo_inden_no');
+        $quotationDetails = DB::table('sebutharga_detail')
+            ->whereIn('quotation_detail_id', $localOrders->pluck('quotation_detail_id')->filter())
+            ->get(['quotation_detail_id', 'quotation_title', 'jumlah_total'])
+            ->keyBy('quotation_detail_id');
+        $rows = $orders->map(function ($order) use ($localOrders, $quotationDetails) {
             $document = json_decode($order->document_data ?? '{}', true);
+            $localOrder = $localOrders->get($document['lo_reference'] ?? null);
+            $quotation = $quotationDetails->get($localOrder?->quotation_detail_id);
             return [
                 'id' => $order->delivery_order_id, 'document_no' => $order->do_no,
                 'lo_no' => $document['lo_reference'] ?? null, 'company_name' => $document['customer_name'] ?? $order->recipient_name,
-                'document_date' => $order->do_date, 'quantity' => (float) ($quantities[$order->delivery_order_id] ?? 0),
+                'document_date' => $order->do_date,
+                'quotation_title' => $quotation?->quotation_title ?? '—',
+                'amount' => (float) ($quotation?->jumlah_total ?? $localOrder?->amount ?? 0),
                 'preview_url' => route('delivery-order.customer.preview', $order->delivery_order_id),
                     'show_url' => route('delivery-order.customer.show', $order->delivery_order_id),
                     'edit_url' => route('delivery-order.customer.edit', $order->delivery_order_id),
@@ -45,7 +55,7 @@ class DeliveryOrderController extends Controller
         return view('pages.delivery-order', [
             'title' => __('DO Kepada Pelanggan'), 'documentType' => __('DO Kepada Pelanggan'),
             'deliveryOrders' => $rows, 'createUrl' => route('delivery-order.customer.create'),
-            'partyLabel' => __('Pelanggan'), 'quantityColumn' => true,
+            'partyLabel' => __('Pelanggan'), 'customerQuotationColumns' => true,
         ]);
     }
 

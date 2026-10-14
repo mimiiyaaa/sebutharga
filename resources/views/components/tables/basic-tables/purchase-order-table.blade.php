@@ -47,7 +47,7 @@
             </div>
         </div>
 
-        <div class="min-w-0 max-w-full">
+        <div class="min-w-0 max-w-full px-6">
             <table class="document-list-table w-full text-theme-sm leading-6 text-gray-700 dark:text-gray-300">
                 <thead class="border-y border-gray-100 bg-gray-50 dark:border-white/[0.05] dark:bg-gray-900">
                     <tr>

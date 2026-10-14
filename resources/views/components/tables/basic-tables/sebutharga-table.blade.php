@@ -56,7 +56,7 @@
         </div>
 
         <!-- Table -->
-        <div class="max-w-full overflow-x-auto">
+        <div class="max-w-full overflow-x-auto px-6">
             <table class="w-full text-theme-sm leading-6 text-gray-700 dark:text-gray-300">
                 <thead class="px-6 py-3.5 border-t border-gray-100 border-y bg-gray-50 dark:border-white/[0.05] dark:bg-gray-900">
                     <tr>

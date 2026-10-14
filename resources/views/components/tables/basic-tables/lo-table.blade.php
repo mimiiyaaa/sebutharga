@@ -7,7 +7,8 @@
         return this.tableRowData.filter(row => {
             const search = this.filters.search.toLowerCase();
             const customer = `${row.company_name || ''} ${row.customer_name || ''}`.toLowerCase();
-            return (!search || String(row.lo_inden_no || '').toLowerCase().includes(search) || customer.includes(search))
+            const quotationTitle = String(row.quotation_title || '').toLowerCase();
+            return (!search || String(row.lo_inden_no || '').toLowerCase().includes(search) || customer.includes(search) || quotationTitle.includes(search))
                 && (!this.filters.date || row.lo_inden_date === this.filters.date);
         });
     },
@@ -28,14 +29,14 @@
             </div>
         </div>
 
-        <div class="max-w-full overflow-x-auto">
+        <div class="max-w-full overflow-x-auto px-6">
             <table class="w-full text-theme-sm leading-6 text-gray-700 dark:text-gray-300">
                 <thead class="border-y border-gray-100 bg-gray-50 dark:border-white/[0.05] dark:bg-gray-900">
                     <tr>
                         <th class="px-4 py-3 text-start font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">No. LO</th>
                         <th class="px-4 py-3 text-start font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">Pelanggan / Syarikat</th>
+                        <th class="px-4 py-3 text-start font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">Tajuk Sebut Harga</th>
                         <th class="px-4 py-3 text-end font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">Jumlah (RM)</th>
-                        <th class="px-4 py-3 text-start font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">Dokumen</th>
                         <th class="px-4 py-3 text-center font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">Tindakan</th>
                     </tr>
                 </thead>
@@ -44,11 +45,8 @@
                         <tr class="border-b border-gray-100 hover:bg-gray-50 dark:border-white/[0.05] dark:hover:bg-white/[0.03]">
                             <td class="px-4 py-3.5 sm:px-6"><span class="block whitespace-nowrap font-medium text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.lo_inden_no"></span><span class="mt-1 block text-theme-xs text-gray-500 dark:text-gray-400" x-text="formatDate(row.lo_inden_date)"></span></td>
                             <td class="px-4 py-3.5 sm:px-6"><span class="block min-w-60 font-medium text-theme-sm text-gray-800 dark:text-white/90" x-text="row.company_name || row.customer_name || '—'"></span></td>
+                            <td class="max-w-xs px-4 py-3.5 sm:px-6"><span class="block min-w-60 text-theme-sm text-gray-700 dark:text-gray-300" x-text="row.quotation_title || '—'"></span></td>
                             <td class="px-4 py-3.5 text-end tabular-nums sm:px-6"><span class="whitespace-nowrap font-medium text-gray-800 dark:text-white/90" x-text="Number(row.amount || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"></span></td>
-                            <td class="px-4 py-3.5 sm:px-6">
-                                <template x-if="row.document_file"><a :href="'{{ url('/lo') }}/' + row.lo_inden_id + '/dokumen'" target="_blank" rel="noopener" class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">{{ __('Lihat Dokumen') }}</a></template>
-                                <template x-if="!row.document_file"><span class="text-gray-400 dark:text-gray-500">—</span></template>
-                            </td>
                             <td class="px-4 py-3.5 text-center sm:px-6">
                                 <div class="flex items-center justify-center gap-2">
                                     <a :href="'{{ url('/lo') }}/' + row.lo_inden_id" class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">{{ __('Lihat') }}</a>

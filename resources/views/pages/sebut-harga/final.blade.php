@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('content')
-<x-common.page-breadcrumb :pageTitle="__('Sebut Harga Final')" />
-<x-common.document-card :title="__('Senarai Sebut Harga Final')" x-data="{ filters: { search: '', date: '', status: '' }, matches(row) { const search = this.filters.search.toLowerCase(); return (!search || row.customer.toLowerCase().includes(search) || row.title.toLowerCase().includes(search)) && (!this.filters.date || row.date === this.filters.date) && (!this.filters.status || row.status === this.filters.status); }, resetFilters() { this.filters = { search: '', date: '', status: '' }; } }">
+<x-common.page-breadcrumb :pageTitle="__('Senarai Sebut Harga Final')" />
+<div class="font-outfit" x-data="{ filters: { search: '', date: '', status: '' }, matches(row) { const search = this.filters.search.toLowerCase(); return (!search || row.customer.toLowerCase().includes(search) || row.title.toLowerCase().includes(search)) && (!this.filters.date || row.date === this.filters.date) && (!this.filters.status || row.status === this.filters.status); }, resetFilters() { this.filters = { search: '', date: '', status: '' }; } }">
     <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white pt-4 dark:border-white/[0.05] dark:bg-white/[0.03]">
         <div class="mb-4 px-6">
             <div class="flex w-full flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-1.5 dark:border-gray-700 dark:bg-gray-900/50">
@@ -11,7 +11,7 @@
                 <button type="button" @click="resetFilters()" class="inline-flex h-11 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">See all</button>
             </div>
         </div>
-        <div class="min-w-0 max-w-full">
+        <div class="min-w-0 max-w-full px-6">
         <table class="document-list-table w-full text-theme-sm leading-6 text-gray-700 dark:text-gray-300">
             <thead class="border-y border-gray-100 bg-gray-50 dark:border-white/[0.05] dark:bg-gray-900"><tr>
                 @foreach (['No. Sebut Harga', 'Pelanggan', 'Versi', 'Tajuk', 'Jumlah (RM)', 'Status', 'Tindakan'] as $label)
@@ -40,5 +40,5 @@
         </table>
         </div>
     </div>
-</x-common.document-card>
+</div>
 @endsection

@@ -23,6 +23,7 @@ class SupplierDocumentController extends Controller
     public function index(Request $request)
     {
         $context = $this->context($request);
+        $context['title'] = $context['isInvoice'] ? __('Senarai Invois Daripada Pembekal') : __('Senarai DO Daripada Pembekal');
         $documents = DB::table('supplier_documents')->where('kind', $context['kind'])->orderByDesc('id')->get();
         return view('pages.supplier-documents.index', $context + compact('documents'));
     }
