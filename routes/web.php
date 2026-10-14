@@ -28,6 +28,9 @@ Route::get('/dashboard', function () {
     ]);
 })->middleware('auth')->name('dashboard');
 
+Route::view('/baucar-bayaran', 'pages.baucar-bayaran.index', ['title' => 'Baucar Bayaran'])
+    ->middleware('auth')->name('baucar-bayaran.index');
+
 // calender pages
 Route::get('/calendar', function () {
     return view('pages.calender', ['title' => 'Calendar']);
