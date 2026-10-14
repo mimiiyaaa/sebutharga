@@ -53,7 +53,7 @@ class DeliveryOrderController extends Controller
             ];
         });
         return view('pages.delivery-order', [
-            'title' => __('DO Kepada Pelanggan'), 'documentType' => __('DO Kepada Pelanggan'),
+            'title' => __('Senarai DO Kepada Pelanggan'), 'documentType' => __('DO Kepada Pelanggan'),
             'deliveryOrders' => $rows, 'createUrl' => route('delivery-order.customer.create'),
             'partyLabel' => __('Pelanggan'), 'customerQuotationColumns' => true,
         ]);

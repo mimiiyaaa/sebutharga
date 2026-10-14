@@ -32,14 +32,21 @@
         <x-common.document-creator :creator-id="$record->created_by" :created-at="$record->created_at" :document-label="$isInvoice ? __('invois ini') : __('DO ini')" />
             </div>
     </x-slot:referenceActions>
-    <div class="space-y-6">
-        <x-common.document-card :title="$number">
-            <dl class="grid gap-6 text-sm sm:grid-cols-3">
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('No. Dokumen') }}</dt><dd class="mt-2 font-semibold">{{ $number }}</dd></div>
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('Tarikh') }}</dt><dd class="mt-2 font-semibold">{{ \Illuminate\Support\Carbon::parse($date)->format('d/m/Y') }}</dd></div>
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('No. Local Order (LO)') }}</dt><dd class="mt-2 font-semibold">{{ $document['lo_reference'] ?? '—' }}</dd></div>
+    <div class="flex flex-col gap-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03] sm:p-8">
+        <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
+            <div class="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 px-6 py-7 dark:border-gray-800 sm:px-8">
+                <div class="min-w-0">
+                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600 dark:text-brand-400">{{ $isInvoice ? __('Maklumat Invois') : __('Maklumat Delivery Order') }}</p>
+                    <h2 class="mt-2 truncate text-3xl font-semibold tracking-tight text-gray-900 dark:text-white/90">{{ $number }}</h2>
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ $document['customer_name'] ?? $record->recipient_name ?? '—' }} · {{ $isInvoice ? __('Ringkasan invois') : __('Ringkasan delivery order') }}</p>
+                </div>
+            </div>
+            <dl class="grid grid-cols-1 gap-4 border-b border-gray-100 p-6 text-sm sm:grid-cols-2 dark:border-gray-800">
+                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('No. Dokumen') }}</dt><dd class="mt-2 font-semibold text-gray-800 dark:text-white/90">{{ $number }}</dd></div>
+                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('Tarikh') }}</dt><dd class="mt-2 font-semibold text-gray-800 dark:text-white/90">{{ \Illuminate\Support\Carbon::parse($date)->format('d/m/Y') }}</dd></div>
+                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('No. Local Order (LO)') }}</dt><dd class="mt-2 font-semibold text-gray-800 dark:text-white/90">{{ $document['lo_reference'] ?? '—' }}</dd></div>
             </dl>
-        </x-common.document-card>
+        </section>
         <div class="grid gap-6 lg:grid-cols-2">
             @foreach($sections as $section => $fields)
                 <x-common.document-card :title="$section">
@@ -48,9 +55,9 @@
             @endforeach
         </div>
         <x-common.document-card :title="__('Senarai Item')">
-            <div class="overflow-x-auto">
-                <table class="w-full text-start text-sm">
-                    <thead class="bg-gray-50 text-gray-600 dark:bg-gray-800 dark:text-gray-300"><tr>
+            <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                <table class="w-full overflow-hidden rounded-xl text-start text-sm">
+                    <thead class="overflow-hidden rounded-xl bg-error-800 text-white dark:bg-error-900 dark:text-white"><tr>
                         @foreach([__('Bil'), __('Keterangan'), __('Kuantiti'), __('Unit')] as $heading)<th class="px-4 py-3 text-start">{{ $heading }}</th>@endforeach
                         @if($isInvoice)<th class="px-4 py-3 text-end">{{ __('Harga Seunit (RM)') }}</th><th class="px-4 py-3 text-end">{{ __('Jumlah (RM)') }}</th>@else<th class="px-4 py-3 text-center">{{ __('Semakan') }}</th>@endif
                     </tr></thead>

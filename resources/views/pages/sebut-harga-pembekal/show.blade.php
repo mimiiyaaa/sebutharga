@@ -38,9 +38,9 @@
         </x-common.document-card>
     </div>
     <x-common.document-card :title="__('Item Dokumen')">
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm text-gray-700 dark:text-gray-300">
-                <thead class="bg-gray-50 dark:bg-gray-800"><tr>
+        <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+            <table class="w-full overflow-hidden rounded-xl text-sm text-gray-700 dark:text-gray-300">
+                <thead class="bg-error-800 text-white dark:bg-error-900 dark:text-white"><tr>
                     @foreach(['Bil','Keterangan Barang','Kuantiti','Unit','Harga Seunit (RM)','Jumlah (RM)'] as $heading)<th class="p-3 text-start">{{ __($heading) }}</th>@endforeach
                 </tr></thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
