@@ -3,7 +3,7 @@
 @endphp
 <x-common.document-card :title="__('Item Penghantaran')" :desc="__('Tandakan semakan selepas barang diperiksa; biarkan kosong untuk semakan ketika serahan.')">
     <div class="custom-scrollbar overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
-        <table class="w-full text-start text-sm text-gray-700 dark:text-gray-300">
+        <table class="item-editor-table item-editor-delivery w-full text-start text-sm text-gray-700 dark:text-gray-300">
             <thead class="border-b border-error-800 bg-error-800 text-theme-xs text-white dark:border-error-900 dark:bg-error-900 dark:text-white">
                 <tr>
                     <th scope="col" class="p-3">{{ __('Bil') }}</th>
@@ -25,7 +25,7 @@
                             <input type="hidden" :name="`items[${index}][checked]`" :value="item.checked ? 1 : 0">
                             <input type="checkbox" x-model="item.checked" :aria-label="@js(__('Semakan item')) + ' ' + (index + 1)" class="h-5 w-5 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-900">
                         </td>
-                        <td class="p-3"><button type="button" @click="items.splice(index, 1)" :disabled="items.length === 1" class="min-h-11 px-2 text-error-600 disabled:cursor-not-allowed disabled:opacity-40 dark:text-error-400">{{ __('Buang') }}</button></td>
+                        <td class="p-3"><button type="button" title="{{ __('Buang') }}" aria-label="{{ __('Buang') }}" @click="items.splice(index, 1)" :disabled="items.length === 1" class="document-action document-action-delete disabled:cursor-not-allowed disabled:opacity-40"><x-svg.item-trash /></button></td>
                     </tr>
                 </template>
             </tbody>

@@ -4,7 +4,7 @@
 @endphp
 <x-common.document-card :title="$invoice ? __('Item Invois') : __('Item Penghantaran')" :desc="__('Masukkan keterangan, kuantiti dan unit bagi setiap item.')">
     <div class="custom-scrollbar overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
-        <table class="w-full text-start text-sm text-gray-700 dark:text-gray-300">
+        <table class="item-editor-table {{ $invoice ? '' : 'item-editor-supplier-do' }} w-full text-start text-sm text-gray-700 dark:text-gray-300">
             <thead class="border-b border-gray-200 bg-gray-50 text-theme-xs uppercase text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
                 <tr>
                     <th scope="col" class="p-3">{{ __('Bil') }}</th>
@@ -29,7 +29,7 @@
                             <td class="min-w-40 p-3"><input type="number" min="0" step="0.01" x-model.number="item.price" :name="`items[${index}][price]`" aria-label="{{ __('Harga Seunit (RM)') }}" class="{{ $inputClass }} price-input text-end"></td>
                             <td class="whitespace-nowrap p-3 pt-6 text-end tabular-nums" x-text="money(subtotal(item))"></td>
                         @endif
-                        <td class="p-3"><button type="button" @click="items.splice(index, 1)" :disabled="items.length === 1" class="min-h-11 px-2 text-error-600 disabled:cursor-not-allowed disabled:opacity-40 dark:text-error-400">{{ __('Buang') }}</button></td>
+                        <td class="p-3"><button type="button" title="{{ __('Buang') }}" aria-label="{{ __('Buang') }}" @click="items.splice(index, 1)" :disabled="items.length === 1" class="document-action document-action-delete disabled:cursor-not-allowed disabled:opacity-40"><x-svg.item-trash /></button></td>
                     </tr>
                 </template>
             </tbody>

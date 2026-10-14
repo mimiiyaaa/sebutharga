@@ -216,7 +216,7 @@
             <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ __('Pilih sebut harga pembekal untuk memasukkan item secara automatik. Item masih boleh diedit.') }}</p>
         </div>
         <div class="px-4 pb-4">
-            <div class="grid w-full grid-cols-12 overflow-hidden rounded-xl text-start text-theme-sm text-gray-700 dark:text-gray-300">
+            <div class="item-editor-grid grid w-full grid-cols-12 overflow-hidden rounded-xl text-start text-theme-sm text-gray-700 dark:text-gray-300">
                 <div class="col-span-1 whitespace-nowrap bg-error-800 px-2 py-3 text-center text-theme-xs font-semibold text-white dark:bg-error-900">Bil.</div>
                 <div class="col-span-4 whitespace-nowrap bg-error-800 px-2 py-3 text-start text-theme-xs font-semibold text-white dark:bg-error-900">Keterangan / Description</div>
                 <div class="col-span-2 whitespace-nowrap bg-error-800 px-2 py-3 text-start text-theme-xs font-semibold text-white dark:bg-error-900">Kuantiti</div>
@@ -232,7 +232,7 @@
                         <div class="col-span-1 px-1"><input :name="`items[${index}][unit]`" x-model="item.unit" required class="{{ $inputClass }} w-full text-center" placeholder="Unit"></div>
                         <div class="col-span-2 px-1"><input :name="`items[${index}][price]`" type="number" min="0" step="0.01" x-model.number="item.price" required class="{{ $inputClass }} w-full price-input text-end"></div>
                         <div class="col-span-1 whitespace-nowrap px-1" x-text="money(subtotal(item))"></div>
-                        <div class="col-span-1 px-1"><button type="button" @click="items.splice(index, 1)" :disabled="items.length === 1" class="text-error-600 disabled:cursor-not-allowed disabled:opacity-40 dark:text-error-400">Buang</button></div>
+                        <div class="col-span-1 px-1"><button type="button" title="{{ __('Buang') }}" aria-label="{{ __('Buang') }}" @click="items.splice(index, 1)" :disabled="items.length === 1" class="document-action document-action-delete disabled:cursor-not-allowed disabled:opacity-40"><x-svg.item-trash /></button></div>
                     </div>
                 </template>
             </div>

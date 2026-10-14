@@ -22,6 +22,13 @@ class SupplierQuotationController extends Controller
         return view('pages.sebut-harga-pembekal.index', compact('quotations'));
     }
 
+    public function show(int $id)
+    {
+        $quotation = DB::table('pembekal_quotation_master')->where('supplier_quotation_id', $id)->firstOrFail();
+        $items = DB::table('pembekal_quotation_item')->where('supplier_quotation_id', $id)->orderBy('supplier_quotation_item_id')->get();
+        return view('pages.sebut-harga-pembekal.show', compact('quotation', 'items'));
+    }
+
     public function form(?int $id = null)
     {
         $quotation = $id ? DB::table('pembekal_quotation_master')->where('supplier_quotation_id', $id)->firstOrFail() : null;
@@ -263,13 +270,14 @@ class SupplierQuotationController extends Controller
 
     public function save(Request $request, ?int $id = null)
     {
+        $existing = $id ? DB::table('pembekal_quotation_master')->where('supplier_quotation_id', $id)->firstOrFail() : null;
         $data = $request->validate([
             'quotation_id' => ['nullable', 'integer', 'exists:sebutharga_master,quotation_id'],
             'supplier_id' => ['required', 'integer', Rule::exists('customer_supplier', 'customer_id')->where('jenis_customer', 2)],
             'quotation_no_supplier' => ['required', 'string', 'max:100'],
             'quotation_date' => ['required', 'date'],
             'quotation_title' => ['nullable', 'string', 'max:255'],
-            'sumber_sebut_harga' => ['required', 'in:PDF,E-mel,WhatsApp,Surat,Serahan Tangan,Lain-lain'],
+            'sumber_sebut_harga' => [$existing ? 'nullable' : 'required', 'in:PDF,E-mel,WhatsApp,Surat,Serahan Tangan,Lain-lain'],
             'person_in_charge' => ['nullable', 'string', 'max:255'],
             'supplier_quotation_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
             'items' => ['required', 'array', 'min:1'],
@@ -279,6 +287,7 @@ class SupplierQuotationController extends Controller
             'items.*.price' => ['required', 'numeric', 'min:0'],
         ]);
 
+        $data['sumber_sebut_harga'] = $data['sumber_sebut_harga'] ?? $existing?->sumber_sebut_harga;
         $supplier = DB::table('customer_supplier')->where('customer_id', $data['supplier_id'])->firstOrFail();
         $items = collect($data['items']);
         $filePath = null;
@@ -340,7 +349,7 @@ class SupplierQuotationController extends Controller
             }
         });
 
-        return redirect()->route('sebut-harga-pembekal')->with('success', 'Sebut harga pembekal berjaya disimpan.');
+        return redirect()->route($id ? 'sebut-harga-pembekal.show' : 'sebut-harga-pembekal', $id ? [$id] : [])->with('success', 'Sebut harga pembekal berjaya disimpan.');
     }
 
     public function delete(int $id)

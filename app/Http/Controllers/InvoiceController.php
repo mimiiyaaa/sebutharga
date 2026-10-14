@@ -27,16 +27,25 @@ class InvoiceController extends Controller
 
     public function index()
     {
-        $invoices = DB::table('invoice_master')->where('document_kind', 'customer')->orderByDesc('invoice_id')->get()
-            ->map(function ($invoice) {
+        $records = DB::table('invoice_master')->where('document_kind', 'customer')->orderByDesc('invoice_id')->get();
+        $localOrders = DB::table('lo_inden_master')
+            ->whereIn('lo_inden_no', $records->map(fn ($invoice) => data_get(json_decode($invoice->document_data ?? '{}', true), 'lo_reference'))->filter())
+            ->get(['lo_inden_no', 'amount', 'quotation_detail_id'])->keyBy('lo_inden_no');
+        $quotationDetails = DB::table('sebutharga_detail')
+            ->whereIn('quotation_detail_id', $localOrders->pluck('quotation_detail_id')->filter())
+            ->get(['quotation_detail_id', 'quotation_title', 'jumlah_total'])->keyBy('quotation_detail_id');
+        $invoices = $records->map(function ($invoice) use ($localOrders, $quotationDetails) {
                 $document = json_decode($invoice->document_data ?? '{}', true);
+                $localOrder = $localOrders->get($document['lo_reference'] ?? null);
+                $quotation = $quotationDetails->get($localOrder?->quotation_detail_id);
                 return [
                     'id' => $invoice->invoice_id,
                     'document_no' => $invoice->invoice_no,
                     'lo_no' => $document['lo_reference'] ?? null,
                     'company_name' => $document['customer_name'] ?? '',
                     'document_date' => $invoice->invoice_date,
-                    'amount' => $invoice->total_amount,
+                    'quotation_title' => $quotation?->quotation_title ?? '—',
+                    'amount' => (float) ($quotation?->jumlah_total ?? $localOrder?->amount ?? 0),
                     'preview_url' => route('invoice.customer.preview', $invoice->invoice_id),
                     'show_url' => route('invoice.customer.show', $invoice->invoice_id),
                     'edit_url' => route('invoice.customer.edit', $invoice->invoice_id),
@@ -49,6 +58,7 @@ class InvoiceController extends Controller
             'invoices' => $invoices,
             'createUrl' => route('invoice.customer.create'),
             'partyLabel' => __('Pelanggan'),
+            'customerQuotationColumns' => true,
         ]);
     }
 

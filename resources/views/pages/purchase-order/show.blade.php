@@ -3,13 +3,8 @@
 @section('content')
 <x-common.document-workspace :title="__('Butiran PO')" :reference="$order->po_no" x-data="{ loginInfoOpen: false }" @keydown.escape.window="loginInfoOpen = false">
     <x-slot:referenceActions>
-        <a href="{{ route('purchase-order.index') }}" class="inline-flex h-9 items-center justify-center rounded-lg border border-gray-200 bg-white px-3 text-theme-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">{{ __('Kembali') }}</a>
-        <div class="relative" @click.outside="loginInfoOpen = false">
-            <button type="button" @click="loginInfoOpen = !loginInfoOpen" title="{{ __('Maklumat Login') }}" aria-label="{{ __('Maklumat Login') }}" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-brand-700 dark:hover:text-brand-400">
-                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 16v-4m0-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
-            </button>
-            <x-common.created-by-panel :name="$order->creator_name" :jawatan="$order->creator_jawatan" :email="$order->creator_email" :created-at="$order->created_at" document-label="PO ini" />
-        </div>
+        <a href="{{ route('purchase-order.index') }}" class="inline-flex h-9 items-center justify-center px-3 py-1.5 text-theme-xs rounded-lg border border-gray-200 bg-white font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">{{ __('Kembali') }}</a>
+        <x-common.document-creator :creator-id="$order->created_by" :created-at="$order->created_at" :document-label="__('PO ini')" />
     </x-slot:referenceActions>
 
     @php
@@ -23,8 +18,8 @@
         <div class="flex items-center justify-between border-b border-gray-100 px-6 py-5 dark:border-gray-800">
             <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ __('Maklumat Pesanan Belian') }}</h2>
             <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
-                <a href="{{ route('purchase-order.preview', $order->purchase_order_id) }}" class="inline-flex h-10 items-center rounded-lg border border-gray-300 bg-gray-50 px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">{{ __('Pratonton') }}</a>
-                <a href="{{ route('purchase-order.edit', ['id' => $order->purchase_order_id, 'from' => 'show']) }}" class="inline-flex h-10 items-center rounded-lg bg-brand-500 px-3 text-sm font-medium text-white transition hover:bg-brand-600">{{ __('Edit') }}</a>
+                <a href="{{ route('purchase-order.preview', $order->purchase_order_id) }}" class="inline-flex h-9 items-center justify-center px-3 py-1.5 text-theme-xs rounded-lg border border-gray-300 bg-gray-50 font-medium text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">{{ __('Pratonton') }}</a>
+                <a href="{{ route('purchase-order.edit', ['id' => $order->purchase_order_id, 'from' => 'show']) }}" class="inline-flex h-9 items-center justify-center px-3 py-1.5 text-theme-xs rounded-lg bg-brand-500 font-medium text-white transition hover:bg-brand-600">{{ __('Edit') }}</a>
             </div>
         </div>
         <div class="grid grid-cols-1 gap-6 p-6 sm:grid-cols-2 xl:grid-cols-3">

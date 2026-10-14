@@ -10,8 +10,9 @@
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h1 class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ __('Lihat Local Order') }}</h1>
             <div class="flex flex-wrap gap-3">
-                <a href="{{ route('lo') }}" class="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
-                <a href="{{ route('lo.edit', $lo->lo_inden_id) }}" class="inline-flex h-10 items-center justify-center rounded-lg bg-brand-500 px-4 text-sm font-medium text-white transition hover:bg-brand-600">{{ __('Edit Local Order') }}</a>
+                <a href="{{ route('lo') }}" class="inline-flex h-9 items-center justify-center px-3 py-1.5 text-theme-xs rounded-lg border border-gray-300 bg-white font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
+                <a href="{{ route('lo.edit', $lo->lo_inden_id) }}" class="inline-flex h-9 items-center justify-center px-3 py-1.5 text-theme-xs rounded-lg bg-brand-500 font-medium text-white transition hover:bg-brand-600">{{ __('Edit Local Order') }}</a>
+                <x-common.document-creator :creator-id="$lo->created_by" :created-at="$lo->created_at" :document-label="__('LO ini')" />
             </div>
         </div>
 

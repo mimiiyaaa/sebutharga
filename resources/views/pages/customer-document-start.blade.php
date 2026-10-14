@@ -3,7 +3,7 @@
 @section('content')
     <x-common.document-workspace :title="$title" :subtitle="__('Pilih Local Order untuk menyediakan Delivery Order kepada pelanggan.')">
         <x-slot:referenceActions>
-            <a href="{{ route($backRoute) }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
+            <a href="{{ route($backRoute) }}" class="inline-flex h-9 items-center justify-center px-3 py-1.5 text-theme-xs rounded-lg border border-gray-300 bg-white font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
         </x-slot:referenceActions>
 
         <x-common.document-card :title="__('Langkah 1: Pilih Local Order (LO)')" :desc="__('Pilih LO untuk dimasukkan ke dalam Delivery Order.')">

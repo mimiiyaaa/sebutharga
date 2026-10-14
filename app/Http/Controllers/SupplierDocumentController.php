@@ -59,13 +59,35 @@ class SupplierDocumentController extends Controller
 
     public function store(Request $request)
     {
+        return $this->save($request);
+    }
+
+    public function edit(Request $request, int $id)
+    {
+        $document = $this->document($request, $id);
+        $context = $this->context($request);
+        $context['title'] = $context['isInvoice'] ? __('Edit Invois Daripada Pembekal') : __('Edit DO Daripada Pembekal');
+
+        return view('pages.supplier-documents.form', $context + [
+            'document' => $document,
+            'suppliers' => DB::table('customer_supplier')->where('jenis_customer', 2)->orderBy('company_name')->get(['customer_id', 'company_name']),
+        ]);
+    }
+
+    public function update(Request $request, int $id)
+    {
+        return $this->save($request, $this->document($request, $id));
+    }
+
+    private function save(Request $request, ?object $existing = null)
+    {
         $context = $this->context($request);
         $data = $request->validate([
-            'document_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'document_file' => ($existing ? 'nullable' : 'required').'|file|mimes:pdf,jpg,jpeg,png|max:10240',
             'supplier_id' => ['required','integer',Rule::exists('customer_supplier','customer_id')->where('jenis_customer',2)],
-            'document_no' => ['required','string','max:100', Rule::unique('supplier_documents')->where('kind',$context['kind'])->where('supplier_id',$request->input('supplier_id'))],
+            'document_no' => ['required','string','max:100', Rule::unique('supplier_documents')->where('kind',$context['kind'])->where('supplier_id',$request->input('supplier_id'))->ignore($existing?->id)],
             'document_date' => 'required|date_format:Y-m-d', 'po_reference' => 'nullable|string|max:100',
-            'source' => ['required',Rule::in(['PDF','E-mel','WhatsApp','Surat','Serahan Tangan','Lain-lain'])],
+            'source' => [$existing ? 'nullable' : 'required',Rule::in(['PDF','E-mel','WhatsApp','Surat','Serahan Tangan','Lain-lain'])],
             'source_details' => 'nullable|string|max:1000','notes' => 'nullable|string|max:3000',
             'items' => 'required|array|min:1|max:100','items.*' => 'required|array',
             'items.*.description' => 'required|string|max:2000', 'items.*.quantity' => 'required|numeric|min:0.01|max:1000000|decimal:0,2',
@@ -75,23 +97,32 @@ class SupplierDocumentController extends Controller
         ]);
         $items = collect($data['items'])->map(fn ($item) => ['description'=>$item['description'],'quantity'=>(float)$item['quantity'],'unit'=>$item['unit'],'price'=>$context['isInvoice'] ? (float)$item['price'] : 0])->values()->all();
         $file = $request->file('document_file');
-        $path = $file->store('supplier-documents/'.$context['kind'], 'local');
+        $path = $file ? $file->store('supplier-documents/'.$context['kind'], 'local') : $existing->file_path;
         if (!$path) throw ValidationException::withMessages(['document_file'=>__('Fail tidak dapat disimpan. Sila cuba semula.')]);
         try {
-            DB::table('supplier_documents')->insert([
+            $values = [
                 'kind'=>$context['kind'],'supplier_id'=>$data['supplier_id'],
                 'supplier_name'=>DB::table('customer_supplier')->where('customer_id',$data['supplier_id'])->value('company_name'),
                 'document_no'=>$data['document_no'],'document_date'=>$data['document_date'],'po_reference'=>$data['po_reference'] ?? null,
-                'source'=>$data['source'],'source_details'=>$data['source_details'] ?? null,
-                'file_path'=>$path,'file_name'=>mb_substr(basename($file->getClientOriginalName()),0,255),'file_mime'=>$file->getMimeType(),
-                'extraction_method'=>Cache::get($this->extractionKey($request,$file),__('Semakan manual')),
+                'source'=>$data['source'] ?? $existing?->source,'source_details'=>$data['source_details'] ?? null,
+                'file_path'=>$path,'file_name'=>$file ? mb_substr(basename($file->getClientOriginalName()),0,255) : $existing->file_name,'file_mime'=>$file ? $file->getMimeType() : $existing->file_mime,
+                'extraction_method'=>$file ? Cache::get($this->extractionKey($request,$file),__('Semakan manual')) : $existing->extraction_method,
                 'items'=>json_encode($items, JSON_UNESCAPED_UNICODE),'total_amount'=>$context['isInvoice'] ? $data['total_amount'] : null,
-                'notes'=>$data['notes'] ?? null,'created_by'=>$request->user()->id,'created_at'=>now(),'updated_at'=>now(),
-            ]);
+                'notes'=>$data['notes'] ?? null,'updated_at'=>now(),
+            ];
+            if ($existing) {
+                DB::table('supplier_documents')->where('id', $existing->id)->where('kind', $context['kind'])->update($values);
+            } else {
+                DB::table('supplier_documents')->insert($values + ['created_by'=>$request->user()->id, 'created_at'=>now()]);
+            }
         } catch (\Throwable $e) {
-            Storage::disk('local')->delete($path);
+            if ($file) Storage::disk('local')->delete($path);
             if ($e instanceof \Illuminate\Database\UniqueConstraintViolationException) throw ValidationException::withMessages(['document_no'=>__('Nombor dokumen pembekal ini sudah disimpan.')]);
             throw $e;
+        }
+        if ($existing) {
+            if ($file && $existing->file_path !== $path) Storage::disk('local')->delete($existing->file_path);
+            return redirect()->route($context['prefix'].'.show', $existing->id)->with('success', __('Dokumen pembekal berjaya dikemas kini.'));
         }
         return redirect()->route($context['prefix'])->with('success',__('Dokumen pembekal berjaya disimpan.'));
     }

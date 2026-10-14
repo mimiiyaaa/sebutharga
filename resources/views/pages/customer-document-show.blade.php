@@ -22,13 +22,14 @@
 <x-common.document-workspace :title="$title">
     <x-slot:referenceActions>
         <div class="flex flex-wrap items-center gap-2">
-        <a href="{{ route($routePrefix) }}" class="rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">{{ __('Kembali') }}</a>
-        <a href="{{ route($routePrefix.'.edit', $id) }}" class="rounded-lg bg-brand-500 px-4 py-3 text-sm font-medium text-white hover:bg-brand-600 dark:bg-brand-500 dark:text-white dark:hover:bg-brand-600">{{ __('Edit') }}</a>
-        <a href="{{ route($routePrefix.'.preview', $id) }}" class="rounded-lg border border-brand-300 bg-brand-50 px-4 py-3 text-sm text-brand-700 dark:border-brand-700 dark:bg-brand-500/10 dark:text-brand-400">{{ __('Pratonton PDF') }}</a>
+        <a href="{{ route($routePrefix) }}" class="inline-flex h-9 items-center justify-center px-3 py-1.5 text-theme-xs rounded-lg border border-gray-300 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">{{ __('Kembali') }}</a>
+        <a href="{{ route($routePrefix.'.edit', $id) }}" class="inline-flex h-9 items-center justify-center px-3 py-1.5 text-theme-xs rounded-lg bg-brand-500 font-medium text-white hover:bg-brand-600 dark:bg-brand-500 dark:text-white dark:hover:bg-brand-600">{{ __('Edit') }}</a>
+        <a href="{{ route($routePrefix.'.preview', $id) }}" class="inline-flex h-9 items-center justify-center px-3 py-1.5 text-theme-xs rounded-lg border border-brand-300 bg-brand-50 text-brand-700 dark:border-brand-700 dark:bg-brand-500/10 dark:text-brand-400">{{ __('Pratonton PDF') }}</a>
         <form method="POST" action="{{ route($routePrefix.'.delete', $id) }}" x-data @submit.prevent="$dispatch('confirm-action', { form: $el, message: @js(__('Padam dokumen ini? Tindakan ini tidak boleh dibatalkan.')) })">
             @csrf @method('DELETE')
-            <button type="submit" class="rounded-lg border border-error-300 bg-error-50 px-4 py-3 text-sm text-error-700 dark:border-error-700 dark:bg-error-500/10 dark:text-error-400">{{ __('Padam') }}</button>
+            <button type="submit" class="inline-flex h-9 items-center justify-center px-3 py-1.5 text-theme-xs rounded-lg border border-error-300 bg-error-50 text-error-700 dark:border-error-700 dark:bg-error-500/10 dark:text-error-400">{{ __('Padam') }}</button>
         </form>
+        <x-common.document-creator :creator-id="$record->created_by" :created-at="$record->created_at" :document-label="$isInvoice ? __('invois ini') : __('DO ini')" />
             </div>
     </x-slot:referenceActions>
     <div class="space-y-6">

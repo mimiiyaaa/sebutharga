@@ -8,6 +8,10 @@ use Illuminate\Support\Facades\Schema;
 beforeEach(function () {
     config(['database.default' => 'sqlite', 'database.connections.sqlite.database' => ':memory:', 'session.driver' => 'array']);
     DB::purge('sqlite');
+    Schema::create('users', function (Blueprint $table) {
+        $table->increments('id'); $table->string('name'); $table->string('email')->nullable(); $table->string('jawatan')->nullable();
+    });
+    DB::table('users')->insert(['id'=>42,'name'=>'Pencipta Asal','email'=>'creator@example.test','jawatan'=>'Pengurus']);
     Schema::create('customer_supplier', function (Blueprint $table) {
         $table->increments('customer_id'); $table->integer('jenis_customer');
         $table->string('company_name'); $table->string('customer_name'); $table->text('address');
@@ -18,9 +22,16 @@ beforeEach(function () {
     (require database_path('migrations/2026_10_11_160650_create_invoice_and_delivery_order_tables.php'))->up();
     (require database_path('migrations/2026_10_12_010000_add_delivery_order_document_data.php'))->up();
     DB::table('customer_supplier')->insert(['customer_id'=>1,'jenis_customer'=>1,'company_name'=>'Jabatan Teknologi & Komunikasi','customer_name'=>'Pelanggan','address'=>"Sektor Awam Negeri Kelantan\n15000 Kota Bharu, Kelantan."]);
+    Schema::create('sebutharga_master', function (Blueprint $table) {
+        $table->increments('quotation_id'); $table->string('quotation_no')->nullable();
+    });
+    Schema::create('sebutharga_detail', function (Blueprint $table) {
+        $table->increments('quotation_detail_id'); $table->integer('quotation_id'); $table->text('document_data')->nullable();
+        $table->date('quotation_date')->nullable(); $table->string('quotation_title')->nullable();
+    });
     Schema::create('lo_inden_master', function (Blueprint $table) {
         $table->increments('lo_inden_id'); $table->string('lo_inden_no'); $table->integer('customer_id');
-        $table->date('lo_inden_date'); $table->integer('quotation_id')->nullable(); $table->integer('quotation_detail_id')->nullable();
+        $table->date('lo_inden_date'); $table->decimal('amount',12,2)->default(0); $table->integer('quotation_id')->nullable(); $table->integer('quotation_detail_id')->nullable();
     });
     DB::table('lo_inden_master')->insert(['lo_inden_id'=>1,'lo_inden_no'=>'LO-SELECT-001','customer_id'=>1,'lo_inden_date'=>'2026-10-13']);
     $user = new User(); $user->id = 42; $user->name = 'Tester';
@@ -43,7 +54,7 @@ beforeEach(function () {
 
 test('delivery order preserves list intermediate and create navigation', function () {
     $this->get(route('delivery-order.customer'))->assertOk()->assertViewIs('pages.delivery-order')
-        ->assertSee('href="'.route('delivery-order.customer.create').'"',false)->assertSee('Jumlah Kuantiti');
+        ->assertSee('href="'.route('delivery-order.customer.create').'"',false)->assertSee('Jumlah Harga (RM)');
     $this->get(route('delivery-order.customer.create'))->assertOk()->assertViewIs('pages.customer-document-start')
         ->assertSee('action="'.route('delivery-order.customer.form').'"',false);
     $form=$this->get(route('delivery-order.customer.form'))->assertOk()->assertSee('Cipta &amp; Simpan DO',false)
@@ -52,7 +63,7 @@ test('delivery order preserves list intermediate and create navigation', functio
 });
 
 test('delivery order saves snapshot items and renders downloadable pdf', function () {
-    $this->post(route('delivery-order.customer.store'),$this->doData)->assertSessionHasNoErrors()->assertRedirect(route('delivery-order.customer.preview',1));
+    $this->post(route('delivery-order.customer.store'),$this->doData)->assertSessionHasNoErrors()->assertRedirect(route('delivery-order.customer'));
     $this->assertDatabaseCount('delivery_order_master',1);
     $this->assertDatabaseCount('delivery_order_item',3);
     $this->assertDatabaseHas('delivery_order_master',['do_no'=>'K1R-DO-2026-001','created_by'=>42]);
@@ -101,7 +112,7 @@ test('long delivery order renders and anonymous access is blocked', function () 
 test('delivery-order supports detail edit update and delete without replacing the record', function () {
     $this->post(route('delivery-order.customer.store'), $this->doData)->assertSessionHasNoErrors();
     $this->get(route('delivery-order.customer'))->assertOk()->assertSee('Lihat')->assertSee('Edit')->assertSee('Padam');
-    $this->get(route('delivery-order.customer.show', 1))->assertOk()->assertSee('K ONE RESOURCES')->assertSee('Senarai Item');
+    $this->get(route('delivery-order.customer.show', 1))->assertOk()->assertSee('Pencipta Asal')->assertSee('creator@example.test')->assertSee('Pengurus')->assertSee('K ONE RESOURCES')->assertSee('Senarai Item');
     $this->get(route('delivery-order.customer.edit', 1))->assertOk()->assertSee('Simpan Perubahan')->assertSee($this->doData['do_no'])->assertViewHas('initialItems', fn ($items) => count($items) === 3);
     $data = $this->doData;
     $data['customer_name'] = 'Pelanggan Dikemas Kini';
@@ -173,9 +184,6 @@ test('delivery-order starts from selected LO and validates customer relationship
 
 
 test('delivery-order prefills items from the quotation linked to the selected LO', function () {
-    Schema::create('sebutharga_detail', function (Blueprint $table) {
-        $table->increments('quotation_detail_id'); $table->integer('quotation_id'); $table->text('document_data')->nullable();
-    });
     Schema::create('sebutharga_item', function (Blueprint $table) {
         $table->increments('quotation_item_id'); $table->integer('quotation_detail_id');
         $table->string('item_description'); $table->decimal('quantity',12,2); $table->string('unit'); $table->decimal('unit_price',12,2);
@@ -202,4 +210,21 @@ test('delivery-order can change its LO from the edit dropdown', function () {
     $this->get(route('delivery-order.customer'))->assertOk()->assertSee('LO-SELECT-002');
     $data['lo_inden_id']=999;
     $this->put(route('delivery-order.customer.update',1),$data)->assertSessionHasErrors('lo_inden_id');
+});
+
+test('delivery order edit changes LO customer and preserves date without a PDF button', function () {
+    $this->post(route('delivery-order.customer.store'),$this->doData)->assertSessionHasNoErrors();
+    DB::table('customer_supplier')->insert(['customer_id'=>2,'jenis_customer'=>1,'company_name'=>'Pelanggan Baharu','customer_name'=>'Pegawai','address'=>'Alamat Baharu']);
+    DB::table('lo_inden_master')->insert(['lo_inden_id'=>2,'lo_inden_no'=>'LO-NEW','customer_id'=>2,'lo_inden_date'=>'2026-10-14']);
+    $this->get(route('delivery-order.customer.edit',1))->assertOk()->assertDontSee('Pratonton PDF')
+        ->assertSee('value="2026-08-11"',false)
+        ->assertViewHas('localOrders',fn($orders)=>(int)$orders->firstWhere('lo_inden_id',2)->customer_id===2);
+    $data=$this->doData + ['lo_inden_id'=>2];
+    $data['customer_id']=2; $data['customer_name']='Pelanggan Baharu'; $data['customer_address']='Alamat Baharu';
+    $this->put(route('delivery-order.customer.update',1),$data)->assertSessionHasNoErrors();
+    $order=DB::table('delivery_order_master')->first();
+    $document=json_decode($order->document_data,true);
+    expect($order->customer_id)->toBe(2)->and($document['lo_reference'])->toBe('LO-NEW')
+        ->and($document['customer_name'])->toBe('Pelanggan Baharu')->and($document['customer_address'])->toBe('Alamat Baharu');
+    $this->assertDatabaseCount('delivery_order_item',3);
 });

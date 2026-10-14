@@ -8,6 +8,10 @@ use Illuminate\Support\Facades\Schema;
 beforeEach(function () {
     config(['database.default' => 'sqlite', 'database.connections.sqlite.database' => ':memory:', 'session.driver' => 'array']);
     DB::purge('sqlite');
+    Schema::create('users', function (Blueprint $table) {
+        $table->increments('id'); $table->string('name'); $table->string('email')->nullable(); $table->string('jawatan')->nullable();
+    });
+    DB::table('users')->insert(['id'=>42,'name'=>'Pencipta Asal','email'=>'creator@example.test','jawatan'=>'Pengurus']);
     Schema::create('customer_supplier', function (Blueprint $table) {
         $table->increments('customer_id'); $table->integer('jenis_customer');
         $table->string('company_name'); $table->string('customer_name'); $table->text('address');
@@ -18,9 +22,16 @@ beforeEach(function () {
     (require database_path('migrations/2026_10_11_160650_create_invoice_and_delivery_order_tables.php'))->up();
     (require database_path('migrations/2026_10_12_000000_add_invoice_document_data.php'))->up();
     DB::table('customer_supplier')->insert(['customer_id'=>1,'jenis_customer'=>1,'company_name'=>'Jabatan Teknologi & Komunikasi','customer_name'=>'Pelanggan','address'=>"Sektor Awam Negeri Kelantan\n15000 Kota Bharu, Kelantan."]);
+    Schema::create('sebutharga_master', function (Blueprint $table) {
+        $table->increments('quotation_id'); $table->string('quotation_no')->nullable();
+    });
+    Schema::create('sebutharga_detail', function (Blueprint $table) {
+        $table->increments('quotation_detail_id'); $table->integer('quotation_id'); $table->text('document_data')->nullable();
+        $table->decimal('jumlah_total',12,2)->nullable(); $table->date('quotation_date')->nullable(); $table->string('quotation_title')->nullable();
+    });
     Schema::create('lo_inden_master', function (Blueprint $table) {
         $table->increments('lo_inden_id'); $table->string('lo_inden_no'); $table->integer('customer_id');
-        $table->date('lo_inden_date'); $table->integer('quotation_id')->nullable(); $table->integer('quotation_detail_id')->nullable();
+        $table->date('lo_inden_date'); $table->decimal('amount',12,2)->default(0); $table->integer('quotation_id')->nullable(); $table->integer('quotation_detail_id')->nullable();
     });
     DB::table('lo_inden_master')->insert(['lo_inden_id'=>1,'lo_inden_no'=>'LO-SELECT-001','customer_id'=>1,'lo_inden_date'=>'2026-10-13']);
     $user = new User(); $user->id = 42; $user->name = 'Tester';
@@ -114,7 +125,7 @@ test('signature company supports typed names and saved company choices independe
 test('invoice supports detail edit update and delete without replacing the record', function () {
     $this->post(route('invoice.customer.store'), $this->invoiceData)->assertSessionHasNoErrors();
     $this->get(route('invoice.customer'))->assertOk()->assertSee('Lihat')->assertSee('Edit')->assertSee('Padam');
-    $this->get(route('invoice.customer.show', 1))->assertOk()->assertSee('K ONE RESOURCES')->assertSee('Senarai Item');
+    $this->get(route('invoice.customer.show', 1))->assertOk()->assertSee('Pencipta Asal')->assertSee('creator@example.test')->assertSee('Pengurus')->assertSee('K ONE RESOURCES')->assertSee('Senarai Item');
     $this->get(route('invoice.customer.edit', 1))->assertOk()->assertSee('Simpan Perubahan')->assertSee($this->invoiceData['invoice_no'])->assertViewHas('initialItems', fn ($items) => count($items) === 3);
     $data = $this->invoiceData;
     $data['customer_name'] = 'Pelanggan Dikemas Kini';
@@ -194,9 +205,6 @@ test('invoice starts from selected LO and validates customer relationship', func
 
 
 test('invoice prefills items from the quotation linked to the selected LO', function () {
-    Schema::create('sebutharga_detail', function (Blueprint $table) {
-        $table->increments('quotation_detail_id'); $table->integer('quotation_id'); $table->text('document_data')->nullable();
-    });
     Schema::create('sebutharga_item', function (Blueprint $table) {
         $table->increments('quotation_item_id'); $table->integer('quotation_detail_id');
         $table->string('item_description'); $table->decimal('quantity',12,2); $table->string('unit'); $table->decimal('unit_price',12,2);
@@ -223,4 +231,37 @@ test('invoice can change its LO from the edit dropdown', function () {
     $this->get(route('invoice.customer'))->assertOk()->assertSee('LO-SELECT-002');
     $data['lo_inden_id']=999;
     $this->put(route('invoice.customer.update',1),$data)->assertSessionHasErrors('lo_inden_id');
+});
+
+test('customer invoice list uses quotation information from the linked LO like delivery orders', function () {
+    $this->post(route('invoice.customer.store'), $this->invoiceData)->assertSessionHasNoErrors();
+    DB::table('sebutharga_detail')->insert(['quotation_detail_id'=>9,'quotation_id'=>1,'quotation_title'=>'Bekalan komputer','jumlah_total'=>1234.50]);
+    DB::table('lo_inden_master')->where('lo_inden_id',1)->update(['quotation_detail_id'=>9,'amount'=>1000]);
+    $invoice=DB::table('invoice_master')->first();
+    $document=json_decode($invoice->document_data,true); $document['lo_reference']='LO-SELECT-001';
+    DB::table('invoice_master')->where('invoice_id',$invoice->invoice_id)->update(['document_data'=>json_encode($document)]);
+    $this->get(route('invoice.customer'))->assertOk()->assertSee('Tajuk Sebut Harga')->assertSee('Jumlah Harga (RM)')
+        ->assertDontSee('>Jumlah (RM)<', false)
+        ->assertViewHas('invoices', fn ($rows) => $rows[0]['quotation_title']==='Bekalan komputer' && $rows[0]['amount']===1234.50);
+    DB::table('sebutharga_detail')->where('quotation_detail_id',9)->delete();
+    $this->get(route('invoice.customer'))->assertOk()
+        ->assertViewHas('invoices', fn ($rows) => $rows[0]['quotation_title']==='—' && $rows[0]['amount']===1000.0);
+    $this->assertDatabaseHas('invoice_master',['invoice_id'=>$invoice->invoice_id,'total_amount'=>25000]);
+});
+
+test('invoice edit changes LO customer and preserves date without a PDF button', function () {
+    $this->post(route('invoice.customer.store'),$this->invoiceData)->assertSessionHasNoErrors();
+    DB::table('customer_supplier')->insert(['customer_id'=>2,'jenis_customer'=>1,'company_name'=>'Pelanggan Baharu','customer_name'=>'Pegawai','address'=>'Alamat Baharu']);
+    DB::table('lo_inden_master')->insert(['lo_inden_id'=>2,'lo_inden_no'=>'LO-NEW','customer_id'=>2,'lo_inden_date'=>'2026-10-14']);
+    $this->get(route('invoice.customer.edit',1))->assertOk()->assertDontSee('Pratonton PDF')
+        ->assertSee('value="2026-08-11"',false)
+        ->assertViewHas('localOrders',fn($orders)=>(int)$orders->firstWhere('lo_inden_id',2)->customer_id===2);
+    $data=$this->invoiceData + ['lo_inden_id'=>2];
+    $data['customer_id']=2; $data['customer_name']='Pelanggan Baharu'; $data['customer_address']='Alamat Baharu';
+    $this->put(route('invoice.customer.update',1),$data)->assertSessionHasNoErrors();
+    $invoice=DB::table('invoice_master')->first();
+    $document=json_decode($invoice->document_data,true);
+    expect($invoice->customer_id)->toBe(2)->and($document['lo_reference'])->toBe('LO-NEW')
+        ->and($document['customer_name'])->toBe('Pelanggan Baharu')->and($document['customer_address'])->toBe('Alamat Baharu');
+    $this->assertDatabaseHas('invoice_master',['invoice_id'=>1,'total_amount'=>25000]);
 });

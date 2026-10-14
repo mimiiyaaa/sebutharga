@@ -16,7 +16,7 @@ class CustomerDocumentLo
             ->leftJoin('sebutharga_detail as detail', 'detail.quotation_detail_id', '=', 'lo.quotation_detail_id')
             ->where('customer.jenis_customer', 1)
             ->orderByDesc('lo.lo_inden_date')->orderByDesc('lo.lo_inden_id')
-            ->get(['lo.lo_inden_id', 'lo.lo_inden_no', 'lo.lo_inden_date', 'lo.quotation_id', 'lo.quotation_detail_id', 'quotation.quotation_no', 'detail.quotation_date', 'detail.quotation_title', 'customer.company_name', 'customer.customer_name']);
+            ->get(['lo.lo_inden_id', 'lo.lo_inden_no', 'lo.customer_id', 'lo.lo_inden_date', 'lo.quotation_id', 'lo.quotation_detail_id', 'quotation.quotation_no', 'detail.quotation_date', 'detail.quotation_title', 'customer.company_name', 'customer.customer_name']);
     }
 
     public static function selected(Request $request): ?object

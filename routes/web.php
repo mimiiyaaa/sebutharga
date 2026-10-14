@@ -317,6 +317,7 @@ Route::get('/sebut-harga-pembekal/tambah', [\App\Http\Controllers\SupplierQuotat
 Route::post('/sebut-harga-pembekal/extract', [\App\Http\Controllers\SupplierQuotationController::class, 'extract'])->middleware('auth')->name('sebut-harga-pembekal.extract');
 Route::post('/sebut-harga-pembekal/register-supplier', [\App\Http\Controllers\SupplierQuotationController::class, 'registerSupplier'])->middleware('auth')->name('sebut-harga-pembekal.register-supplier');
 Route::post('/sebut-harga-pembekal/simpan/{id?}', [\App\Http\Controllers\SupplierQuotationController::class, 'save'])->middleware('auth')->name('sebut-harga-pembekal.save');
+Route::get('/sebut-harga-pembekal/{id}', [\App\Http\Controllers\SupplierQuotationController::class, 'show'])->whereNumber('id')->middleware('auth')->name('sebut-harga-pembekal.show');
 Route::get('/sebut-harga-pembekal/{id}/edit', [\App\Http\Controllers\SupplierQuotationController::class, 'form'])->whereNumber('id')->middleware('auth')->name('sebut-harga-pembekal.edit');
 Route::get('/sebut-harga-pembekal/{id}/download', [\App\Http\Controllers\SupplierQuotationController::class, 'download'])->whereNumber('id')->middleware('auth')->name('sebut-harga-pembekal.download');
 Route::delete('/sebut-harga-pembekal/{id}', [\App\Http\Controllers\SupplierQuotationController::class, 'delete'])->whereNumber('id')->middleware('auth')->name('sebut-harga-pembekal.delete');
@@ -1074,6 +1075,8 @@ Route::middleware('auth')->prefix('delivery-order/pelanggan')->name('delivery-or
 Route::middleware('auth')->prefix('invoice/pembekal')->name('invoice.supplier.')->controller(\App\Http\Controllers\SupplierDocumentController::class)->group(function () {
     Route::post('/extract', 'extract')->name('extract');
     Route::post('/', 'store')->name('store');
+    Route::get('/{id}/edit', 'edit')->whereNumber('id')->name('edit');
+    Route::put('/{id}', 'update')->whereNumber('id')->name('update');
     Route::get('/{id}', 'show')->whereNumber('id')->name('show');
     Route::get('/{id}/file', 'file')->whereNumber('id')->name('file');
     Route::delete('/{id}', 'destroy')->whereNumber('id')->name('delete');
@@ -1082,6 +1085,8 @@ Route::middleware('auth')->prefix('invoice/pembekal')->name('invoice.supplier.')
 Route::middleware('auth')->prefix('delivery-order/pembekal')->name('delivery-order.supplier.')->controller(\App\Http\Controllers\SupplierDocumentController::class)->group(function () {
     Route::post('/extract', 'extract')->name('extract');
     Route::post('/', 'store')->name('store');
+    Route::get('/{id}/edit', 'edit')->whereNumber('id')->name('edit');
+    Route::put('/{id}', 'update')->whereNumber('id')->name('update');
     Route::get('/{id}', 'show')->whereNumber('id')->name('show');
     Route::get('/{id}/file', 'file')->whereNumber('id')->name('file');
     Route::delete('/{id}', 'destroy')->whereNumber('id')->name('delete');

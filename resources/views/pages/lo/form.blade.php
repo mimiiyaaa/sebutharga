@@ -3,7 +3,7 @@
 @section('content')
     <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ $lo ? __('Kemaskini LO') : __('Tambah LO') }}</h2>
-        <a href="{{ $lo ? route('lo.show', $lo->lo_inden_id) : route('lo') }}" class="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
+        <a href="{{ $lo ? route('lo.show', $lo->lo_inden_id) : route('lo') }}" class="inline-flex h-9 items-center justify-center px-3 py-1.5 text-theme-xs rounded-lg border border-gray-300 bg-white font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
     </div>
     @php
         $selectedQuotationId = (string) old('quotation_detail_id', $lo->quotation_detail_id ?? request('quotation_detail_id', ''));

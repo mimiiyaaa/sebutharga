@@ -3,7 +3,7 @@
 @section('content')
     <x-common.document-workspace :title="__('Tambah Purchase Order')" :subtitle="__('Pilih sebut harga pembekal untuk dijadikan Purchase Order.')">
         <x-slot:referenceActions>
-            <a href="{{ route('purchase-order.index') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
+            <a href="{{ route('purchase-order.index') }}" class="inline-flex h-9 items-center justify-center px-3 py-1.5 text-theme-xs rounded-lg border border-gray-300 bg-white font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
         </x-slot:referenceActions>
 
         <x-common.document-card :title="__('Langkah 1: Pilih Sebut Harga Pembekal')" :desc="__('Pilih sebut harga pembekal untuk dimasukkan ke dalam Purchase Order.')">

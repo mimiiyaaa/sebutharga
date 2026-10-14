@@ -11,6 +11,10 @@ use Illuminate\Support\Facades\Storage;
 beforeEach(function () {
     config(['database.default'=>'sqlite','database.connections.sqlite.database'=>':memory:','session.driver'=>'array','cache.default'=>'array']);
     DB::purge('sqlite'); Storage::fake('local');
+    Schema::create('users', function (Blueprint $table) {
+        $table->increments('id'); $table->string('name'); $table->string('email')->nullable(); $table->string('jawatan')->nullable();
+    });
+    DB::table('users')->insert(['id'=>42,'name'=>'Pencipta Asal','email'=>'creator@example.test','jawatan'=>'Pengurus']);
     Schema::create('customer_supplier',function(Blueprint $table){$table->increments('customer_id');$table->integer('jenis_customer');$table->string('company_name');});
     (require database_path('migrations/2026_10_12_020000_create_supplier_documents.php'))->up();
     DB::table('customer_supplier')->insert([['customer_id'=>1,'jenis_customer'=>2,'company_name'=>'K ONE RESOURCES'],['customer_id'=>2,'jenis_customer'=>1,'company_name'=>'Customer']]);
@@ -68,4 +72,55 @@ test('supplier OCR failure can be corrected manually and all routes require logi
     $this->get(route('invoice.supplier.file',1))->assertRedirect(route('login'));
     $this->postJson(route('invoice.supplier.extract'),['document_file'=>supplierTestPdf()])->assertUnauthorized();
     $this->delete(route('invoice.supplier.delete',1))->assertRedirect(route('login'));
+});
+
+test('supplier documents can be edited without reuploading or losing creator information', function (string $prefix) {
+    $this->post(route($prefix.'.store'), $this->supplierData + ['document_file'=>supplierTestPdf()])->assertSessionHasNoErrors();
+    $original = DB::table('supplier_documents')->first();
+    $this->get(route($prefix.'.show', $original->id))->assertOk()->assertSee(route($prefix.'.edit', $original->id), false);
+    $this->get(route($prefix.'.edit', $original->id))->assertOk()
+        ->assertSee(route($prefix.'.update', $original->id), false)
+        ->assertViewHas('document', fn ($document) => $document->file_path === $original->file_path)
+        ->assertSee('value="1" selected', false)->assertSee('value="WhatsApp" selected', false)
+        ->assertSee('Dihantar oleh pembekal')->assertSee('supplier.pdf');
+    $editor = new User(); $editor->id=99; $editor->name='Editor'; $this->actingAs($editor);
+    $data=$this->supplierData;
+    $data['items'][0]['description']='Updated laptop'; $data['items'][0]['quantity']=3;
+    $data['notes']='Updated notes'; $data['po_reference']='PO-EDIT'; $data['source']='';
+    $this->put(route($prefix.'.update', $original->id), $data)->assertSessionHasNoErrors()->assertRedirect(route($prefix.'.show',$original->id));
+    $updated=DB::table('supplier_documents')->first();
+    expect($updated->file_path)->toBe($original->file_path)
+        ->and($updated->created_by)->toBe(42)->and($updated->created_at)->toBe($original->created_at)
+        ->and($updated->source)->toBe('WhatsApp')->and($updated->po_reference)->toBe('PO-EDIT')
+        ->and(json_decode($updated->items,true)[0]['description'])->toBe('Updated laptop');
+    $this->assertDatabaseCount('supplier_documents',1);
+    Storage::disk('local')->assertExists($original->file_path);
+    $this->get(route($prefix.'.show',$original->id))->assertOk()->assertSee('Updated laptop')->assertSee('Updated notes');
+})->with(['invoice.supplier','delivery-order.supplier']);
+
+test('supplier document replacement validates first and cleans up only the replaced file', function (string $prefix) {
+    $this->post(route($prefix.'.store'), $this->supplierData + ['document_file'=>supplierTestPdf()]);
+    $original=DB::table('supplier_documents')->first();
+    $invalid=$this->supplierData; $invalid['items'][0]['quantity']=0;
+    $this->put(route($prefix.'.update',$original->id), $invalid+['document_file'=>supplierTestPdf()])->assertSessionHasErrors('items.0.quantity');
+    Storage::disk('local')->assertExists($original->file_path);
+    expect(Storage::disk('local')->allFiles())->toHaveCount(1);
+    $this->put(route($prefix.'.update',$original->id),$this->supplierData+['document_file'=>supplierTestPdf()])->assertSessionHasNoErrors();
+    $updated=DB::table('supplier_documents')->first();
+    expect($updated->file_path)->not->toBe($original->file_path);
+    Storage::disk('local')->assertMissing($original->file_path);
+    Storage::disk('local')->assertExists($updated->file_path);
+})->with(['invoice.supplier','delivery-order.supplier']);
+
+test('supplier edit rejects duplicate numbers wrong document types and unauthenticated requests', function () {
+    $this->post(route('invoice.supplier.store'),$this->supplierData+['document_file'=>supplierTestPdf()]);
+    $second=$this->supplierData; $second['document_no']='SUP-002';
+    $this->post(route('invoice.supplier.store'),$second+['document_file'=>supplierTestPdf()]);
+    $this->put(route('invoice.supplier.update',2),$this->supplierData)->assertSessionHasErrors('document_no');
+    $this->assertDatabaseHas('supplier_documents',['id'=>2,'document_no'=>'SUP-002']);
+    $this->get(route('delivery-order.supplier.edit',1))->assertNotFound();
+    $this->put(route('delivery-order.supplier.update',1),$this->supplierData)->assertNotFound();
+    auth()->forgetGuards();
+    $this->get(route('invoice.supplier.edit',1))->assertRedirect(route('login'));
+    $this->put(route('invoice.supplier.update',1),$this->supplierData)->assertRedirect(route('login'));
 });
