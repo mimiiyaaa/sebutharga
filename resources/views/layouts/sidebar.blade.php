@@ -56,10 +56,10 @@
     @mouseenter="if (!$store.sidebar.isExpanded) $store.sidebar.setHovered(true)"
     @mouseleave="$store.sidebar.setHovered(false)">
     <!-- Logo Section -->
-    <div class="pt-8 pb-7 flex items-center gap-2" :class="(!$store.sidebar.isExpanded && !$store.sidebar.isHovered && !$store.sidebar.isMobileOpen) ? 'justify-center' : 'justify-between'">
+    <div class="pt-8 pb-7 flex items-center justify-center gap-2">
         <a href="/">
             <div class="hidden [.sidebar-expanded_&]:block">
-                <x-common.brand-logo class="h-28 w-28" />
+                <x-common.brand-logo class="h-24 w-24" />
             </div>
             <x-common.brand-logo class="block h-9 w-9 [.sidebar-expanded_&]:hidden" />
         </a>
