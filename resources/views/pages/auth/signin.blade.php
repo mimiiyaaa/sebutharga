@@ -142,8 +142,7 @@
                     <x-common.common-grid-shape/>
                     <div class="flex max-w-xs flex-col items-center">
                         <a href="/" class="mb-4 block">
-                            <img class="h-auto w-64 object-contain" src="/images/logo/k1r-resources-light.png"
-                                alt="K1R Resources" width="2053" height="766" />
+                            <x-common.brand-logo class="h-44 w-44" />
                         </a>
                         <p class="text-center text-gray-400 dark:text-white/60">
                             Sistem Pengurusan Sebut Harga

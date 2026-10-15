@@ -59,10 +59,9 @@
     <div class="pt-8 pb-7 flex items-center gap-2" :class="(!$store.sidebar.isExpanded && !$store.sidebar.isHovered && !$store.sidebar.isMobileOpen) ? 'justify-center' : 'justify-between'">
         <a href="/">
             <div class="hidden [.sidebar-expanded_&]:block">
-                <img class="h-auto w-[160px] max-w-full object-contain dark:brightness-0 dark:invert"
-                    src="/images/logo/k1r-resources-dark.png" alt="K1R Resources" width="2052" height="766" />
+                <x-common.brand-logo class="h-28 w-28" />
             </div>
-            <img class="block [.sidebar-expanded_&]:hidden" src="/images/logo/logo-icon.svg" alt="Logo" width="32" height="32" />
+            <x-common.brand-logo class="block h-9 w-9 [.sidebar-expanded_&]:hidden" />
         </a>
     </div>
 
