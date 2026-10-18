@@ -1,7 +1,7 @@
 @props(['suppliers' => collect(), 'companies' => collect(), 'quotation', 'nextPoNo', 'order' => null, 'initialItems' => [], 'returnToDetail' => false, 'showBack' => true])
 
 @php
-    $inputClass = 'w-full min-h-11 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90';
+    $inputClass = 'w-full min-h-11 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-gray-300 focus:outline-none focus:ring-0 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-gray-700';
     $labelClass = 'mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400';
     $documentData = $order?->document_data ? (json_decode($order->document_data, true) ?: []) : [];
     $savedIssuerCompanyId = $companies->firstWhere('nama_syarikat', $documentData['issuer_name'] ?? null)?->company_id ?? '';
@@ -9,7 +9,7 @@
     $savedDeliveryCompanyId = $companies->firstWhere('nama_syarikat', $documentData['delivery_company'] ?? null)?->company_id ?? '';
 @endphp
 
-<form method="POST" action="{{ $order ? route('purchase-order.update', $order->purchase_order_id) : route('purchase-order.store') }}" class="space-y-6 rounded-3xl bg-brand-50/35 p-3 dark:bg-brand-500/5 sm:p-4" x-data="{
+<form method="POST" action="{{ $order ? route('purchase-order.update', $order->purchase_order_id) : route('purchase-order.store') }}" class="space-y-6" x-data="{
     suppliers: {{ Illuminate\Support\Js::from($suppliers) }},
     supplierId: {{ Illuminate\Support\Js::from((string) old('customer_id', $order?->customer_id ?? ($quotation->customer_id ?? ''))) }},
     supplier: {},
@@ -227,7 +227,7 @@
                 <template x-for="(item, index) in items" :key="item.id">
                     <div class="col-span-12 grid grid-cols-12 items-center border-b border-gray-100 py-3 dark:border-gray-800">
                         <div class="col-span-1 px-1 text-center tabular-nums" x-text="index + 1"></div>
-                        <div class="col-span-4 px-1"><textarea rows="4" required x-model="item.description" aria-label="{{ __('Keterangan / Description') }}" placeholder="{{ __('Nama item / perkhidmatan') }}" class="{{ $inputClass }} w-full max-w-full"></textarea></div>
+                        <div class="col-span-4 px-1"><textarea rows="4" x-model="item.description" aria-label="{{ __('Keterangan / Description') }}" placeholder="{{ __('Nama item / perkhidmatan') }}" class="{{ $inputClass }} w-full max-w-full"></textarea></div>
                         <div class="col-span-2 px-1"><input type="number" min="1" step="1" required x-model.number="item.quantity" aria-label="{{ __('Kuantiti') }}" class="{{ $inputClass }} w-full text-center"></div>
                         <div class="col-span-1 px-1"><input required x-model="item.unit" aria-label="{{ __('Unit') }}" placeholder="{{ __('Unit') }}" class="{{ $inputClass }} w-full text-center"></div>
                         <div class="col-span-2 px-1"><input type="number" min="0" step="0.01" required x-model.number="item.price" aria-label="{{ __('Harga Seunit (RM)') }}" class="{{ $inputClass }} w-full price-input text-end"></div>

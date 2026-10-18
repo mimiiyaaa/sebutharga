@@ -28,8 +28,14 @@ Route::get('/dashboard', function () {
     ]);
 })->middleware('auth')->name('dashboard');
 
-Route::view('/baucar-bayaran', 'pages.baucar-bayaran.index', ['title' => 'Baucar Bayaran'])
-    ->middleware('auth')->name('baucar-bayaran.index');
+Route::middleware('auth')->prefix('baucar-bayaran')->name('baucar-bayaran.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\PaymentVoucherController::class, 'index'])->name('index');
+    Route::get('/tambah', [\App\Http\Controllers\PaymentVoucherController::class, 'create'])->name('create');
+    Route::post('/', [\App\Http\Controllers\PaymentVoucherController::class, 'store'])->name('store');
+    Route::get('/{id}/fail', [\App\Http\Controllers\PaymentVoucherController::class, 'file'])->whereNumber('id')->name('file');
+    Route::get('/{id}', [\App\Http\Controllers\PaymentVoucherController::class, 'show'])->whereNumber('id')->name('show');
+    Route::delete('/{id}', [\App\Http\Controllers\PaymentVoucherController::class, 'destroy'])->whereNumber('id')->name('delete');
+});
 
 // calender pages
 Route::get('/calendar', function () {

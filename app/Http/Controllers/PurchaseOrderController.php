@@ -147,7 +147,7 @@ class PurchaseOrderController extends Controller
         $termsConditions = $this->termsConditions($data);
         validator(['items'=>$items], [
             'items'=>'required|array|min:1', 'items.*'=>'required|array',
-            'items.*.description'=>'required|string','items.*.quantity'=>'required|integer|min:1|max:1000000',
+            'items.*.description'=>'nullable|string','items.*.quantity'=>'required|integer|min:1|max:1000000',
             'items.*.unit'=>'required|string|max:50','items.*.price'=>'required|numeric|min:0|max:1000000',
         ])->validate();
         $gross = collect($items)->sum(fn($i)=>round((int)$i['quantity']*(float)$i['price'],2));

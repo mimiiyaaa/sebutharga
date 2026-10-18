@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-    <x-common.document-workspace :title="__('Tambah Purchase Order')" :subtitle="__('Pilih sebut harga pembekal untuk dijadikan Purchase Order.')">
+    <x-common.document-workspace class="purchase-order-select" :title="__('Tambah Purchase Order')" :subtitle="__('Pilih sebut harga pembekal untuk dijadikan Purchase Order.')">
         <x-slot:referenceActions>
             <a href="{{ route('purchase-order.index') }}" class="inline-flex h-9 items-center justify-center px-3 py-1.5 text-theme-xs rounded-lg border border-gray-300 bg-white font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
         </x-slot:referenceActions>
@@ -14,7 +14,7 @@
             @if ($quotations->isEmpty())
                 <p class="rounded-xl bg-peach-100 p-4 text-sm text-peach-700 dark:bg-peach-500/15 dark:text-peach-300">{{ __('Belum ada sebut harga pembekal.') }}</p>
             @else
-                <form method="GET" action="{{ route('purchase-order.form') }}" class="space-y-5" x-data="{ quotationId: {{ Illuminate\Support\Js::from((string) old('supplier_quotation_id', '')) }}, dropdownOpen: false, quotations: {{ Illuminate\Support\Js::from($quotations) }}, get quotation() { return this.quotations.find(row => String(row.supplier_quotation_id) === String(this.quotationId)); }, selectQuotation(id) { this.quotationId = String(id); this.dropdownOpen = false; }, formatMoney(value) { return Number(value || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }, formatDate(value) { if (!value) return '—'; return new Intl.DateTimeFormat('ms-MY', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(`${value}T00:00:00`)); } }">
+                <form method="GET" action="{{ route('purchase-order.form') }}" class="space-y-5" @submit.prevent="if (!quotation) { dropdownOpen = true; return; } $el.submit()" x-data="{ quotationId: {{ Illuminate\Support\Js::from((string) old('supplier_quotation_id', '')) }}, selectedQuotation: null, dropdownOpen: false, quotations: {{ Illuminate\Support\Js::from($quotations) }}, init() { this.selectedQuotation = this.quotations.find(row => String(row.supplier_quotation_id) === String(this.quotationId)) || null; }, get quotation() { return this.selectedQuotation; }, selectQuotation(id) { this.quotationId = String(id); this.selectedQuotation = this.quotations.find(row => String(row.supplier_quotation_id) === String(id)) || null; this.dropdownOpen = false; }, clearQuotation() { this.quotationId = ''; this.selectedQuotation = null; this.dropdownOpen = false; }, formatMoney(value) { return Number(value || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }, formatDate(value) { if (!value) return '—'; return new Intl.DateTimeFormat('ms-MY', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(`${value}T00:00:00`)); } }">
                     <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-100 bg-brand-50/70 px-4 py-3 dark:border-brand-500/20 dark:bg-brand-500/10">
                         <div class="flex items-center gap-3">
                             <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500 text-xs font-bold text-white">1</span>
@@ -29,12 +29,12 @@
                         <label for="quotation_detail_id" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">{{ __('Sebut Harga') }} <span class="text-error-500">*</span></label>
                         <input type="hidden" name="supplier_quotation_id" x-model="quotationId">
                         <div class="relative w-full" @click.outside="dropdownOpen = false">
-                            <button type="button" id="quotation_detail_id" @click="dropdownOpen = !dropdownOpen" :aria-expanded="dropdownOpen" class="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50/70 px-4 py-3 text-start text-sm text-gray-800 outline-none transition hover:border-brand-300 hover:bg-white focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800/60 dark:text-white/90 dark:hover:border-brand-500/50 dark:hover:bg-gray-800 dark:focus:bg-gray-900">
+                            <button type="button" id="quotation_detail_id" @click="dropdownOpen = !dropdownOpen" :aria-expanded="dropdownOpen" class="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50/70 px-4 py-3 text-start text-sm text-gray-800 outline-none transition hover:border-gray-300 hover:bg-white focus:border-gray-200 focus:bg-white focus:ring-0 dark:border-gray-700 dark:bg-gray-800/60 dark:text-white/90 dark:hover:border-gray-600 dark:hover:bg-gray-800 dark:focus:border-gray-700 dark:focus:bg-gray-900">
                                 <span class="truncate" :class="quotation ? 'font-medium text-gray-900 dark:text-white/90' : 'text-gray-500 dark:text-gray-400'" x-text="quotation ? `${quotation.quotation_no} — ${quotation.company_name || quotation.customer_name}` : '{{ __('Pilih sebut harga pembekal') }}'"></span>
                                 <svg class="h-4 w-4 shrink-0 text-gray-500 transition-transform dark:text-gray-400" :class="dropdownOpen ? 'rotate-180 text-brand-500' : ''" fill="none" viewBox="0 0 24 24" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m6 9 6 6 6-6"/></svg>
                             </button>
                             <div x-cloak x-show="dropdownOpen" x-transition class="mt-2 max-h-[50vh] w-full overflow-y-scroll overscroll-contain rounded-xl border border-gray-200 bg-white p-1.5 shadow-theme-lg custom-scrollbar dark:border-gray-700 dark:bg-gray-900">
-                                <button type="button" @click="quotationId = ''; dropdownOpen = false" class="flex w-full items-center rounded-lg px-3 py-2.5 text-start text-sm text-gray-500 transition hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800">{{ __('Pilih sebut harga pembekal') }}</button>
+                                <button type="button" @click="clearQuotation()" class="flex w-full items-center rounded-lg px-3 py-2.5 text-start text-sm text-gray-500 transition hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800">{{ __('Pilih sebut harga pembekal') }}</button>
                                 <template x-for="row in quotations" :key="row.supplier_quotation_id">
                                     <button type="button" @click="selectQuotation(row.supplier_quotation_id)" class="flex w-full items-center justify-between gap-4 rounded-lg px-3 py-3 text-start transition hover:bg-brand-50 dark:hover:bg-brand-500/10">
                                         <span class="min-w-0">
@@ -128,13 +128,12 @@
                                 </table>
                             </div>
                         </div>
+                        <div class="mt-6 flex justify-end border-t border-brand-100 pt-5 dark:border-brand-500/20">
+                            <button type="submit" class="inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-6 text-sm font-medium text-white shadow-theme-xs transition hover:bg-brand-600">{{ __('Teruskan ke Purchase Order') }}</button>
+                        </div>
                     </div>
 
                     <p x-cloak x-show="quotationId && !quotation" class="rounded-xl bg-gray-50 p-4 text-sm text-gray-600 dark:bg-gray-800/50 dark:text-gray-400">{{ __('Sebut harga yang dipilih tidak lagi tersedia.') }}</p>
-
-                    <div class="flex justify-end border-t border-gray-100 pt-5 dark:border-gray-800">
-                        <button type="submit" :disabled="!quotation" class="inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-6 text-sm font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">{{ __('Teruskan ke Purchase Order') }}</button>
-                    </div>
                 </form>
             @endif
         </x-common.document-card>

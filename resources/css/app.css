@@ -208,7 +208,7 @@ input.price-input[type='number']::-webkit-inner-spin-button {
     cursor: pointer;
   }
   body {
-    @apply relative font-normal font-outfit z-1 bg-gray-50 dark:bg-gray-900;
+    @apply relative font-normal font-outfit z-1 bg-white dark:bg-gray-900;
   }
 }
 
@@ -1615,6 +1615,10 @@ pre code,
 .purchase-order-detail-stack > .purchase-order-items { order: 3 !important; }
 .purchase-order-detail-stack > .purchase-order-delivery { order: 4 !important; }
 .purchase-order-detail-stack > .purchase-order-terms { order: 5 !important; }
+.purchase-order-items tbody tr { @apply !bg-white dark:!bg-gray-900; }
+.purchase-order-items > div:last-child { @apply !bg-white dark:!bg-gray-900; }
+.purchase-order-select [class*="border-brand"] { @apply !border-gray-200 dark:!border-gray-700; }
+.purchase-order-select [class*="bg-brand-50/"] { @apply !bg-white dark:!bg-gray-900; }
 
 .item-editor-table > thead {
   @apply bg-error-800 text-white dark:bg-error-900 dark:text-white;
