@@ -31,6 +31,7 @@ Route::get('/dashboard', function () {
 Route::middleware('auth')->prefix('baucar-bayaran')->name('baucar-bayaran.')->group(function () {
     Route::get('/', [\App\Http\Controllers\PaymentVoucherController::class, 'index'])->name('index');
     Route::get('/tambah', [\App\Http\Controllers\PaymentVoucherController::class, 'create'])->name('create');
+    Route::get('/tambah/form', [\App\Http\Controllers\PaymentVoucherController::class, 'form'])->name('form');
     Route::post('/', [\App\Http\Controllers\PaymentVoucherController::class, 'store'])->name('store');
     Route::get('/{id}/fail', [\App\Http\Controllers\PaymentVoucherController::class, 'file'])->whereNumber('id')->name('file');
     Route::get('/{id}', [\App\Http\Controllers\PaymentVoucherController::class, 'show'])->whereNumber('id')->name('show');

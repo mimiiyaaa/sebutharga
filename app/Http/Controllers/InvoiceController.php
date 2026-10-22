@@ -41,6 +41,7 @@ class InvoiceController extends Controller
                 return [
                     'id' => $invoice->invoice_id,
                     'document_no' => $invoice->invoice_no,
+                    'invoice_title' => $invoice->invoice_title,
                     'lo_no' => $document['lo_reference'] ?? null,
                     'company_name' => $document['customer_name'] ?? '',
                     'document_date' => $invoice->invoice_date,
@@ -69,6 +70,7 @@ class InvoiceController extends Controller
             'lo_inden_id' => 'nullable|integer',
             'invoice_no' => ['required', 'string', 'max:100', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('invoice_master', 'invoice_no')->ignore($id, 'invoice_id')],
             'invoice_date' => 'required|date_format:Y-m-d',
+            'invoice_title' => 'nullable|string|max:255',
             'lo_reference' => 'nullable|string|max:100',
             'customer_id' => ['required', 'integer', Rule::exists('customer_supplier', 'customer_id')->where('jenis_customer', 1)],
             'issuer_name' => 'required|string|max:255', 'issuer_address' => 'required|string|max:2000',
@@ -108,7 +110,7 @@ class InvoiceController extends Controller
             $id = DB::transaction(function () use ($validated, $request) {
                 ['data' => $data, 'invoice' => $invoice, 'document' => $document, 'items' => $items] = $validated;
                 $id = DB::table('invoice_master')->insertGetId([
-                    'invoice_no' => $invoice->invoice_no, 'invoice_date' => $invoice->invoice_date,
+                    'invoice_no' => $invoice->invoice_no, 'invoice_date' => $invoice->invoice_date, 'invoice_title' => $data['invoice_title'] ?? null,
                     'customer_id' => $data['customer_id'], 'subtotal' => $invoice->total_amount, 'total_amount' => $invoice->total_amount,
                     'document_data' => json_encode($document, JSON_UNESCAPED_UNICODE), 'document_kind' => 'customer',
                     'created_by' => $request->user()->id, 'created_at' => now(), 'updated_at' => now(),
@@ -121,7 +123,7 @@ class InvoiceController extends Controller
         } catch (\Illuminate\Database\UniqueConstraintViolationException $exception) {
             throw ValidationException::withMessages(['invoice_no' => __('Nombor invois sudah digunakan. Sila gunakan nombor lain.')]);
         }
-        return redirect()->route('invoice.customer.preview', $id)->with('success', __('Invois berjaya dicipta dan disimpan.'));
+        return redirect()->route('invoice.customer')->with('success', __('Invois berjaya dicipta dan disimpan.'));
     }
 
 
@@ -139,7 +141,7 @@ class InvoiceController extends Controller
         return view('pages.invoice.create', [
             'localOrders' => \App\Services\CustomerDocumentLo::options(),
             'title' => __('Edit Invois'), 'editId' => $id, 'nextNumber' => $invoice->invoice_no,
-            'values' => $saved['document'] + ['invoice_no' => $invoice->invoice_no, 'invoice_date' => $invoice->invoice_date, 'customer_id' => $invoice->customer_id],
+            'values' => $saved['document'] + ['invoice_no' => $invoice->invoice_no, 'invoice_date' => $invoice->invoice_date, 'invoice_title' => $invoice->invoice_title, 'customer_id' => $invoice->customer_id],
             'initialItems' => $saved['items']->map(fn ($item) => [
                 'description' => $item->item_description, 'quantity' => $item->quantity, 'unit' => $item->unit,
                 'price' => $item->unit_price,
@@ -165,7 +167,7 @@ class InvoiceController extends Controller
                 $record = DB::table('invoice_master')->where('invoice_id', $id)->where('document_kind', 'customer')->lockForUpdate()->first();
                 abort_unless($record, 404);
                 DB::table('invoice_master')->where('invoice_id', $id)->update([
-                    'invoice_no' => $invoice->invoice_no, 'invoice_date' => $invoice->invoice_date, 'customer_id' => $data['customer_id'],
+                    'invoice_no' => $invoice->invoice_no, 'invoice_date' => $invoice->invoice_date, 'invoice_title' => $data['invoice_title'] ?? null, 'customer_id' => $data['customer_id'],
                     'subtotal' => $invoice->total_amount, 'total_amount' => $invoice->total_amount,
                     'document_data' => json_encode(array_replace(json_decode($record->document_data ?? '{}', true) ?: [], $document), JSON_UNESCAPED_UNICODE),
                     'updated_by' => $request->user()->id, 'updated_at' => now(),

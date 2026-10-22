@@ -12,7 +12,7 @@
         'csrf' => csrf_token(),
         'extractUrl' => route($prefix . '.extract'),
         'registerUrl' => route('sebut-harga-pembekal.register-supplier'),
-        'initial' => ['supplierId' => (string) old('supplier_id', $document->supplier_id ?? ''), 'documentNo' => old('document_no', $document->document_no ?? ''), 'documentDate' => old('document_date', $document->document_date ?? ''), 'items' => $initialItems, 'totalAmount' => old('total_amount', $document->total_amount ?? '')],
+        'initial' => ['supplierId' => (string) old('supplier_id', $document->supplier_id ?? ''), 'documentNo' => old('document_no', $document->document_no ?? ''), 'documentDate' => old('document_date', $document->document_date ?? ''), 'documentTitle' => old('document_title', $document->document_title ?? ''), 'items' => $initialItems, 'totalAmount' => old('total_amount', $document->total_amount ?? '')],
         'messages' => ['invalid' => __('Pilih PDF, JPG atau PNG sehingga 10 MB.'), 'failed' => __('Bacaan gagal. Semak dokumen dan isi maklumat secara manual.'), 'noItems' => __('Item tidak dapat dikenal pasti dengan yakin. Sila masukkan item secara manual.'), 'registrationRequired' => __('Nama syarikat dan alamat diperlukan.')],
     ];
 @endphp
@@ -41,6 +41,9 @@
                         <option value="{{ $lo->lo_inden_no }}" @selected(old('lo_reference', $document->po_reference ?? '') === $lo->lo_inden_no)>{{ $lo->lo_inden_no }} — {{ $lo->company_name }}</option>
                     @endforeach
                 </select></div><div><label for="source" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">{{ __('Sumber Dokumen') }}</label><select id="source" name="source" @required(!$document) class="{{ $inputClass }}"><option value="">{{ __('Pilih sumber dokumen') }}</option>@foreach (['PDF','E-mel','WhatsApp','Surat','Serahan Tangan','Lain-lain'] as $source)<option value="{{ $source }}" @selected(old('source', $document->source ?? '') === $source)>{{ __($source) }}</option>@endforeach</select></div><x-supplier-document.field name="source_details" :value="$document->source_details ?? ''" :label="__('Butiran Sumber (pengirim / rujukan)')" type="textarea" maxlength="1000" /></div>
+                @if($isInvoice)
+                    <x-supplier-document.field name="document_title" :value="$document->document_title ?? ''" :label="__('Tajuk Invois')" maxlength="255" />
+                @endif
             </x-common.document-card>
         </div>
 

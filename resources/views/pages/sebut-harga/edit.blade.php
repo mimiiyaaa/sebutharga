@@ -27,7 +27,7 @@
                 'Alamat' => $value('address', $quotation->address),
             ];
         @endphp
-        <div x-show="!editing" x-cloak class="quotation-detail-stack flex flex-col gap-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03] sm:p-8">
+        <div x-show="!editing" x-cloak class="quotation-detail-stack flex flex-col gap-6">
             <div class="quotation-detail-main overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="border-b border-gray-200 bg-white px-6 py-7 dark:border-gray-800 dark:bg-gray-800 sm:px-8">
                 <div class="flex w-full flex-wrap items-center justify-between gap-4">

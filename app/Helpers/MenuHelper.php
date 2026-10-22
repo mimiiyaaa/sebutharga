@@ -64,8 +64,8 @@ class MenuHelper
                     ['name' => 'User Profile', 'path' => '/profile'],
                     ['name' => 'Syarikat', 'path' => '/syarikat'],
                     ['name' => 'Pelanggan', 'path' => '/pelanggan'],
-                    ['name' => 'Maklumat Login', 'path' => '/maklumat-login'],
                     ['name' => 'Pembekal', 'path' => '/pembekal'],
+                    ['name' => 'Maklumat Login', 'path' => '/maklumat-login'],
                 ],
             ],
         ];

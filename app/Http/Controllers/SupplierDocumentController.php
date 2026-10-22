@@ -25,6 +25,7 @@ class SupplierDocumentController extends Controller
         $context = $this->context($request);
         $context['title'] = $context['isInvoice'] ? __('Senarai Invois Daripada Pembekal') : __('Senarai DO Daripada Pembekal');
         $documents = DB::table('supplier_documents')->where('kind', $context['kind'])->orderByDesc('id')->get()->map(function ($document) {
+            $document->invoice_title = $document->document_title;
             $items = json_decode($document->items, true) ?: [];
             $document->items_total = collect($items)->sum(fn ($item) => (float) ($item['price'] ?? 0));
             return $document;
@@ -106,6 +107,7 @@ class SupplierDocumentController extends Controller
                     $fail(__('Sila pilih Local Order yang sah.'));
                 }
             }],
+            'document_title' => $context['isInvoice'] ? 'nullable|string|max:255' : 'nullable',
             'source' => [$existing ? 'nullable' : 'required',Rule::in(['PDF','E-mel','WhatsApp','Surat','Serahan Tangan','Lain-lain'])],
             'source_details' => 'nullable|string|max:1000','notes' => 'nullable|string|max:3000',
             'items' => 'required|array|min:1|max:100','items.*' => 'required|array',
@@ -123,7 +125,7 @@ class SupplierDocumentController extends Controller
             $values = [
                 'kind'=>$context['kind'],'supplier_id'=>$data['supplier_id'],
                 'supplier_name'=>DB::table('customer_supplier')->where('customer_id',$data['supplier_id'])->value('company_name'),
-                'document_no'=>$data['document_no'],'document_date'=>$data['document_date'],'po_reference'=>$data['lo_reference'] ?? null,
+                'document_no'=>$data['document_no'],'document_date'=>$data['document_date'],'document_title'=>$context['isInvoice'] ? ($data['document_title'] ?? null) : null,'po_reference'=>$data['lo_reference'] ?? null,
                 'source'=>$data['source'] ?? $existing?->source,'source_details'=>$data['source_details'] ?? null,
                 'file_path'=>$path,'file_name'=>$file ? mb_substr(basename($file->getClientOriginalName()),0,255) : $existing->file_name,'file_mime'=>$file ? $file->getMimeType() : $existing->file_mime,
                 'extraction_method'=>$file ? Cache::get($this->extractionKey($request,$file),__('Semakan manual')) : $existing->extraction_method,

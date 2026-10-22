@@ -21,7 +21,7 @@ export default function supplierDocumentUpload(config) {
             this.releasePreview();
             this.documentUrl=URL.createObjectURL(file); this.fileName=file.name; this.isImage=file.type.startsWith('image/');
             this.loading=true; this.reviewed=false; this.message=''; this.method=''; this.rawText=''; this.detectedSupplier='';
-            this.documentNo=''; this.documentDate=''; this.supplierId=''; this.totalAmount='';
+            this.documentNo=''; this.documentDate=''; this.documentTitle=''; this.supplierId=''; this.totalAmount='';
             this.items=[{id:this.nextId++,description:'',quantity:1,unit:'',price:0}];
             const run=++this.run; const data=new FormData(); data.append('document_file',file);
             try {

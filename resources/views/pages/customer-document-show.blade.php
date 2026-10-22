@@ -38,6 +38,7 @@
                 <div class="min-w-0">
                     <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600 dark:text-brand-400">{{ $isInvoice ? __('Maklumat Invois') : __('Maklumat Delivery Order') }}</p>
                     <h2 class="mt-2 truncate text-3xl font-semibold tracking-tight text-gray-900 dark:text-white/90">{{ $number }}</h2>
+                    @if($isInvoice && !empty($invoice->invoice_title))<p class="mt-2 text-base font-medium text-gray-700 dark:text-gray-300">{{ $invoice->invoice_title }}</p>@endif
                     <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ $document['customer_name'] ?? $record->recipient_name ?? '—' }} · {{ $isInvoice ? __('Ringkasan invois') : __('Ringkasan delivery order') }}</p>
                 </div>
             </div>

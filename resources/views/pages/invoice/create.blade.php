@@ -36,6 +36,7 @@
             <x-common.document-card :title="__('Maklumat Invois')">
                 <x-supplier-document.field name="invoice_no" :label="__('No. Dokumen')" :value="$values['invoice_no'] ?? $nextNumber" required maxlength="100" pattern="[A-Za-z0-9._\-]+" />
                 <x-supplier-document.field name="invoice_date" :label="__('Tarikh Invois')" type="date" :value="$values['invoice_date'] ?? now()->format('Y-m-d')" required />
+                <x-supplier-document.field name="invoice_title" :label="__('Tajuk Invois')" :value="$values['invoice_title'] ?? ''" maxlength="255" />
                 @if($editId)
                     <div>
                         <label for="lo_inden_id" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('No. Local Order (LO)') }}</label>
