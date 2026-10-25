@@ -19,8 +19,6 @@
         <div class="relative hidden sm:block">
           <div class="dashboard-mascot pointer-events-none absolute bottom-[-50px] end-0 z-20 h-[380px] w-[380px] max-w-none" aria-hidden="true">
             <img src="{{ asset('images/dashboard-mascot.png') }}" alt="{{ __('Maskot dashboard') }}" class="h-full w-full object-contain drop-shadow-sm" />
-            <span class="dashboard-mascot-eyelid dashboard-mascot-eyelid-start"></span>
-            <span class="dashboard-mascot-eyelid dashboard-mascot-eyelid-end"></span>
           </div>
         </div>
       </div>
