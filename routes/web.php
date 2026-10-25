@@ -244,6 +244,7 @@ Route::get('/sebut-harga', function () {
                     'title' => $draft->quotation_title ?: '-',
                     'source' => $draft->sumber_sebut_harga ?? '-',
                     'date' => $draft->quotation_date ?? $quotation->quotation_date,
+                    'amount' => (float) ($draft->jumlah_total ?? 0),
                     'status' => $draft->status_draft === 'Final' ? 'Final' : 'Draf',
                     'decision' => $finalisationStatus($draft),
                     'selected' => $quotation->quotation_detail_id === $draft->quotation_detail_id,
@@ -266,6 +267,7 @@ Route::get('/sebut-harga', function () {
                 'quotationNo' => $quotation['quotationNo'],
                 'customerName' => $quotation['customerName'],
                 'title' => $version['title'],
+                'amount' => $version['amount'] ?? 0,
                 'draftNo' => $version['draftNo'],
                 'status' => $version['status'],
                 'date' => $version['date'],
@@ -295,6 +297,7 @@ Route::get('/sebut-harga', function () {
             'version' => $selectedDraft['id'],
             'versions' => $draftVersions,
             'closeDate' => $selectedDraft['date'],
+            'amount' => $selectedDraft['amount'] ?? 0,
             'status' => $selectedDraft['status'] === 'Final' ? 'Sudah Difinalisekan' : 'Belum Difinalisekan',
             'decision' => $selectedDraft['decision'],
         ]);

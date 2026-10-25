@@ -19,6 +19,16 @@ class SupplierQuotationController extends Controller
             ->orderByDesc('quotation.supplier_quotation_id')
             ->get(['quotation.*', 'supplier.company_name as supplier_registered_name']);
 
+        $totals = DB::table('pembekal_quotation_item')
+            ->whereIn('supplier_quotation_id', $quotations->pluck('supplier_quotation_id'))
+            ->select('supplier_quotation_id', DB::raw('SUM(subtotal) as jumlah_total'))
+            ->groupBy('supplier_quotation_id')
+            ->pluck('jumlah_total', 'supplier_quotation_id');
+
+        $quotations->each(function ($quotation) use ($totals) {
+            $quotation->jumlah_total = (float) ($totals->get($quotation->supplier_quotation_id) ?? 0);
+        });
+
         return view('pages.sebut-harga-pembekal.index', compact('quotations'));
     }
 
