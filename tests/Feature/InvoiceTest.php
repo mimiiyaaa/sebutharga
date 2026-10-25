@@ -21,6 +21,7 @@ beforeEach(function () {
     });
     (require database_path('migrations/2026_10_11_160650_create_invoice_and_delivery_order_tables.php'))->up();
     (require database_path('migrations/2026_10_12_000000_add_invoice_document_data.php'))->up();
+    Schema::table('invoice_master', fn (Blueprint $table) => $table->string('invoice_title')->nullable());
     DB::table('customer_supplier')->insert(['customer_id'=>1,'jenis_customer'=>1,'company_name'=>'Jabatan Teknologi & Komunikasi','customer_name'=>'Pelanggan','address'=>"Sektor Awam Negeri Kelantan\n15000 Kota Bharu, Kelantan."]);
     Schema::create('sebutharga_master', function (Blueprint $table) {
         $table->increments('quotation_id'); $table->string('quotation_no')->nullable();
@@ -55,7 +56,7 @@ test('invoice creation saves snapshot and items with server calculated total', f
     $form = $this->get(route('invoice.customer.form'))->assertOk()->assertSee('Cipta &amp; Simpan Invois', false);
     if (getenv('INVOICE_VISUAL_CHECK')) file_put_contents(storage_path('app/invoice-form-check.html'), $form->getContent());
     $response = $this->post(route('invoice.customer.store'), $this->invoiceData + ['total_amount'=>1]);
-    $response->assertSessionHasNoErrors()->assertRedirect(route('invoice.customer.preview', 1));
+    $response->assertSessionHasNoErrors()->assertRedirect(route('invoice.customer'));
     $this->assertDatabaseHas('invoice_master',['invoice_id'=>1,'total_amount'=>25000,'created_by'=>42]);
     $this->assertDatabaseCount('invoice_item',3);
     DB::table('customer_supplier')->where('customer_id',1)->update(['company_name'=>'Changed']);
@@ -240,7 +241,7 @@ test('customer invoice list uses quotation information from the linked LO like d
     $invoice=DB::table('invoice_master')->first();
     $document=json_decode($invoice->document_data,true); $document['lo_reference']='LO-SELECT-001';
     DB::table('invoice_master')->where('invoice_id',$invoice->invoice_id)->update(['document_data'=>json_encode($document)]);
-    $this->get(route('invoice.customer'))->assertOk()->assertSee('Tajuk Sebut Harga')->assertSee('Jumlah Harga (RM)')
+    $this->get(route('invoice.customer'))->assertOk()->assertSee('Tajuk Invois')->assertSee('Jumlah Harga (RM)')
         ->assertDontSee('>Jumlah (RM)<', false)
         ->assertViewHas('invoices', fn ($rows) => $rows[0]['quotation_title']==='Bekalan komputer' && $rows[0]['amount']===1234.50);
     DB::table('sebutharga_detail')->where('quotation_detail_id',9)->delete();
