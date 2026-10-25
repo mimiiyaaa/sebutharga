@@ -31,6 +31,7 @@ beforeEach(function () {
         '2026_09_22_100000_add_sst_to_purchase_order_master.php',
         '2026_10_06_120000_add_document_data_to_purchase_order_master.php',
         '2026_10_11_120000_link_purchase_order_to_supplier_quotation.php',
+        '2026_10_13_130000_add_quotation_date_to_pembekal_quotation_master.php',
     ] as $migration) {
         (require database_path('migrations/'.$migration))->up();
     }

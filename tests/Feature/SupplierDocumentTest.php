@@ -21,6 +21,7 @@ beforeEach(function () {
     });
     DB::table('lo_inden_master')->insert(['lo_inden_no'=>'LO-EDIT','customer_id'=>2]);
     (require database_path('migrations/2026_10_12_020000_create_supplier_documents.php'))->up();
+    Schema::table('supplier_documents', fn (Blueprint $table) => $table->string('document_title')->nullable());
     DB::table('customer_supplier')->insert([['customer_id'=>1,'jenis_customer'=>2,'company_name'=>'K ONE RESOURCES'],['customer_id'=>2,'jenis_customer'=>1,'company_name'=>'Customer']]);
     $user=new User();$user->id=42;$user->name='Tester';$this->actingAs($user);
     $this->supplierData=['supplier_id'=>1,'document_no'=>'SUP-001','document_date'=>'2026-08-11','source'=>'WhatsApp','source_details'=>'Dihantar oleh pembekal','reviewed'=>'1','total_amount'=>106,
@@ -152,7 +153,6 @@ test('supplier LO dropdown saves valid choices and preserves legacy references',
 
 test('supplier lists render matching headers and empty states without a quantity column', function (string $prefix) {
     $response=$this->get(route($prefix))->assertOk()->assertDontSee('Jumlah Kuantiti');
-    $response->assertSee('colspan="'.($prefix === 'invoice.supplier' ? 6 : 5).'"',false);
-    if ($prefix === 'invoice.supplier') $response->assertSee('Jumlah (RM)');
-    else $response->assertDontSee('Jumlah (RM)');
+    $response->assertSee('colspan="'.($prefix === 'invoice.supplier' ? 7 : 6).'"',false);
+    $response->assertSee('Jumlah (RM)');
 })->with(['invoice.supplier','delivery-order.supplier']);
