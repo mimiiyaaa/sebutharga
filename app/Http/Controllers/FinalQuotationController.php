@@ -31,6 +31,7 @@ class FinalQuotationController extends Controller
                     'label' => 'Versi ' . ($version->final_no ?? $version->draft_no),
                     'viewUrl' => route('sebut-harga.edit', [$version->quotation_id, 'draft' => $version->quotation_detail_id, 'from' => 'final']),
                     'deleteUrl' => route('sebut-harga.final.destroy', [$version->quotation_id, $version->quotation_detail_id]),
+                    'jumlahTotal' => (float) ($version->jumlah_total ?? 0),
                     'decision' => empty($version->sent_at)
                         ? 'Belum Hantar'
                         : ($version->status_quotation === null

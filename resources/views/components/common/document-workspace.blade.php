@@ -1,4 +1,4 @@
-@props(['title', 'subtitle' => '', 'reference' => null, 'editingTitle' => null, 'editingBack' => false])
+@props(['title', 'subtitle' => '', 'reference' => null, 'editingReference' => null, 'editingTitle' => null, 'editingBack' => false])
 <div {{ $attributes->merge(['class' => 'mx-auto max-w-7xl space-y-6 font-outfit text-theme-sm text-gray-700 dark:text-gray-300']) }}>
     <header class="flex flex-col gap-3 py-1 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-4">
@@ -22,7 +22,12 @@
                     <button type="button" x-show="editing" x-cloak @click="editing = false" class="inline-flex h-9 items-center justify-center rounded-lg border border-gray-200 bg-white px-3 text-theme-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">{{ __('Kembali') }}</button>
                 @endif
                 @if ($reference)
-                    <span class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-theme-xs font-medium text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">{{ $reference }}</span>
+                    @if ($editingReference)
+                        <span x-show="!editing || editMode !== 'new'" class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-theme-xs font-medium text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">{{ $reference }}</span>
+                        <span x-show="editing && editMode === 'new'" x-cloak class="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-theme-xs font-medium text-brand-700 dark:border-brand-700 dark:bg-brand-500/10 dark:text-brand-300">{{ $editingReference }}</span>
+                    @else
+                        <span class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-theme-xs font-medium text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">{{ $reference }}</span>
+                    @endif
                 @endif
                 @isset ($referenceActions)
                     {{ $referenceActions }}

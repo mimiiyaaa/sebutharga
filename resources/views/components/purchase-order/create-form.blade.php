@@ -5,7 +5,8 @@
     $labelClass = 'mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400';
     $documentData = $order?->document_data ? (json_decode($order->document_data, true) ?: []) : [];
     $savedIssuerCompanyId = $companies->firstWhere('nama_syarikat', $documentData['issuer_name'] ?? null)?->company_id ?? '';
-    $defaultIssuerCompanyId = $companies->firstWhere('nama_syarikat', config('purchase_order.issuer_name'))?->company_id ?? '';
+    $defaultIssuerCompany = $companies->first(fn ($company) => str_contains(strtoupper((string) $company->nama_syarikat), 'K1') || str_contains(strtoupper((string) $company->nama_syarikat), 'K ONE'));
+    $defaultIssuerCompanyId = $defaultIssuerCompany?->company_id ?? $companies->firstWhere('nama_syarikat', config('purchase_order.issuer_name'))?->company_id ?? '';
     $savedDeliveryCompanyId = $companies->firstWhere('nama_syarikat', $documentData['delivery_company'] ?? null)?->company_id ?? '';
 @endphp
 

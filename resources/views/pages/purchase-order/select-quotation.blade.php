@@ -2,140 +2,35 @@
 
 @section('content')
     <x-common.document-workspace class="purchase-order-select" :title="__('Tambah Purchase Order')" :subtitle="__('Pilih sebut harga pembekal untuk dijadikan Purchase Order.')">
-        <x-slot:referenceActions>
-            <a href="{{ route('purchase-order.index') }}" class="inline-flex h-9 items-center justify-center px-3 py-1.5 text-theme-xs rounded-lg border border-gray-300 bg-white font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
-        </x-slot:referenceActions>
-
-        <x-common.document-card :title="__('Langkah 1: Pilih Sebut Harga Pembekal')" :desc="__('Pilih sebut harga pembekal untuk dimasukkan ke dalam Purchase Order.')">
-            @if ($errors->any())
-                <p role="alert" class="rounded-xl bg-error-50 p-4 text-sm text-error-700 dark:bg-error-500/10 dark:text-error-400">{{ __('Sila pilih sebut harga pembekal.') }}</p>
-            @endif
-
-            @if ($quotations->isEmpty())
-                <p class="rounded-xl bg-peach-100 p-4 text-sm text-peach-700 dark:bg-peach-500/15 dark:text-peach-300">{{ __('Belum ada sebut harga pembekal.') }}</p>
-            @else
-                <form method="GET" action="{{ route('purchase-order.form') }}" class="space-y-5" @submit.prevent="if (!quotation) { dropdownOpen = true; return; } $el.submit()" x-data="{ quotationId: {{ Illuminate\Support\Js::from((string) old('supplier_quotation_id', '')) }}, selectedQuotation: null, dropdownOpen: false, quotations: {{ Illuminate\Support\Js::from($quotations) }}, init() { this.selectedQuotation = this.quotations.find(row => String(row.supplier_quotation_id) === String(this.quotationId)) || null; }, get quotation() { return this.selectedQuotation; }, selectQuotation(id) { this.quotationId = String(id); this.selectedQuotation = this.quotations.find(row => String(row.supplier_quotation_id) === String(id)) || null; this.dropdownOpen = false; }, clearQuotation() { this.quotationId = ''; this.selectedQuotation = null; this.dropdownOpen = false; }, formatMoney(value) { return Number(value || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }, formatDate(value) { if (!value) return '—'; return new Intl.DateTimeFormat('ms-MY', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(`${value}T00:00:00`)); } }">
-                    <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-100 bg-brand-50/70 px-4 py-3 dark:border-brand-500/20 dark:bg-brand-500/10">
-                        <div class="flex items-center gap-3">
-                            <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500 text-xs font-bold text-white">1</span>
-                            <div>
-                                <p class="text-sm font-semibold text-gray-900 dark:text-white/90">{{ __('Pilih dokumen rujukan') }}</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('Maklumat item akan dimasukkan secara automatik ke dalam PO.') }}</p>
-                            </div>
-                        </div>
-                        <span class="rounded-full bg-white px-3 py-1 text-xs font-medium text-brand-700 shadow-theme-xs dark:bg-gray-900 dark:text-brand-300">{{ __('Langkah 1 daripada 2') }}</span>
-                    </div>
-                    <div>
-                        <label for="quotation_detail_id" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">{{ __('Sebut Harga') }} <span class="text-error-500">*</span></label>
-                        <input type="hidden" name="supplier_quotation_id" x-model="quotationId">
-                        <div class="relative w-full" @click.outside="dropdownOpen = false">
-                            <button type="button" id="quotation_detail_id" @click="dropdownOpen = !dropdownOpen" :aria-expanded="dropdownOpen" class="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50/70 px-4 py-3 text-start text-sm text-gray-800 outline-none transition hover:border-gray-300 hover:bg-white focus:border-gray-200 focus:bg-white focus:ring-0 dark:border-gray-700 dark:bg-gray-800/60 dark:text-white/90 dark:hover:border-gray-600 dark:hover:bg-gray-800 dark:focus:border-gray-700 dark:focus:bg-gray-900">
-                                <span class="truncate" :class="quotation ? 'font-medium text-gray-900 dark:text-white/90' : 'text-gray-500 dark:text-gray-400'" x-text="quotation ? `${quotation.quotation_no} — ${quotation.company_name || quotation.customer_name}` : '{{ __('Pilih sebut harga pembekal') }}'"></span>
-                                <svg class="h-4 w-4 shrink-0 text-gray-500 transition-transform dark:text-gray-400" :class="dropdownOpen ? 'rotate-180 text-brand-500' : ''" fill="none" viewBox="0 0 24 24" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m6 9 6 6 6-6"/></svg>
-                            </button>
-                            <div x-cloak x-show="dropdownOpen" x-transition class="mt-2 max-h-[50vh] w-full overflow-y-scroll overscroll-contain rounded-xl border border-gray-200 bg-white p-1.5 shadow-theme-lg custom-scrollbar dark:border-gray-700 dark:bg-gray-900">
-                                <button type="button" @click="clearQuotation()" class="flex w-full items-center rounded-lg px-3 py-2.5 text-start text-sm text-gray-500 transition hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800">{{ __('Pilih sebut harga pembekal') }}</button>
+        <x-slot:referenceActions><a href="{{ route('purchase-order.index') }}" class="inline-flex h-9 items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-theme-xs font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a></x-slot:referenceActions>
+        <form method="GET" action="{{ route('purchase-order.form') }}" class="space-y-6" @submit.prevent="if (!quotation) { selectionError = true; return; } $el.submit()" x-data="{ quotationId: {{ Illuminate\Support\Js::from((string) old('supplier_quotation_id', '')) }}, selectedQuotation: null, selectionError: false, quotations: {{ Illuminate\Support\Js::from($quotations) }}, init() { this.selectedQuotation = this.quotations.find(row => String(row.supplier_quotation_id) === String(this.quotationId)) || null; }, get quotation() { return this.selectedQuotation; }, selectQuotation(id) { this.quotationId = String(id); this.selectedQuotation = this.quotations.find(row => String(row.supplier_quotation_id) === String(id)) || null; this.selectionError = false; }, formatMoney(value) { return Number(value || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); } }">
+            @if ($errors->any())<p role="alert" class="rounded-xl bg-error-50 p-4 text-sm text-error-700 dark:bg-error-500/10 dark:text-error-400">{{ __('Sila pilih sebut harga pembekal.') }}</p>@endif
+            <x-common.document-card :title="__('Pilih Sebut Harga Pembekal')" :desc="__('Pilih satu sebut harga pembekal untuk dimasukkan ke dalam Purchase Order.')">
+                @if ($quotations->isEmpty())
+                    <p class="rounded-xl bg-peach-100 p-4 text-sm text-peach-700 dark:bg-peach-500/15 dark:text-peach-300">{{ __('Belum ada sebut harga pembekal.') }}</p>
+                @else
+                    <input type="hidden" name="supplier_quotation_id" x-model="quotationId">
+                    <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                        <table class="min-w-full text-sm text-gray-700 dark:text-gray-300">
+                            <thead class="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-gray-800/60 dark:text-gray-400"><tr><th class="w-12 px-4 py-3"></th><th class="px-4 py-3 text-start">{{ __('No. Sebut Harga') }}</th><th class="px-4 py-3 text-start">{{ __('Pembekal') }}</th><th class="px-4 py-3 text-start">{{ __('Tajuk') }}</th><th class="px-4 py-3 text-start">{{ __('Tarikh') }}</th><th class="px-4 py-3 text-end">{{ __('Jumlah (RM)') }}</th></tr></thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                                 <template x-for="row in quotations" :key="row.supplier_quotation_id">
-                                    <button type="button" @click="selectQuotation(row.supplier_quotation_id)" class="flex w-full items-center justify-between gap-4 rounded-lg px-3 py-3 text-start transition hover:bg-brand-50 dark:hover:bg-brand-500/10">
-                                        <span class="min-w-0">
-                                            <span class="block truncate text-sm font-semibold text-gray-800 dark:text-white/90" x-text="row.quotation_no"></span>
-                                            <span class="mt-0.5 block truncate text-xs text-gray-500 dark:text-gray-400" x-text="row.company_name || row.customer_name"></span>
-                                        </span>
-                                        <span class="shrink-0 rounded-full bg-brand-100 px-2.5 py-1 text-theme-xs font-semibold text-brand-700 dark:bg-brand-500/20 dark:text-brand-400">{{ __('Pembekal') }}</span>
-                                    </button>
+                                    <tr @click="selectQuotation(row.supplier_quotation_id)" :class="String(quotationId) === String(row.supplier_quotation_id) ? 'bg-brand-50 dark:bg-brand-500/10' : 'hover:bg-gray-50/70 dark:hover:bg-gray-800/40'" class="cursor-pointer transition">
+                                        <td class="px-4 py-3 text-center"><input type="radio" name="quotation_choice" :value="row.supplier_quotation_id" :checked="String(quotationId) === String(row.supplier_quotation_id)" @click.stop="selectQuotation(row.supplier_quotation_id)" class="h-4 w-4 border-gray-300 text-brand-600 focus:ring-brand-500"></td>
+                                        <td class="whitespace-nowrap px-4 py-3 font-medium text-gray-800 dark:text-gray-200" x-text="row.quotation_no"></td>
+                                        <td class="min-w-52 px-4 py-3 text-gray-600 dark:text-gray-300" x-text="row.company_name || row.customer_name || '—'"></td>
+                                        <td class="min-w-48 px-4 py-3 text-gray-600 dark:text-gray-300" x-text="row.quotation_title || '—'"></td>
+                                        <td class="whitespace-nowrap px-4 py-3 text-gray-600 dark:text-gray-300" x-text="row.quotation_date || '—'"></td>
+                                        <td class="whitespace-nowrap px-4 py-3 text-end font-medium text-gray-800 dark:text-gray-200" x-text="'RM ' + formatMoney(row.jumlah_total)"></td>
+                                    </tr>
                                 </template>
-                            </div>
-                        </div>
+                            </tbody>
+                        </table>
                     </div>
-
-                    <div x-cloak x-show="!quotation" class="flex items-start gap-3 rounded-xl border border-dashed border-gray-200 bg-gray-50/80 p-4 dark:border-gray-700 dark:bg-gray-800/40">
-                        <span class="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-brand-500 shadow-theme-xs dark:bg-gray-900 dark:text-brand-400">
-                            <svg class="h-4 w-4 stroke-current" fill="none" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h4m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6l4 4v12a2 2 0 0 1-2 2Zm-2-18v4h4"/></svg>
-                        </span>
-                        <div>
-                            <p class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ __('Belum ada sebut harga dipilih') }}</p>
-                            <p class="mt-1 text-xs leading-5 text-gray-500 dark:text-gray-400">{{ __('Pilih sebut harga pembekal untuk melihat maklumat pembekal, item dan jumlah keseluruhan.') }}</p>
-                        </div>
-                    </div>
-
-                    <div x-cloak x-show="quotation" class="rounded-2xl border border-brand-100 bg-brand-50/50 p-5 dark:border-brand-500/20 dark:bg-brand-500/5 sm:p-6">
-                        <div class="flex flex-wrap items-start justify-between gap-4 border-b border-brand-100 pb-4 dark:border-brand-500/20">
-                            <div>
-                                <p class="text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">{{ __('Sebut Harga Dipilih') }}</p>
-                                <h3 class="mt-1 text-lg font-semibold text-gray-900 dark:text-white/90" x-text="quotation?.quotation_no || '—'"></h3>
-                                <p class="mt-1 text-sm text-gray-600 dark:text-gray-300" x-text="quotation?.company_name || quotation?.customer_name || '—'"></p>
-                            </div>
-                            <span class="inline-flex items-center rounded-full bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700 dark:bg-brand-500/20 dark:text-brand-400">{{ __('Pembekal') }}</span>
-                        </div>
-                        <div class="mt-5 overflow-hidden rounded-xl border border-brand-100 bg-white/80 dark:border-brand-500/20 dark:bg-gray-900/40">
-                            <div class="border-b border-brand-100 px-4 py-3 dark:border-brand-500/20">
-                                <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ __('Ringkasan Sebut Harga') }}</p>
-                            </div>
-                            <div class="overflow-x-auto">
-                                <table class="min-w-full divide-y divide-brand-100 text-sm dark:divide-brand-500/20">
-                                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                                        <tr>
-                                            <th scope="row" class="w-1/3 px-4 py-3 text-start text-xs font-medium text-gray-500 dark:text-gray-400">{{ __('Tajuk') }}</th>
-                                            <td class="px-4 py-3 font-semibold text-gray-900 dark:text-white/90" x-text="quotation?.quotation_title || '—'"></td>
-                                        </tr>
-                                        <tr>
-                                            <th scope="row" class="px-4 py-3 text-start text-xs font-medium text-gray-500 dark:text-gray-400">{{ __('Tarikh') }}</th>
-                                            <td class="px-4 py-3 font-medium text-gray-800 dark:text-white/90" x-text="formatDate(quotation?.quotation_date)"></td>
-                                        </tr>
-                                        <tr>
-                                            <th scope="row" class="px-4 py-3 text-start text-xs font-medium text-gray-500 dark:text-gray-400">{{ __('Bilangan Item') }}</th>
-                                            <td class="px-4 py-3 font-medium text-gray-800 dark:text-white/90" x-text="`${quotation?.item_count || 0} item`"></td>
-                                        </tr>
-                                        <tr class="bg-brand-50/40 dark:bg-brand-500/5">
-                                            <th scope="row" class="px-4 py-3 text-start text-xs font-semibold text-gray-600 dark:text-gray-300">{{ __('Jumlah Sebut Harga') }}</th>
-                                            <td class="px-4 py-3 text-base font-bold tabular-nums text-brand-700 dark:text-brand-300" x-text="`RM ${formatMoney(quotation?.jumlah_total)}`"></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        <div class="mt-5 overflow-hidden rounded-xl border border-brand-100 bg-white/80 dark:border-brand-500/20 dark:bg-gray-900/40">
-                            <div class="border-b border-brand-100 px-4 py-3 dark:border-brand-500/20">
-                                <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ __('Senarai Item Sebut Harga') }}</p>
-                            </div>
-                            <div class="overflow-x-auto">
-                                <table class="min-w-full text-sm">
-                                    <thead class="bg-gray-50/80 dark:bg-gray-800/50">
-                                        <tr class="border-b border-gray-100 dark:border-gray-800">
-                                            <th class="w-14 px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400">{{ __('Bil') }}</th>
-                                            <th class="px-4 py-3 text-start text-xs font-semibold text-gray-500 dark:text-gray-400">{{ __('Perihal Barangan') }}</th>
-                                            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400">{{ __('Kuantiti') }}</th>
-                                            <th class="px-4 py-3 text-start text-xs font-semibold text-gray-500 dark:text-gray-400">{{ __('Unit') }}</th>
-                                            <th class="px-4 py-3 text-end text-xs font-semibold text-gray-500 dark:text-gray-400">{{ __('Harga Seunit (RM)') }}</th>
-                                            <th class="px-4 py-3 text-end text-xs font-semibold text-gray-500 dark:text-gray-400">{{ __('Jumlah (RM)') }}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                                        <template x-for="(item, index) in (quotation?.items || [])" :key="`${quotation.supplier_quotation_id}-${index}`">
-                                            <tr class="hover:bg-brand-50/40 dark:hover:bg-brand-500/5">
-                                                <td class="px-4 py-3 text-center tabular-nums text-gray-400 dark:text-gray-500" x-text="index + 1"></td>
-                                                <td class="whitespace-pre-line px-4 py-3 font-medium leading-6 text-gray-800 dark:text-gray-200" x-text="item.item_description"></td>
-                                                <td class="px-4 py-3 text-center text-gray-600 dark:text-gray-300" x-text="item.quantity"></td>
-                                                <td class="px-4 py-3 text-gray-600 dark:text-gray-300" x-text="item.unit"></td>
-                                                <td class="px-4 py-3 text-end tabular-nums text-gray-600 dark:text-gray-300" x-text="formatMoney(item.unit_price)"></td>
-                                                <td class="px-4 py-3 text-end font-semibold tabular-nums text-gray-900 dark:text-white/90" x-text="formatMoney(item.subtotal)"></td>
-                                            </tr>
-                                        </template>
-                                        <tr x-show="quotation && !(quotation.items || []).length">
-                                            <td colspan="6" class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">{{ __('Tiada item') }}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        <div class="mt-6 flex justify-end border-t border-brand-100 pt-5 dark:border-brand-500/20">
-                            <button type="submit" class="inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-6 text-sm font-medium text-white shadow-theme-xs transition hover:bg-brand-600">{{ __('Teruskan ke Purchase Order') }}</button>
-                        </div>
-                    </div>
-
-                    <p x-cloak x-show="quotationId && !quotation" class="rounded-xl bg-gray-50 p-4 text-sm text-gray-600 dark:bg-gray-800/50 dark:text-gray-400">{{ __('Sebut harga yang dipilih tidak lagi tersedia.') }}</p>
-                </form>
-            @endif
-        </x-common.document-card>
+                    <p x-cloak x-show="selectionError" class="mt-3 text-sm text-error-600 dark:text-error-400">{{ __('Sila pilih satu sebut harga pembekal.') }}</p>
+                    <div class="mt-4 flex justify-end"><button type="submit" :disabled="!quotation" class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">{{ __('Teruskan ke Borang Purchase Order') }}</button></div>
+                @endif
+            </x-common.document-card>
+        </form>
     </x-common.document-workspace>
 @endsection

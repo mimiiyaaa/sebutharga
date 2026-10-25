@@ -4,7 +4,7 @@
 @php($editId = $editId ?? null)
 <x-common.document-workspace :title="$title">
     <x-slot:referenceActions><a href="{{ ($editId ? route('invoice.customer.show', $editId) : route('invoice.customer.create')) }}" class="rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">{{ __('Kembali') }}</a></x-slot:referenceActions>
-    <form method="POST" action="{{ ($editId ? route('invoice.customer.update', $editId) : route('invoice.customer.store')) }}" class="space-y-6 rounded-3xl bg-brand-50/35 p-3 dark:bg-brand-500/5 sm:p-4" x-data="{
+    <form method="POST" action="{{ ($editId ? route('invoice.customer.update', $editId) : route('invoice.customer.store')) }}" class="space-y-6" x-data="{
         companies: @js($companies), customers: @js($customers), localOrders: @js($localOrders ?? []),
         customerId: @js((string) old('customer_id', $values['customer_id'] ?? '')),
         issuer: @js(['name'=>old('issuer_name', $values['issuer_name'] ?? config('purchase_order.issuer_name')), 'address'=>old('issuer_address', $values['issuer_address'] ?? config('purchase_order.issuer_address')), 'phone'=>old('issuer_phone', $values['issuer_phone'] ?? config('purchase_order.issuer_phone')), 'email'=>old('issuer_email', $values['issuer_email'] ?? config('purchase_order.issuer_email'))]),
@@ -52,7 +52,7 @@
                 @else
                 <x-supplier-document.field name="lo_reference" :label="__('No. Rujukan LO (pilihan)')" maxlength="100" :value="$values['lo_reference'] ?? ''" />
                 @endif
-                <p class="rounded-xl bg-gray-50 p-4 text-sm leading-6 text-gray-500 dark:bg-gray-800 dark:text-gray-400">{{ __('Invois dijana dalam format A4 dengan kepala surat, butiran bil, item, arahan pembayaran dan tandatangan.') }}</p>
+                <p class="text-sm leading-6 text-gray-500 dark:text-gray-400">{{ __('Invois dijana dalam format A4 dengan kepala surat, butiran bil, item, arahan pembayaran dan tandatangan.') }}</p>
             </x-common.document-card>
         </div>
         <x-common.document-card :title="__('Kepada / Bill To:')">

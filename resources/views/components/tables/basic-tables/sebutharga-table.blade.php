@@ -64,7 +64,6 @@
                         <th class="px-6 py-3 font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400 text-start">Pelanggan</th>
                         <th class="px-6 py-3 font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400 text-start">Tajuk</th>
                         <th class="px-6 py-3 font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400 text-start">{{ __('Draf') }}</th>
-                        <th class="px-6 py-3 font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400 text-start">Status</th>
                         <th class="px-6 py-3 text-center font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">Tindakan</th>
                     </tr>
                 </thead>
@@ -94,11 +93,6 @@
                                     </template>
                                 </select>
                             </td>
-                            <td class="px-4 sm:px-6 py-3.5">
-                                <span class="text-theme-xs inline-block rounded-full px-2 py-0.5 font-medium"
-                                    :class="getStatusClass(selectedDraft(row).decision)"
-                                    x-text="selectedDraft(row).decision"></span>
-                            </td>
                             <td class="px-4 py-3.5 text-center sm:px-6">
                                 <div class="flex items-center justify-center gap-2">
                                     <a :href="'{{ url('/sebut-harga') }}/' + row.id + '/edit?draft=' + row.version" class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">{{ __('Lihat') }}</a>
@@ -112,7 +106,7 @@
                         </tr>
                     </template>
                     <template x-if="filteredRows.length === 0">
-                        <tr><td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">Tiada sebut harga sepadan dengan filter.</td></tr>
+                        <tr><td colspan="5" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">Tiada sebut harga sepadan dengan filter.</td></tr>
                     </template>
                 </tbody>
             </table>

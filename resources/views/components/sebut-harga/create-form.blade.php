@@ -23,12 +23,14 @@
     foreach (['customer_name', 'company_name', 'phone_no', 'email', 'address'] as $field) {
         $recipientValues[$field] = old($field, array_key_exists($field, $document) ? $document[$field] : ($recipient->$field ?? ''));
     }
-    $selectedCompany = $companies->firstWhere('company_id', old('company_id', $quotation->company_id ?? null));
-    $issuerName = old('issuer_name', array_key_exists('issuer_name', $document) ? $document['issuer_name'] : ($quotation->nama_syarikat ?? ''));
-    $issuerPhone = old('issuer_phone', array_key_exists('issuer_phone', $document) ? $document['issuer_phone'] : ($quotation->no_telefon ?? ''));
-    $issuerEmail = old('issuer_email', array_key_exists('issuer_email', $document) ? $document['issuer_email'] : ($quotation->emel ?? ''));
-    $issuerPersonInCharge = old('issuer_person_in_charge', $document['issuer_person_in_charge'] ?? ($quotation->person_in_charge ?? ''));
-    $issuerAddress = old('issuer_address', array_key_exists('issuer_address', $document) ? $document['issuer_address'] : ($quotation->alamat_syarikat ?? ''));
+    $defaultCompany = $companies->first(fn ($company) => str_contains(strtoupper((string) $company->nama_syarikat), 'K1'));
+    $defaultCompanyId = old('company_id', $quotation->company_id ?? $defaultCompany?->company_id ?? '');
+    $selectedCompany = $companies->firstWhere('company_id', $defaultCompanyId);
+    $issuerName = old('issuer_name', array_key_exists('issuer_name', $document) ? $document['issuer_name'] : ($quotation->nama_syarikat ?? ($selectedCompany->nama_syarikat ?? '')));
+    $issuerPhone = old('issuer_phone', array_key_exists('issuer_phone', $document) ? $document['issuer_phone'] : ($quotation->no_telefon ?? ($selectedCompany->no_telefon ?? '')));
+    $issuerEmail = old('issuer_email', array_key_exists('issuer_email', $document) ? $document['issuer_email'] : ($quotation->emel ?? ($selectedCompany->emel ?? '')));
+    $issuerPersonInCharge = old('issuer_person_in_charge', $document['issuer_person_in_charge'] ?? ($quotation->person_in_charge ?? ($selectedCompany->person_in_charge ?? '')));
+    $issuerAddress = old('issuer_address', array_key_exists('issuer_address', $document) ? $document['issuer_address'] : ($quotation->alamat_syarikat ?? ($selectedCompany->alamat_syarikat ?? '')));
     $defaultJawatan = 'Pengurus Besar';
     $jawatanOptions = collect($jawatanOptions)
         ->map(fn ($jawatan) => trim((string) $jawatan))
@@ -40,6 +42,7 @@
     $confirmationPreparedBy = old('disediakan_oleh', $updateDraft ? ($draft->disediakan_oleh ?? auth()->user()?->name ?? '') : (auth()->user()?->name ?? ''));
     $confirmationRole = old('disediakan_role', $document['disediakan_role'] ?? ($draft->disediakan_role ?? auth()->user()?->jawatan ?? $defaultJawatan));
     $defaultQuotationDate = $copyAsNewQuotation ? now()->format('Y-m-d') : ($isEditing ? $quotation->quotation_date : now()->format('Y-m-d'));
+    $usesExistingQuotationNumber = $isEditing && ! $copyAsNewQuotation;
     $confirmationCompany = old('disediakan_company_name', $document['disediakan_company_name'] ?? $issuerName);
     $formAction = $isEditing && ! $copyAsNewQuotation ? route('sebut-harga.draft.store', $quotation->quotation_id) : route('sebut-harga.store');
     $initialItems = $isEditing
@@ -58,7 +61,7 @@
     sequences: {{ Illuminate\Support\Js::from((object) App\Helpers\QuotationNumber::sequences()) }},
     customers: {{ Illuminate\Support\Js::from($customers) }},
     companies: {{ Illuminate\Support\Js::from($companies) }},
-    companyId: {{ Illuminate\Support\Js::from((string) old('company_id', $quotation->company_id ?? '')) }},
+    companyId: {{ Illuminate\Support\Js::from((string) $defaultCompanyId) }},
     issuer: {
         name: {{ Illuminate\Support\Js::from($issuerName) }},
         phone: {{ Illuminate\Support\Js::from($issuerPhone) }},
@@ -153,7 +156,7 @@
         <x-common.document-card title="Maklumat Sebut Harga">
             <div>
                 <label for="quotation_no" class="{{ $labelClass }}">No. Sebut Harga</label>
-                <input id="quotation_no" readonly value="{{ $isEditing && $updateDraft ? $quotation->quotation_no : App\Helpers\QuotationNumber::next(old('quotation_date', $defaultQuotationDate)) }}" @if (! ($isEditing && $updateDraft)) :value="nextQuotationNo" @endif class="{{ $inputClass }} bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                <input id="quotation_no" readonly value="{{ $usesExistingQuotationNumber ? $quotation->quotation_no : App\Helpers\QuotationNumber::next(old('quotation_date', $defaultQuotationDate)) }}" @if (! $usesExistingQuotationNumber) :value="nextQuotationNo" @endif class="{{ $inputClass }} bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
             </div>
             <div>
                 <label for="quotation_date" class="{{ $labelClass }}">Tarikh Sebut Harga</label>

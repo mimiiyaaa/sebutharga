@@ -14,7 +14,9 @@
                 @foreach (['Pembekal', 'Sumber', 'Fail Asal'] as $heading)
                     <th class="px-4 py-3 text-start font-semibold text-gray-500 sm:px-6">{{ __($heading) }}</th>
                 @endforeach
-                <th class="p-4 text-end">{{ __('Jumlah (RM)') }}</th>
+                @if ($isInvoice)
+                    <th class="p-4 text-end">{{ __('Jumlah (RM)') }}</th>
+                @endif
                 <th class="p-4 text-center">{{ __('Tindakan') }}</th>
             </tr>
         </thead>
@@ -36,7 +38,9 @@
                         @endif
                     </td>
                     <td data-label="{{ __('Fail Asal') }}" class="max-w-xs break-words p-4">{{ $document->file_name }}</td>
-                    <td data-label="{{ __('Jumlah') }}" class="p-4 text-end tabular-nums">{{ number_format($isInvoice ? $document->total_amount : $document->items_total, 2) }}</td>
+                    @if ($isInvoice)
+                        <td data-label="{{ __('Jumlah') }}" class="p-4 text-end tabular-nums">{{ number_format($document->total_amount, 2) }}</td>
+                    @endif
                     <td data-label="{{ __('Tindakan') }}" class="p-4">
                         <div class="document-actions">
                             <a href="{{ route($prefix . '.show', $document->id) }}" class="document-action">{{ __('Lihat') }}</a>
@@ -52,7 +56,7 @@
                 </tr>
             @endforeach
             <tr x-cloak x-show="!@js($documents->map(fn ($d) => ['number' => $d->document_no, 'supplier' => $d->supplier_name, 'source' => $d->source, 'date' => $d->document_date, 'title' => $d->document_title ?? ''])->values()).some(row => matches(row.number, row.supplier, row.source, row.date, row.title))">
-                <td colspan="{{ $isInvoice ? 7 : 6 }}" class="p-10 text-center text-gray-500 dark:text-gray-400">{{ __('Tiada rekod untuk dipaparkan.') }}</td>
+                <td colspan="{{ $isInvoice ? 7 : 5 }}" class="p-10 text-center text-gray-500 dark:text-gray-400">{{ __('Tiada rekod untuk dipaparkan.') }}</td>
             </tr>
         </tbody>
     </table>

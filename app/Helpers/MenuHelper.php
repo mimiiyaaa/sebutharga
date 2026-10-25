@@ -22,14 +22,14 @@ class MenuHelper
                 ],
             ],
             [
-                'icon' => 'purchase-order',
-                'name' => 'Pesanan Belian (PO)',
-                'path' => '/purchase-order',
-            ],
-            [
                 'icon' => 'lo-document',
                 'name' => 'Local Order',
                 'path' => '/lo',
+            ],
+            [
+                'icon' => 'purchase-order',
+                'name' => 'Pesanan Belian (PO)',
+                'path' => '/purchase-order',
             ],
             [
                 'icon' => 'delivery-order',

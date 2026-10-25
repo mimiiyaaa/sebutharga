@@ -73,7 +73,6 @@
                                 <th class="px-4 py-3 font-semibold text-gray-600 dark:text-gray-300">Tajuk</th>
                                 <th class="px-4 py-3 font-semibold text-gray-600 dark:text-gray-300">Versi</th>
                                 <th class="px-4 py-3 font-semibold text-gray-600 dark:text-gray-300">Tarikh</th>
-                                <th class="px-4 py-3 font-semibold text-gray-600 dark:text-gray-300">Status</th>
                                 <th class="px-4 py-3 text-center font-semibold text-gray-600 dark:text-gray-300">Tindakan</th>
                             </tr>
                         </thead>
@@ -85,11 +84,10 @@
                                     <td class="px-4 py-3.5 text-gray-700 dark:text-gray-300" x-text="selected()?.title"></td>
                                     <td class="px-4 py-3.5"><select x-model="selectedId" class="h-9 min-w-28 rounded-lg border border-gray-200 bg-white px-2.5 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"><template x-for="item in group.items" :key="item.id"><option :value="item.id" x-text="item.status + ' ' + item.draftNo"></option></template></select></td>
                                     <td class="whitespace-nowrap px-4 py-3.5 text-gray-600 dark:text-gray-400" x-text="selected()?.date"></td>
-                                    <td class="px-4 py-3.5"><span class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300" x-text="selected()?.status + ' ' + selected()?.draftNo"></span></td>
                                     <td class="px-4 py-3.5 text-center"><button type="button" @click="window.location.assign(selected()?.editUrl)" class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-white dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Guna Semula') }}</button></td>
                                 </tr>
                             </template>
-                            <tr x-show="filteredGroups.length === 0"><td colspan="7" class="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400">{{ __('Tiada sebut harga sepadan dengan filter.') }}</td></tr>
+                            <tr x-show="filteredGroups.length === 0"><td colspan="6" class="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400">{{ __('Tiada sebut harga sepadan dengan filter.') }}</td></tr>
                         </tbody>
                     </table>
                 </div>
