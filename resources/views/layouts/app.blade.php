@@ -144,9 +144,8 @@
 
 </head>
 
-<body x-data="{ loaded: true }">
+<body>
 
-    <x-common.preloader />
 
     @php
         $toastType = session('success') ? 'success' : (session('error') ? 'error' : (session('warning') ? 'warning' : (session('status') ? 'info' : ($errors->any() ? 'error' : null))));
