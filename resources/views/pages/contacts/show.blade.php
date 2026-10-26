@@ -7,12 +7,16 @@
         $detailTitle = $isCustomer ? __('Butiran Pelanggan') : __('Butiran Pembekal');
     @endphp
 
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ $profileTitle }}</h2>
-        <a href="{{ url('/' . $type) }}" class="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-brand-700 dark:hover:bg-brand-500/10 dark:hover:text-brand-300">
-            {{ __('Kembali') }}
-        </a>
-    </div>
+    <x-common.document-workspace :title="$profileTitle">
+        <x-slot:referenceActions>
+            <a href="{{ url('/' . $type) }}" class="document-action">{{ __('Kembali') }}</a>
+            <a href="{{ url('/' . $type . '/' . $contact->customer_id . '/edit') }}" class="document-action document-action-primary">{{ $isCustomer ? __('Edit Pelanggan') : __('Edit Pembekal') }}</a>
+        </x-slot:referenceActions>
+        <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
+            <div class="border-b border-gray-100 px-6 py-6 dark:border-gray-800">
+                <x-common.document-heading :label="$detailTitle" :number="$contact->customer_code" :subtitle="$contact->company_name ?: ($contact->customer_name ?: '—')" />
+            </div>
+        </section>
 
     <div class="space-y-6">
         <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
@@ -64,4 +68,5 @@
             </div>
         </section>
     </div>
+    </x-common.document-workspace>
 @endsection

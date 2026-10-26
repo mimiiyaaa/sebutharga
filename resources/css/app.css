@@ -1417,6 +1417,12 @@ pre code,
 .document-list-table th:last-child {
   width: max(24%, 190px);
 }
+.document-list-table--customer :is(th, td):nth-child(1) { width: 16%; }
+.document-list-table--customer :is(th, td):nth-child(2) { width: 20%; }
+.document-list-table--customer :is(th, td):nth-child(3) { width: 15%; }
+.document-list-table--customer :is(th, td):nth-child(4) { width: 14%; }
+.document-list-table--customer :is(th, td):nth-child(5) { width: 18%; }
+.document-list-table--customer :is(th, td):last-child { width: 17%; }
 .document-list-table select {
   max-width: 100%;
   font-size: 0.75rem;
@@ -1436,6 +1442,24 @@ pre code,
 }
 .document-action-primary {
   @apply border-brand-500 bg-brand-500 text-white hover:border-brand-600 hover:bg-brand-600 dark:border-brand-500 dark:bg-brand-500 dark:text-white dark:hover:border-brand-600 dark:hover:bg-brand-600;
+}
+.document-action-status {
+  border-color: #2C5EAD;
+  background-color: #2C5EAD;
+  color: white;
+}
+.document-action-status:hover {
+  border-color: #245095;
+  background-color: #245095;
+}
+.dark .document-action-status {
+  border-color: #2C5EAD;
+  background-color: #2C5EAD;
+  color: white;
+}
+.dark .document-action-status:hover {
+  border-color: #245095;
+  background-color: #245095;
 }
 .document-action-delete {
   @apply w-10 border-error-200 p-2 text-base text-error-600 hover:bg-error-50 dark:border-error-700 dark:text-error-400 dark:hover:bg-error-500/10;

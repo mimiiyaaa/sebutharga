@@ -13,20 +13,53 @@ class PaymentVoucherController extends Controller
     public function index()
     {
         $documents = DB::table('payment_voucher_documents')->orderByDesc('id')->get();
-        $references = DB::table('payment_voucher_invoice as link')
+        $allocations = DB::table('payment_voucher_invoice as link')
             ->join('invoice_master as invoice', 'invoice.invoice_id', '=', 'link.invoice_id')
+            ->leftJoin('customer_supplier as customer', 'customer.customer_id', '=', 'invoice.customer_id')
             ->whereIn('link.payment_voucher_id', $documents->pluck('id'))
             ->orderBy('invoice.invoice_no')
-            ->get(['link.payment_voucher_id', 'invoice.invoice_no'])
-            ->groupBy('payment_voucher_id');
-        $documents->each(function ($document) use ($references) {
-            $document->invoice_numbers = $references->get($document->id, collect())->pluck('invoice_no')->unique()->implode("\n");
-        });
+            ->orderBy('link.payment_voucher_id')
+            ->get([
+                'link.invoice_id', 'link.payment_voucher_id', 'link.amount as allocation_amount',
+                'invoice.invoice_no', 'invoice.total_amount as invoice_total', 'customer.company_name as customer_name',
+            ])
+            ->map(function ($allocation) use ($documents) {
+                $voucher = $documents->firstWhere('id', $allocation->payment_voucher_id);
+                $allocation->voucher_no = $voucher->voucher_no;
+                $allocation->voucher_date = $voucher->voucher_date;
+                $allocation->payment_method = $voucher->payment_method;
+                $allocation->voucher_url = route('baucar-bayaran.show', $voucher->id);
+                $allocation->delete_url = route('baucar-bayaran.delete', $voucher->id);
+                return $allocation;
+            });
+
+        $invoiceGroups = $allocations->groupBy('invoice_id')->map(function ($rows) {
+            $first = $rows->first();
+            $paidCents = $rows->sum(fn ($row) => $row->allocation_amount === null ? 0 : InvoicePayments::cents($row->allocation_amount));
+            $totalCents = InvoicePayments::cents($first->invoice_total);
+            $balanceCents = max(0, $totalCents - $paidCents);
+            $pending = $rows->contains(fn ($row) => $row->allocation_amount === null);
+
+            return (object) [
+                'invoice_no' => $first->invoice_no,
+                'customer_name' => $first->customer_name,
+                'total_amount' => $totalCents / 100,
+                'paid_amount' => $paidCents / 100,
+                'balance_amount' => $balanceCents / 100,
+                'payment_status' => $pending ? __('Perlu Semakan') : ($balanceCents === 0 ? __('Selesai Dibayar') : ($paidCents > 0 ? __('Bayaran Sebahagian') : __('Belum Dibayar'))),
+                'payments' => $rows,
+                'search_text' => strtolower(implode(' ', [$first->invoice_no, $first->customer_name, $rows->pluck('voucher_no')->implode(' ')])),
+            ];
+        })->values();
+
+        $linkedVoucherIds = $allocations->pluck('payment_voucher_id')->unique();
+        $unlinkedDocuments = $documents->reject(fn ($document) => $linkedVoucherIds->contains($document->id));
 
 
         return view('pages.baucar-bayaran.index', [
             'title' => __('Baucar Bayaran'),
-            'documents' => $documents,
+            'invoiceGroups' => $invoiceGroups,
+            'unlinkedDocuments' => $unlinkedDocuments,
         ]);
     }
 

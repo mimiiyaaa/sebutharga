@@ -29,12 +29,11 @@
         @endphp
         <div x-show="!editing" x-cloak class="quotation-detail-stack flex flex-col gap-6">
             <div class="quotation-detail-main overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
-                <div class="border-b border-gray-200 bg-white px-6 py-7 dark:border-gray-800 dark:bg-gray-800 sm:px-8">
+                <div class="border-b border-gray-200 bg-white px-6 py-6 dark:border-gray-800 dark:bg-gray-900 sm:px-8">
                 <div class="flex w-full flex-wrap items-center justify-between gap-4">
                     <div class="min-w-0">
-                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600 dark:text-brand-400">{{ __('Maklumat Sebut Harga') }}</p>
-                        <h3 class="mt-2 truncate text-3xl font-semibold tracking-tight text-gray-900 dark:text-white/90">{{ $quotation->quotation_no }}</h3>
-                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ $quotation->company_name ?: $quotation->customer_name ?: __('Tiada pelanggan') }} · {{ __('Ringkasan sebut harga') }}</p>
+                        <x-common.document-heading :label="__('Maklumat Sebut Harga')" :number="$quotation->quotation_no" :subtitle="$quotation->company_name ?: $quotation->customer_name ?: __('Tiada pelanggan')" />
+                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ $isFinalView ? __('Versi') . ' ' . ($draft->final_no ?? $draft->draft_no) : __('Draf') . ' ' . $draft->draft_no }} · {{ __('Ringkasan sebut harga') }}</p>
                     </div>
                     <div class="quotation-action-bar flex shrink-0 flex-wrap items-center justify-end gap-2">
                         <a href="{{ route('sebut-harga.preview', [$quotation->quotation_id, 'draft' => $draft->quotation_detail_id, 'from' => request('from') === 'final' ? 'final' : 'draft', 'via' => 'detail']) }}" class="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-medium text-gray-600 transition hover:bg-white hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5" stroke-width="1.8"/></svg>{{ __('Pratonton') }}</a>

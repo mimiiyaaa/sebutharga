@@ -1,11 +1,11 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="mb-6 flex justify-end">
-        <a href="{{ route('syarikat') }}" class="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-brand-700 dark:hover:bg-brand-500/10 dark:hover:text-brand-300">
-            ← {{ __('Kembali') }}
-        </a>
-    </div>
+    <x-common.document-workspace :title="__('Profil Syarikat')">
+        <x-slot:referenceActions>
+            <a href="{{ route('syarikat') }}" class="document-action">{{ __('Kembali') }}</a>
+            <a href="{{ route('companies.edit', $company->company_id) }}" class="document-action document-action-primary">{{ __('Edit Syarikat') }}</a>
+        </x-slot:referenceActions>
 
     <div class="space-y-6">
         <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
@@ -23,9 +23,6 @@
                         <h1 class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white/90">{{ $company->nama_syarikat }}</h1>
                         <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('Maklumat syarikat yang digunakan dalam dokumen sebut harga.') }}</p>
                     </div>
-                    <a href="{{ route('companies.edit', $company->company_id) }}" class="ms-auto inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-brand-500 px-4 text-sm font-medium text-white transition hover:bg-brand-600">
-                        {{ __('Edit Syarikat') }}
-                    </a>
                 </div>
             </div>
 
@@ -63,4 +60,5 @@
             </div>
         </section>
     </div>
+    </x-common.document-workspace>
 @endsection
