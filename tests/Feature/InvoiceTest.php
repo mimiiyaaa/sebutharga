@@ -22,6 +22,10 @@ beforeEach(function () {
     (require database_path('migrations/2026_10_11_160650_create_invoice_and_delivery_order_tables.php'))->up();
     (require database_path('migrations/2026_10_12_000000_add_invoice_document_data.php'))->up();
     Schema::table('invoice_master', fn (Blueprint $table) => $table->string('invoice_title')->nullable());
+    foreach (['2026_10_18_120000_create_payment_voucher_documents_table.php', '2026_10_18_130000_add_payment_method_to_payment_voucher_documents_table.php', '2026_10_22_110000_create_payment_voucher_invoice_table.php', '2026_10_22_120000_rename_payment_voucher_invoice_link.php', '2026_10_26_100000_add_payment_allocations.php'] as $migration) {
+        (require database_path('migrations/'.$migration))->up();
+    }
+
     DB::table('customer_supplier')->insert(['customer_id'=>1,'jenis_customer'=>1,'company_name'=>'Jabatan Teknologi & Komunikasi','customer_name'=>'Pelanggan','address'=>"Sektor Awam Negeri Kelantan\n15000 Kota Bharu, Kelantan."]);
     Schema::create('sebutharga_master', function (Blueprint $table) {
         $table->increments('quotation_id'); $table->string('quotation_no')->nullable();
@@ -243,10 +247,10 @@ test('customer invoice list uses quotation information from the linked LO like d
     DB::table('invoice_master')->where('invoice_id',$invoice->invoice_id)->update(['document_data'=>json_encode($document)]);
     $this->get(route('invoice.customer'))->assertOk()->assertSee('Tajuk Invois')->assertSee('Jumlah Harga (RM)')
         ->assertDontSee('>Jumlah (RM)<', false)
-        ->assertViewHas('invoices', fn ($rows) => $rows[0]['quotation_title']==='Bekalan komputer' && $rows[0]['amount']===1234.50);
+        ->assertViewHas('invoices', fn ($rows) => $rows[0]['quotation_title']==='Bekalan komputer' && $rows[0]['amount']===25000.0);
     DB::table('sebutharga_detail')->where('quotation_detail_id',9)->delete();
     $this->get(route('invoice.customer'))->assertOk()
-        ->assertViewHas('invoices', fn ($rows) => $rows[0]['quotation_title']==='—' && $rows[0]['amount']===1000.0);
+        ->assertViewHas('invoices', fn ($rows) => $rows[0]['quotation_title']==='—' && $rows[0]['amount']===25000.0);
     $this->assertDatabaseHas('invoice_master',['invoice_id'=>$invoice->invoice_id,'total_amount'=>25000]);
 });
 
@@ -264,5 +268,23 @@ test('invoice edit changes LO customer and preserves date without a PDF button',
     $document=json_decode($invoice->document_data,true);
     expect($invoice->customer_id)->toBe(2)->and($document['lo_reference'])->toBe('LO-NEW')
         ->and($document['customer_name'])->toBe('Pelanggan Baharu')->and($document['customer_address'])->toBe('Alamat Baharu');
+    $this->assertDatabaseHas('invoice_master',['invoice_id'=>1,'total_amount'=>25000]);
+});
+
+
+test('customer invoice shows receipt history and protects linked amounts and deletion', function () {
+    $this->post(route('invoice.customer.store'), $this->invoiceData)->assertSessionHasNoErrors();
+    \Illuminate\Support\Facades\Storage::fake('local');
+    $this->post(route('baucar-bayaran.store'), [
+        'voucher_no'=>'RECEIPT-01', 'voucher_date'=>'2026-10-26', 'payee_name'=>'Pelanggan',
+        'payment_method'=>'Tunai', 'invoice_ids'=>[1], 'allocations'=>[1=>5000], 'total_amount'=>5000,
+        'document_file'=>\Illuminate\Http\UploadedFile::fake()->createWithContent('receipt.pdf', "%PDF-1.4\n%%EOF"),
+    ])->assertSessionHasNoErrors();
+    $this->get(route('invoice.customer.show',1))->assertOk()->assertSee(route('invoice.customer.payments',1))->assertDontSee('Sejarah Bayaran');
+    $this->get(route('invoice.customer.payments',1))->assertOk()->assertSee('Bayaran Sebahagian')->assertSee('RECEIPT-01')->assertSee('20,000.00')->assertSee('Rekod Bayaran');
+    $this->get(route('invoice.customer'))->assertOk()->assertViewHas('invoices', fn ($rows) => $rows[0]['balance_amount'] == 20000 && $rows[0]['paid_amount'] == 5000);
+    $data = $this->invoiceData; $data['items'][0]['price'] = 1;
+    $this->put(route('invoice.customer.update',1), $data)->assertSessionHasErrors('items');
+    $this->delete(route('invoice.customer.delete',1))->assertSessionHasErrors('document');
     $this->assertDatabaseHas('invoice_master',['invoice_id'=>1,'total_amount'=>25000]);
 });

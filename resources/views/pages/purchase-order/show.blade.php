@@ -17,11 +17,7 @@
     <div class="purchase-order-detail-stack flex flex-col gap-6">
     <section class="purchase-order-summary overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 px-6 py-6 dark:border-gray-800">
-            <div class="min-w-0 border-s-4 border-brand-500 ps-4 dark:border-brand-400">
-                <p class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">{{ __('Maklumat Pesanan Belian') }}</p>
-                <h2 class="mt-1 break-words text-xl font-semibold tracking-tight text-gray-900 dark:text-white/90 sm:text-2xl">{{ $order->po_no }}</h2>
-                <p class="mt-1.5 break-words text-theme-sm text-gray-600 dark:text-gray-400">{{ $order->company_name ?: __('Tiada pembekal') }}</p>
-            </div>
+            <x-common.document-heading :label="__('Maklumat Pesanan Belian')" :number="$order->po_no" :subtitle="$order->company_name ?: __('Tiada pembekal')" />
             <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
                 <a href="{{ route('purchase-order.preview', $order->purchase_order_id) }}" class="inline-flex h-9 items-center justify-center px-3 py-1.5 text-theme-xs rounded-lg border border-gray-300 bg-gray-50 font-medium text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">{{ __('Pratonton') }}</a>
                 <a href="{{ route('purchase-order.edit', ['id' => $order->purchase_order_id, 'from' => 'show']) }}" class="inline-flex h-9 items-center justify-center px-3 py-1.5 text-theme-xs rounded-lg bg-brand-500 font-medium text-white transition hover:bg-brand-600">{{ __('Edit') }}</a>

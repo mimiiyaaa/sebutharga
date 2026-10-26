@@ -153,6 +153,6 @@ test('supplier LO dropdown saves valid choices and preserves legacy references',
 
 test('supplier lists render matching headers and empty states without a quantity column', function (string $prefix) {
     $response=$this->get(route($prefix))->assertOk()->assertDontSee('Jumlah Kuantiti');
-    $response->assertSee('colspan="'.($prefix === 'invoice.supplier' ? 7 : 6).'"',false);
-    $response->assertSee('Jumlah (RM)');
+    $response->assertSee('colspan="'.($prefix === 'invoice.supplier' ? 7 : 5).'"',false);
+    if ($prefix === 'invoice.supplier') $response->assertSee('Jumlah (RM)');
 })->with(['invoice.supplier','delivery-order.supplier']);

@@ -23,6 +23,9 @@
     <x-slot:referenceActions>
         <div class="flex flex-wrap items-center gap-2">
         <a href="{{ route($routePrefix) }}" class="inline-flex h-9 items-center justify-center px-3 py-1.5 text-theme-xs rounded-lg border border-gray-300 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">{{ __('Kembali') }}</a>
+        @if ($isInvoice)
+            <a href="{{ route('invoice.customer.payments', $id) }}" class="document-action document-action-primary">{{ __('Status') }}</a>
+        @endif
         <a href="{{ route($routePrefix.'.edit', $id) }}" class="inline-flex h-9 items-center justify-center px-3 py-1.5 text-theme-xs rounded-lg bg-brand-500 font-medium text-white hover:bg-brand-600 dark:bg-brand-500 dark:text-white dark:hover:bg-brand-600">{{ __('Edit') }}</a>
         <a href="{{ route($routePrefix.'.preview', $id) }}" class="inline-flex h-9 items-center justify-center px-3 py-1.5 text-theme-xs rounded-lg border border-brand-300 bg-brand-50 text-brand-700 dark:border-brand-700 dark:bg-brand-500/10 dark:text-brand-400">{{ __('Pratonton PDF') }}</a>
         <form method="POST" action="{{ route($routePrefix.'.delete', $id) }}" x-data @submit.prevent="$dispatch('confirm-action', { form: $el, message: @js(__('Padam dokumen ini? Tindakan ini tidak boleh dibatalkan.')) })">
@@ -32,15 +35,12 @@
         <x-common.document-creator :creator-id="$record->created_by" :created-at="$record->created_at" :document-label="$isInvoice ? __('invois ini') : __('DO ini')" />
             </div>
     </x-slot:referenceActions>
-    <div class="flex flex-col gap-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03] sm:p-8">
+    <div class="flex flex-col gap-6">
         <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
-            <div class="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 px-6 py-7 dark:border-gray-800 sm:px-8">
-                <div class="min-w-0">
-                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600 dark:text-brand-400">{{ $isInvoice ? __('Maklumat Invois') : __('Maklumat Delivery Order') }}</p>
-                    <h2 class="mt-2 truncate text-3xl font-semibold tracking-tight text-gray-900 dark:text-white/90">{{ $number }}</h2>
-                    @if($isInvoice && !empty($invoice->invoice_title))<p class="mt-2 text-base font-medium text-gray-700 dark:text-gray-300">{{ $invoice->invoice_title }}</p>@endif
-                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ $document['customer_name'] ?? $record->recipient_name ?? '—' }} · {{ $isInvoice ? __('Ringkasan invois') : __('Ringkasan delivery order') }}</p>
-                </div>
+            <div class="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 px-6 py-6 dark:border-gray-800">
+                <x-common.document-heading :label="$isInvoice ? __('Maklumat Invois') : __('Maklumat Delivery Order')" :number="$number" :subtitle="$document['customer_name'] ?? $record->recipient_name ?? null">
+                    @if($isInvoice && !empty($invoice->invoice_title))<p class="mt-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">{{ $invoice->invoice_title }}</p>@endif
+                </x-common.document-heading>
             </div>
             <dl class="grid grid-cols-1 gap-4 border-b border-gray-100 p-6 text-sm sm:grid-cols-2 dark:border-gray-800">
                 <div><dt class="text-gray-500 dark:text-gray-400">{{ __('No. Dokumen') }}</dt><dd class="mt-2 font-semibold text-gray-800 dark:text-white/90">{{ $number }}</dd></div>

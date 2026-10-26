@@ -9,7 +9,7 @@
 
     <div class="space-y-6">
         <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
-            <div class="border-b border-gray-100 bg-gradient-to-r from-brand-50 via-white to-white px-6 py-7 dark:border-gray-800 dark:from-brand-500/10 dark:via-gray-900 dark:to-gray-900 sm:px-8">
+            <div class="border-b border-gray-100 bg-white px-6 py-6 dark:border-gray-800 dark:bg-gray-900">
                 <div class="flex flex-wrap items-center gap-5">
                     <div class="flex h-24 w-32 shrink-0 items-center justify-center rounded-2xl border border-gray-200 bg-white p-3 shadow-theme-xs dark:border-gray-700 dark:bg-gray-800">
                         @if ($company->logo_path)
@@ -18,7 +18,7 @@
                             <span class="text-center text-xs font-medium text-gray-400 dark:text-gray-500">{{ __('Tiada logo') }}</span>
                         @endif
                     </div>
-                    <div class="min-w-0">
+                    <div class="min-w-0 border-s-4 border-brand-500 ps-4 dark:border-brand-400">
                         <p class="text-sm font-medium text-brand-600 dark:text-brand-400">{{ __('Profil Syarikat') }}</p>
                         <h1 class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white/90">{{ $company->nama_syarikat }}</h1>
                         <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('Maklumat syarikat yang digunakan dalam dokumen sebut harga.') }}</p>

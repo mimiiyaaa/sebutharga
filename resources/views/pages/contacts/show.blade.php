@@ -16,9 +16,9 @@
 
     <div class="space-y-6">
         <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
-            <div class="border-b border-gray-100 bg-gradient-to-r from-brand-50 via-white to-white px-6 py-7 dark:border-gray-800 dark:from-brand-500/10 dark:via-gray-900 dark:to-gray-900 sm:px-8">
+            <div class="border-b border-gray-100 bg-white px-6 py-6 dark:border-gray-800 dark:bg-gray-900">
                 <div class="flex flex-wrap items-center gap-5">
-                    <div class="min-w-0">
+                    <div class="min-w-0 border-s-4 border-brand-500 ps-4 dark:border-brand-400">
                         <h1 class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white/90">{{ $contact->company_name ?: ($contact->customer_name ?: '—') }}</h1>
                         <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ $contact->customer_name ?: __('Tiada nama pegawai diberikan') }}</p>
                     </div>

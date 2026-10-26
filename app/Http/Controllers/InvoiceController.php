@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use App\Services\InvoicePayments;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -46,9 +47,11 @@ class InvoiceController extends Controller
                     'company_name' => $document['customer_name'] ?? '',
                     'document_date' => $invoice->invoice_date,
                     'quotation_title' => $quotation?->quotation_title ?? '—',
-                    'amount' => (float) ($quotation?->jumlah_total ?? $localOrder?->amount ?? 0),
+                    'amount' => (float) $invoice->total_amount,
+                    ...InvoicePayments::summary($invoice->invoice_id, $invoice->total_amount),
                     'preview_url' => route('invoice.customer.preview', $invoice->invoice_id),
                     'show_url' => route('invoice.customer.show', $invoice->invoice_id),
+                    'payment_url' => route('invoice.customer.payments', $invoice->invoice_id),
                     'edit_url' => route('invoice.customer.edit', $invoice->invoice_id),
                     'delete_url' => route('invoice.customer.delete', $invoice->invoice_id),
                 ];
@@ -134,6 +137,13 @@ class InvoiceController extends Controller
         ]);
     }
 
+    public function payments(int $id)
+    {
+        return view('pages.invoice.payments', $this->saved($id) + [
+            'payments' => InvoicePayments::history($id),
+        ]);
+    }
+
     public function edit(int $id)
     {
         $saved = $this->saved($id);
@@ -166,6 +176,11 @@ class InvoiceController extends Controller
                 ['data' => $data, 'invoice' => $invoice, 'document' => $document, 'items' => $items] = $validated;
                 $record = DB::table('invoice_master')->where('invoice_id', $id)->where('document_kind', 'customer')->lockForUpdate()->first();
                 abort_unless($record, 404);
+                $payments = InvoicePayments::history($id);
+                if ($payments->isNotEmpty() && ((int) $record->customer_id !== (int) $data['customer_id'] || InvoicePayments::cents($record->total_amount) !== InvoicePayments::cents($invoice->total_amount))) {
+                    throw ValidationException::withMessages(['items' => __('Invois mempunyai rekod baucar. Pelanggan dan jumlah invois tidak boleh ditukar.')]);
+                }
+
                 DB::table('invoice_master')->where('invoice_id', $id)->update([
                     'invoice_no' => $invoice->invoice_no, 'invoice_date' => $invoice->invoice_date, 'invoice_title' => $data['invoice_title'] ?? null, 'customer_id' => $data['customer_id'],
                     'subtotal' => $invoice->total_amount, 'total_amount' => $invoice->total_amount,
@@ -188,6 +203,9 @@ class InvoiceController extends Controller
         DB::transaction(function () use ($id) {
             $record = DB::table('invoice_master')->where('invoice_id', $id)->where('document_kind', 'customer')->lockForUpdate()->first();
             abort_unless($record, 404);
+            if (InvoicePayments::history($id)->isNotEmpty()) {
+                throw ValidationException::withMessages(['document' => __('Invois mempunyai rekod bayaran. Padam baucar berkaitan dahulu jika rekod tersilap.')]);
+            }
             if (DB::table('delivery_order_master')->where('invoice_id', $id)->exists()) {
                 throw ValidationException::withMessages(['document' => __('Invois ini digunakan oleh DO. Sila padam DO berkaitan terlebih dahulu.')]);
             }

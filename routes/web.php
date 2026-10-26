@@ -33,6 +33,7 @@ Route::middleware('auth')->prefix('baucar-bayaran')->name('baucar-bayaran.')->gr
     Route::get('/tambah', [\App\Http\Controllers\PaymentVoucherController::class, 'create'])->name('create');
     Route::get('/tambah/form', [\App\Http\Controllers\PaymentVoucherController::class, 'form'])->name('form');
     Route::post('/', [\App\Http\Controllers\PaymentVoucherController::class, 'store'])->name('store');
+    Route::post('/{id}/rekod-bayaran', [\App\Http\Controllers\PaymentVoucherController::class, 'reconcile'])->whereNumber('id')->name('reconcile');
     Route::get('/{id}/fail', [\App\Http\Controllers\PaymentVoucherController::class, 'file'])->whereNumber('id')->name('file');
     Route::get('/{id}', [\App\Http\Controllers\PaymentVoucherController::class, 'show'])->whereNumber('id')->name('show');
     Route::delete('/{id}', [\App\Http\Controllers\PaymentVoucherController::class, 'destroy'])->whereNumber('id')->name('delete');
@@ -1062,6 +1063,7 @@ Route::post('/sebut-harga/{id}/draft/{draftId}/reject', function ($id, $draftId)
 })->middleware('auth')->name('sebut-harga.draft.reject');
 
 Route::middleware('auth')->prefix('invoice/pelanggan')->name('invoice.customer.')->controller(\App\Http\Controllers\InvoiceController::class)->group(function () {
+    Route::get('/{id}/bayaran', 'payments')->whereNumber('id')->name('payments');
     Route::post('/', 'store')->name('store');
     Route::post('/pratonton', 'previewDraft')->name('draft-preview');
     Route::get('/{id}', 'show')->whereNumber('id')->name('show');

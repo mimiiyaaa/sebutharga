@@ -8,6 +8,10 @@
             <a href="{{ route('sebut-harga-pembekal.download', $quotation->supplier_quotation_id) }}" class="document-action">{{ __('Muat Turun Dokumen Asal') }}</a>
         @endif
     </x-slot:referenceActions>
+    <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-theme-xs dark:border-gray-800 dark:bg-gray-900">
+        <x-common.document-heading :label="__('Maklumat Sebut Harga')" :number="$quotation->quotation_no_supplier" :subtitle="$quotation->company_name" />
+    </section>
+
     <div class="grid gap-6 xl:grid-cols-2">
         <x-common.document-card :title="__('Dokumen Pembekal')">
             @if($quotation->file_path)
