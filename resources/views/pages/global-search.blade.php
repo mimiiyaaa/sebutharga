@@ -18,11 +18,29 @@
         };
     @endphp
 
-    <x-common.page-breadcrumb pageTitle="Carian Global" />
+    <x-common.page-breadcrumb pageTitle="Carian" />
 
     <div class="space-y-6">
         <x-common.component-card title="Cari dalam semua modul" desc="Cari nombor dokumen, nama pelanggan atau pembekal, tajuk, item dan status.">
-            <form method="GET" action="{{ route('global-search') }}" class="flex flex-col gap-3 sm:flex-row">
+            <form method="GET" action="{{ route('carian') }}" class="space-y-4" x-data="{
+                selectedType: @js($filters['type']),
+                selectedStatus: @js($filters['status']),
+                statusOptions: @js([
+                    '' => ['Draf', 'Final', 'Berjaya', 'Gagal', 'Belum Bayar', 'Bayaran Sebahagian', 'Selesai Dibayar', 'Selesai', 'Proses', 'Baru'],
+                    'Sebut Harga' => ['Draf', 'Final', 'Berjaya', 'Gagal'],
+                    'Purchase Order' => ['Draf', 'Selesai'],
+                    'Invoice Pelanggan' => ['Belum Bayar', 'Bayaran Sebahagian', 'Selesai Dibayar', 'Perlu Semakan'],
+                    'Invoice Pembekal' => ['Belum Bayar', 'Bayaran Sebahagian', 'Selesai Dibayar', 'Perlu Semakan'],
+                    'DO Pelanggan' => ['Draf', 'Selesai'],
+                    'DO Pembekal' => ['Draf', 'Selesai'],
+                ]),
+                statusAvailable() {
+                    return (this.statusOptions[this.selectedType] || []).length > 0;
+                },
+                typeChanged() {
+                    if (!this.statusAvailable()) this.selectedStatus = '';
+                }
+            }" x-init="typeChanged()" @change="typeChanged()">
                 <label for="global-search-input" class="sr-only">Carian</label>
                 <div class="relative flex-1">
                     <span class="pointer-events-none absolute top-1/2 -translate-y-1/2 ltr:left-4 rtl:right-4 text-gray-400">
@@ -30,12 +48,47 @@
                     </span>
                     <input id="global-search-input" name="q" value="{{ $term }}" autofocus placeholder="Contoh: membekal, ABC Sdn Bhd atau INV-001" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 ltr:pl-12 ltr:pr-4 rtl:pr-12 rtl:pl-4 text-sm text-gray-800 shadow-theme-xs outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
                 </div>
-                <button type="submit" class="inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600">Cari</button>
+                <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+                    <div>
+                        <label for="global-search-type" class="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-400">Jenis Dokumen</label>
+                        <select id="global-search-type" name="type" x-model="selectedType" class="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-700 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                            <option value="">Semua Jenis</option>
+                            @foreach (['Sebut Harga', 'Sebut Harga Pembekal', 'Purchase Order', 'Local Order', 'Invoice Pelanggan', 'Invoice Pembekal', 'DO Pelanggan', 'DO Pembekal', 'Baucar Bayaran', 'Pelanggan', 'Pembekal'] as $type)
+                                <option value="{{ $type }}" @selected($filters['type'] === $type)>{{ $type }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div x-show="statusAvailable()" x-cloak>
+                        <label for="global-search-status" class="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-400">Status</label>
+                        <select id="global-search-status" name="status" x-model="selectedStatus" class="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-700 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                            <option value="">Semua Status</option>
+                            <template x-for="status in (statusOptions[selectedType] || [])" :key="status">
+                                <option :value="status" x-text="status"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="global-search-party" class="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-400">Pelanggan / Pembekal</label>
+                        <input id="global-search-party" name="party" value="{{ $filters['party'] }}" placeholder="Nama syarikat" class="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-700 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300" />
+                    </div>
+                    <div>
+                        <label for="global-search-from" class="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-400">Tarikh Dari</label>
+                        <input id="global-search-from" type="date" name="from" value="{{ $filters['from'] }}" class="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-700 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300" />
+                    </div>
+                    <div>
+                        <label for="global-search-to" class="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-400">Tarikh Hingga</label>
+                        <input id="global-search-to" type="date" name="to" value="{{ $filters['to'] }}" class="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-700 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300" />
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <a href="{{ route('carian') }}" class="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">Reset</a>
+                    <button type="submit" class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.55" stroke="currentColor" stroke-width="1.6"/><path d="m16 16 4.25 4.25" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Cari</button>
+                </div>
             </form>
         </x-common.component-card>
 
-        @if ($term !== '')
-            <x-common.component-card title="Keputusan carian" :desc="$results->count() . ' rekod dijumpai untuk “' . $term . '”'">
+        @if ($term !== '' || collect($filters)->contains(fn ($filter) => $filter !== ''))
+            <x-common.component-card title="Keputusan carian" :desc="$term !== '' ? $results->count() . ' rekod dijumpai untuk “' . $term . '”' : $results->count() . ' rekod sepadan dengan filter yang dipilih'">
                 @if ($results->isEmpty())
                     <div class="rounded-lg border border-dashed border-gray-300 px-5 py-10 text-center dark:border-gray-700">
                         <p class="text-sm font-medium text-gray-800 dark:text-white/90">Tiada rekod dijumpai.</p>
@@ -76,10 +129,6 @@
                         </table>
                     </div>
                 @endif
-            </x-common.component-card>
-        @else
-            <x-common.component-card title="Cara menggunakan carian">
-                <p class="text-sm text-gray-500 dark:text-gray-400">Masukkan kata kunci seperti <span class="font-medium text-gray-800 dark:text-white/90">membekal</span>, nama syarikat, nombor invoice atau nombor PO untuk mencari rekod merentas semua modul.</p>
             </x-common.component-card>
         @endif
     </div>

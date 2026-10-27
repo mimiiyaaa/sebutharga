@@ -12,9 +12,16 @@ class GlobalSearchController extends Controller
     public function index(Request $request)
     {
         $term = trim((string) $request->query('q', ''));
+        $filters = [
+            'type' => trim((string) $request->query('type', '')),
+            'status' => trim((string) $request->query('status', '')),
+            'party' => trim((string) $request->query('party', '')),
+            'from' => trim((string) $request->query('from', '')),
+            'to' => trim((string) $request->query('to', '')),
+        ];
         $results = collect();
 
-        if ($term !== '') {
+        if ($term !== '' || collect($filters)->contains(fn ($filter) => $filter !== '')) {
             $like = '%' . $term . '%';
             $results = $results->merge($this->quotations($like))
                 ->merge($this->supplierQuotations($like))
@@ -27,9 +34,20 @@ class GlobalSearchController extends Controller
                 ->merge($this->contacts($like));
         }
 
+        $results = $results->filter(function (array $result) use ($filters) {
+            $date = $result['date'] ? substr((string) $result['date'], 0, 10) : '';
+
+            return ($filters['type'] === '' || $result['type'] === $filters['type'])
+                && ($filters['status'] === '' || stripos((string) ($result['status'] ?? ''), $filters['status']) !== false)
+                && ($filters['party'] === '' || stripos((string) ($result['party'] ?? ''), $filters['party']) !== false)
+                && ($filters['from'] === '' || ($date !== '' && $date >= $filters['from']))
+                && ($filters['to'] === '' || ($date !== '' && $date <= $filters['to']));
+        });
+
         return view('pages.global-search', [
-            'title' => 'Carian Global',
+            'title' => 'Carian',
             'term' => $term,
+            'filters' => $filters,
             'results' => $results->sortByDesc('date')->values(),
         ]);
     }

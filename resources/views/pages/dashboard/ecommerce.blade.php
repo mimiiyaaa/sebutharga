@@ -22,12 +22,12 @@
                     <span class="rounded-lg bg-brand-50 px-3 py-2 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">{{ __('Baki setakat') }} {{ $end->format('d/m/Y') }}</span>
                 </div>
             </div>
-            <img src="{{ asset('images/dashboard-mascot.png') }}" alt="{{ __('Maskot dashboard') }}" class="hidden h-64 w-full object-contain drop-shadow-sm sm:block lg:h-72">
+            <img src="{{ asset('images/dashboard-mascot.png') }}" alt="{{ __('Maskot dashboard') }}" class="hidden h-36 w-full max-w-[160px] justify-self-end object-contain drop-shadow-sm sm:block lg:h-44">
         </div>
     </section>
 
     <section class="grid gap-4 rounded-2xl border border-gray-200 bg-white p-5 lg:grid-cols-2 dark:border-gray-800 dark:bg-gray-900">
-        <form method="GET" action="{{ route('global-search') }}" class="flex items-end gap-2">
+        <form method="GET" action="{{ route('carian') }}" class="flex items-end gap-2">
             <div class="min-w-0 flex-1"><label for="dashboard-search" class="mb-2 block text-theme-xs font-medium text-gray-600 dark:text-gray-400">{{ __('Carian dokumen') }}</label><input id="dashboard-search" name="q" required maxlength="200" placeholder="{{ __('No. dokumen, pelanggan atau keterangan item') }}" class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></div>
             <button class="document-action document-action-primary">{{ __('Cari') }}</button>
         </form>

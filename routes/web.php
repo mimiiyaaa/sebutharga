@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Schema;
 Route::get('/locale/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GlobalSearchController;
+use App\Http\Controllers\PaymentMonitoringController;
 
 
 
@@ -24,10 +25,12 @@ Route::get('/hello-test', function () {
 });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
-Route::view('/pemantauan', 'pages.monitoring.index', ['title' => 'Pemantauan'])->middleware('auth')->name('monitoring');
+Route::get('/pemantauan', [PaymentMonitoringController::class, 'index'])->middleware('auth')->name('monitoring');
 
+Route::get('/carian', [GlobalSearchController::class, 'index'])
+    ->middleware('auth')->name('carian');
 Route::get('/carian-global', [GlobalSearchController::class, 'index'])
-    ->middleware('auth')->name('global-search');
+    ->middleware('auth');
 
 Route::middleware('auth')->prefix('baucar-bayaran')->name('baucar-bayaran.')->group(function () {
     Route::get('/', [\App\Http\Controllers\PaymentVoucherController::class, 'index'])->name('index');

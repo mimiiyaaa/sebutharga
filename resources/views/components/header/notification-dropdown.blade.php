@@ -1,7 +1,7 @@
 <div class="relative" x-data="{ dropdownOpen: false }" @click.outside="dropdownOpen = false" @keydown.escape.window="dropdownOpen = false; $refs.bell.focus()">
     <button x-ref="bell" type="button" @click="dropdownOpen = !dropdownOpen" :aria-expanded="dropdownOpen" aria-controls="payment-notifications" aria-label="{{ __('Notifikasi Bayaran') }}" class="relative flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800">
-        <svg class="h-5 w-5 stroke-current" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        @if($count)<span class="absolute -end-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-error-500 px-1 text-theme-xs font-semibold text-white dark:bg-error-500">{{ $count > 99 ? '99+' : $count }}</span>@endif
+        <svg class="relative z-0 h-5 w-5 stroke-current" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        @if($count)<span class="absolute end-0 top-0 z-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-error-500 px-1 text-theme-xs font-semibold text-white dark:bg-error-500">{{ $count > 99 ? '99+' : $count }}</span>@endif
     </button>
     <div id="payment-notifications" x-cloak x-show="dropdownOpen" x-transition class="absolute -end-16 z-99 mt-4 flex max-h-[480px] w-80 max-w-[calc(100vw-2rem)] flex-col rounded-2xl border border-gray-200 bg-white p-4 shadow-theme-lg dark:border-gray-800 dark:bg-gray-900 sm:end-0 sm:w-96">
         <div class="flex items-center justify-between gap-3 border-b border-gray-100 pb-3 dark:border-gray-800">

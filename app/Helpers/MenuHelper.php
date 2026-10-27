@@ -14,8 +14,8 @@ class MenuHelper
             ],
             [
                 'icon' => 'search',
-                'name' => 'Carian Global',
-                'path' => '/carian-global',
+                'name' => 'Carian',
+                'path' => '/carian',
             ],
             [
                 'icon' => 'quotation',
