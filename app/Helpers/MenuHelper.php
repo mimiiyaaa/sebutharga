@@ -58,6 +58,11 @@ class MenuHelper
                 'path' => '/baucar-bayaran',
             ],
             [
+                'icon' => 'monitoring',
+                'name' => 'Pemantauan',
+                'path' => '/pemantauan',
+            ],
+            [
                 'icon' => 'calendar',
                 'name' => 'Calendar',
                 'path' => '/calendar',
@@ -94,6 +99,7 @@ class MenuHelper
     public static function getIconSvg($iconName)
     {
         $icons = [
+            'monitoring' => '<svg class="h-6 w-6 stroke-current" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3" stroke-width="1.6"/><path d="m6 14 4-4 4 3 4-6M6 18h12" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
             'search' => '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10.8" cy="10.8" r="6.55" stroke="currentColor" stroke-width="1.6"/><path d="m16 16 4.25 4.25" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
             'payment-voucher' => '<svg class="h-6 w-6 stroke-current" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" stroke-width="1.6"/><path d="M3 9h18M7 14h3m5 1 1.5 1.5L19 13" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
             'quotation' => '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 3.75h7l4 4v12.5H7a2 2 0 0 1-2-2V5.75a2 2 0 0 1 2-2Zm7 0v4h4M8.5 12h7m-7 3.5h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',

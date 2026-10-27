@@ -22,6 +22,7 @@ beforeEach(function () {
         $table->increments('invoice_id'); $table->integer('customer_id');
         $table->string('invoice_no'); $table->string('invoice_title')->nullable();
         $table->string('document_kind'); $table->date('invoice_date'); $table->decimal('total_amount',12,2);
+        $table->text('document_data')->nullable();
     });
     foreach (['2026_10_18_120000_create_payment_voucher_documents_table.php',
         '2026_10_18_130000_add_payment_method_to_payment_voucher_documents_table.php',

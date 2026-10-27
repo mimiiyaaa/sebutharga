@@ -23,11 +23,8 @@ Route::get('/hello-test', function () {
     return 'Hello from Laravel';
 });
 
-Route::get('/dashboard', function () {
-    return view('pages.dashboard.ecommerce', [
-        'title' => 'Dashboard'
-    ]);
-})->middleware('auth')->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
+Route::view('/pemantauan', 'pages.monitoring.index', ['title' => 'Pemantauan'])->middleware('auth')->name('monitoring');
 
 Route::get('/carian-global', [GlobalSearchController::class, 'index'])
     ->middleware('auth')->name('global-search');

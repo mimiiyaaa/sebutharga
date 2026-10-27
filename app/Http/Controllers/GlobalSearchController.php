@@ -265,7 +265,7 @@ class GlobalSearchController extends Controller
             'subject' => $row->subject ?: ($row->reference ?? '-'),
             'party' => $row->party ?: '-',
             'date' => $row->date,
-            'status' => $row->status ?: null,
+            'status' => $row->status ?? null,
             'rev' => $row->rev ?? null,
             'indent' => $row->indent ?? null,
             'url' => $url,
