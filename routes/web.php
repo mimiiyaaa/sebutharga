@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Schema;
 // Locale Switch Route
 Route::get('/locale/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\GlobalSearchController;
 
 
 
@@ -27,6 +28,9 @@ Route::get('/dashboard', function () {
         'title' => 'Dashboard'
     ]);
 })->middleware('auth')->name('dashboard');
+
+Route::get('/carian-global', [GlobalSearchController::class, 'index'])
+    ->middleware('auth')->name('global-search');
 
 Route::middleware('auth')->prefix('baucar-bayaran')->name('baucar-bayaran.')->group(function () {
     Route::get('/', [\App\Http\Controllers\PaymentVoucherController::class, 'index'])->name('index');
