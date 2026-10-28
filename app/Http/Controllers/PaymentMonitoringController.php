@@ -11,7 +11,8 @@ class PaymentMonitoringController extends Controller
 {
     public function index(Request $request)
     {
-        $today = CarbonImmutable::now('Asia/Kuala_Lumpur')->startOfDay();
+        $now = CarbonImmutable::now('Asia/Kuala_Lumpur');
+        $today = $now->startOfDay();
         $filters = [
             'q' => trim((string) $request->query('q', '')),
             'priority' => trim((string) $request->query('priority', '')),
@@ -36,7 +37,7 @@ class PaymentMonitoringController extends Controller
             $paidCents = $invoicePayments->sum(fn ($payment) => InvoicePayments::cents($payment->amount));
             $balanceCents = max(0, $totalCents - $paidCents);
             $pending = $invoicePayments->contains(fn ($payment) => $payment->amount === null);
-            $dueDate = $invoice->due_date ? CarbonImmutable::parse($invoice->due_date)->startOfDay() : null;
+            $dueDate = !empty($invoice->due_date) ? CarbonImmutable::parse($invoice->due_date)->startOfDay() : null;
             $daysUntilDue = $dueDate ? $today->diffInDays($dueDate, false) : null;
 
             if ($pending) {
@@ -56,10 +57,11 @@ class PaymentMonitoringController extends Controller
                 $reminder = 'Menunggu bayaran';
             }
 
+            $snapshot = json_decode($invoice->document_data ?? '{}', true) ?: [];
             return [
                 'invoice_id' => $invoice->invoice_id,
                 'number' => $invoice->invoice_no,
-                'party' => $invoice->company_name ?: '—',
+                'party' => $snapshot['customer_name'] ?? ($invoice->company_name ?: '—'),
                 'total' => $totalCents / 100,
                 'balance' => $balanceCents / 100,
                 'due_date' => $dueDate?->format('Y-m-d'),
@@ -92,7 +94,7 @@ class PaymentMonitoringController extends Controller
                     return [$record['priority'] === 'Sudah Lewat' ? 0 : 1, $record['due_date'] ?: '9999-12-31'];
                 })->values(),
                 'filters' => $filters,
-                'updated_at' => $today->format('d/m/Y H:i'),
+                'updated_at' => $now->format('d/m/Y H:i'),
             ],
         ]);
     }
