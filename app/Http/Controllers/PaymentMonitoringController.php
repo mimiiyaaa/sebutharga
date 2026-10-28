@@ -78,10 +78,15 @@ class PaymentMonitoringController extends Controller
 
         $summary = [
             'unpaid' => $records->where('balance', '>', 0)->whereIn('priority', ['Belum Dibayar', 'Bayaran Sebahagian'])->count(),
+            'unpaid_total' => $records->where('balance', '>', 0)->whereIn('priority', ['Belum Dibayar', 'Bayaran Sebahagian'])->sum('total'),
             'overdue' => $records->where('priority', 'Sudah Lewat')->count(),
+            'overdue_total' => $records->where('priority', 'Sudah Lewat')->sum('total'),
             'upcoming' => $records->where('priority', 'Hampir Jatuh Tempoh')->count(),
+            'upcoming_total' => $records->where('priority', 'Hampir Jatuh Tempoh')->sum('total'),
             'review' => $records->where('priority', 'Perlu Semakan')->count(),
+            'review_total' => $records->where('priority', 'Perlu Semakan')->sum('total'),
             'paid' => $records->where('priority', 'Selesai Dibayar')->count(),
+            'paid_total' => $records->where('priority', 'Selesai Dibayar')->sum('total'),
         ];
 
         return view('pages.monitoring.index', [

@@ -22,15 +22,16 @@
 
     <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         @foreach ([
-            ['Belum dibayar', $summary['unpaid'], 'Baki invoice pelanggan', 'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300'],
-            ['Sudah lewat', $summary['overdue'], 'Perlu tindakan segera', 'bg-error-50 text-error-700 dark:bg-error-500/10 dark:text-error-400'],
-            ['Hampir jatuh tempoh', $summary['upcoming'], 'Dalam 7 hari', 'bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400'],
-            ['Perlu semakan', $summary['review'], 'Baucar belum disahkan', 'bg-blue-light-50 text-blue-light-700 dark:bg-blue-light-500/10 dark:text-blue-light-400'],
-            ['Sudah dibayar', $summary['paid'], 'Baki invoice RM0', 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400'],
-        ] as [$label, $count, $hint, $colors])
+            ['Belum dibayar', $summary['unpaid'], $summary['unpaid_total'], 'Baki invoice pelanggan', 'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300'],
+            ['Sudah lewat', $summary['overdue'], $summary['overdue_total'], 'Perlu tindakan segera', 'bg-error-50 text-error-700 dark:bg-error-500/10 dark:text-error-400'],
+            ['Hampir jatuh tempoh', $summary['upcoming'], $summary['upcoming_total'], 'Dalam 7 hari', 'bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400'],
+            ['Perlu semakan', $summary['review'], $summary['review_total'], 'Baucar belum disahkan', 'bg-blue-light-50 text-blue-light-700 dark:bg-blue-light-500/10 dark:text-blue-light-400'],
+            ['Sudah dibayar', $summary['paid'], $summary['paid_total'], 'Baki invoice RM0', 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400'],
+        ] as [$label, $count, $total, $hint, $colors])
             <div class="rounded-xl p-5 {{ $colors }}">
                 <h3 class="text-sm font-medium">{{ __($label) }}</h3>
                 <p class="mt-3 text-3xl font-semibold tabular-nums">{{ $count }}</p>
+                <p class="mt-2 text-sm font-semibold tabular-nums">{{ __('Jumlah harga') }}: RM {{ number_format($total, 2) }}</p>
                 <p class="mt-2 text-theme-xs">{{ __($hint) }}</p>
             </div>
         @endforeach
