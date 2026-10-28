@@ -16,6 +16,12 @@
                         @endforeach
                     </dl>
                 </x-common.document-card>
+                @if ($supplierQuotation)
+                    <x-common.document-card :title="__('Sebut Harga Pembekal Dipautkan')">
+                        <a href="{{ route('sebut-harga-pembekal.show', $supplierQuotation->supplier_quotation_id) }}" class="font-semibold text-brand-600 hover:underline dark:text-brand-400">{{ $supplierQuotation->quotation_no_supplier }}</a>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $supplierQuotation->quotation_title ?: '—' }}</p>
+                    </x-common.document-card>
+                @endif
                 @if ($invoices->isNotEmpty())
                     <x-common.document-card :title="__('Invoice Pelanggan Dipilih')" :desc="__('Invoice yang dijadikan asas baucar bayaran ini.')">
                 <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">

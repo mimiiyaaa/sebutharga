@@ -36,6 +36,10 @@ Route::middleware('auth')->prefix('baucar-bayaran')->name('baucar-bayaran.')->gr
     Route::get('/', [\App\Http\Controllers\PaymentVoucherController::class, 'index'])->name('index');
     Route::get('/tambah', [\App\Http\Controllers\PaymentVoucherController::class, 'create'])->name('create');
     Route::get('/tambah/form', [\App\Http\Controllers\PaymentVoucherController::class, 'form'])->name('form');
+    Route::get('/pembekal', [\App\Http\Controllers\PaymentVoucherController::class, 'supplier'])->name('supplier');
+    Route::get('/pembekal/tambah', [\App\Http\Controllers\PaymentVoucherController::class, 'supplierCreate'])->name('supplier.create');
+    Route::get('/pembekal/tambah/form', [\App\Http\Controllers\PaymentVoucherController::class, 'supplierForm'])->name('supplier.form');
+    Route::post('/pembekal', [\App\Http\Controllers\PaymentVoucherController::class, 'storeSupplier'])->name('supplier.store');
     Route::post('/', [\App\Http\Controllers\PaymentVoucherController::class, 'store'])->name('store');
     Route::post('/{id}/rekod-bayaran', [\App\Http\Controllers\PaymentVoucherController::class, 'reconcile'])->whereNumber('id')->name('reconcile');
     Route::get('/{id}/fail', [\App\Http\Controllers\PaymentVoucherController::class, 'file'])->whereNumber('id')->name('file');
