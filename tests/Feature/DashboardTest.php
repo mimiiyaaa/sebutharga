@@ -13,7 +13,7 @@ beforeEach(function () {
     Schema::create('customer_supplier', function (Blueprint $t) { $t->increments('customer_id'); $t->string('company_name'); });
     Schema::create('invoice_master', function (Blueprint $t) {
         $t->increments('invoice_id'); $t->integer('customer_id'); $t->string('invoice_no'); $t->string('document_kind');
-        $t->date('invoice_date'); $t->decimal('total_amount',12,2); $t->text('document_data')->nullable();
+        $t->date('invoice_date'); $t->date('due_date')->nullable(); $t->decimal('total_amount',12,2); $t->text('document_data')->nullable();
     });
     Schema::create('payment_voucher_documents', function (Blueprint $t) { $t->increments('id'); $t->string('voucher_no'); $t->date('voucher_date'); });
     Schema::create('payment_voucher_invoice', function (Blueprint $t) { $t->increments('id'); $t->integer('invoice_id'); $t->integer('payment_voucher_id'); $t->decimal('amount',12,2)->nullable(); });
@@ -46,11 +46,33 @@ test('payment notifications show outstanding customer invoices and pending revie
     expect($view->render())->toContain(route('invoice.customer.payments', 1))->not->toContain('Terry Franci');
 });
 
-test('monitoring preview has its own authenticated page and leaves dashboard', function () {
-    $this->get(route('monitoring'))->assertOk()->assertSee('Pemantauan Bayaran dan Reminder')->assertSee('Data contoh');
+test('monitoring has its own authenticated page with real data and leaves dashboard', function () {
+    $this->get(route('monitoring'))->assertOk()->assertSee('Pemantauan Bayaran dan Reminder')->assertDontSee('Data contoh')->assertSee('Tiada peringatan bayaran buat masa ini.');
     $this->get(route('dashboard'))->assertOk()->assertDontSee('Pemantauan Bayaran dan Reminder');
     auth()->logout();
     $this->get(route('monitoring'))->assertRedirect(route('login'));
+});
+
+test('monitoring uses due dates verified payments and customer snapshots', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-10-27 14:35:00', 'Asia/Kuala_Lumpur'));
+    foreach ([1, 2, 3, 4, 5, 6] as $id) dashboardInvoice($id, '2026-10-01', 100, 'customer', json_encode(['customer_name' => 'Snapshot Customer']));
+    dashboardInvoice(7, '2026-10-01', 100, 'supplier');
+    dashboardInvoice(8, '2026-11-01', 100);
+    DB::table('invoice_master')->where('invoice_id', 1)->update(['due_date' => '2026-10-26']);
+    DB::table('invoice_master')->where('invoice_id', 2)->update(['due_date' => '2026-11-03']);
+    DB::table('invoice_master')->where('invoice_id', 3)->update(['due_date' => '2026-11-04']);
+    dashboardReceipt(1, 1, '2026-10-25', 25);
+    dashboardReceipt(2, 4, '2026-10-25', 100);
+    dashboardReceipt(3, 5, '2026-10-25', null);
+    dashboardReceipt(4, 6, '2026-11-01', 100);
+    $response = $this->get(route('monitoring'))->assertOk()->assertSee('Snapshot Customer')->assertSee('27/10/2026 14:35');
+    $data = $response->viewData('monitoring');
+    expect($data['summary'])->toBe(['unpaid' => 2, 'overdue' => 1, 'upcoming' => 1, 'review' => 1, 'paid' => 1])
+        ->and($data['records']->firstWhere('invoice_id', 1)['balance'])->toEqual(75)
+        ->and($data['records']->pluck('invoice_id')->all())->not->toContain(4, 7, 8);
+    $this->get(route('monitoring', ['priority' => 'Sudah Lewat']))->assertOk()
+        ->assertViewHas('monitoring', fn ($data) => $data['records']->count() === 1);
+    $this->travelBack();
 });
 
 function dashboardInvoice($id, $date, $total, $kind = 'customer', $data = null) {
