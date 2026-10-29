@@ -40,6 +40,10 @@ Route::middleware('auth')->prefix('baucar-bayaran')->name('baucar-bayaran.')->gr
     Route::get('/pembekal/tambah', [\App\Http\Controllers\PaymentVoucherController::class, 'supplierCreate'])->name('supplier.create');
     Route::get('/pembekal/tambah/form', [\App\Http\Controllers\PaymentVoucherController::class, 'supplierForm'])->name('supplier.form');
     Route::post('/pembekal', [\App\Http\Controllers\PaymentVoucherController::class, 'storeSupplier'])->name('supplier.store');
+    Route::get('/pembekal/{id}/edit', [\App\Http\Controllers\PaymentVoucherController::class, 'supplierForm'])->whereNumber('id')->name('supplier.edit');
+    Route::get('/pembekal/{id}/preview', [\App\Http\Controllers\PaymentVoucherController::class, 'supplierPreview'])->whereNumber('id')->name('supplier.preview');
+    Route::get('/pembekal/{id}/pdf', [\App\Http\Controllers\PaymentVoucherController::class, 'supplierPdf'])->whereNumber('id')->name('supplier.pdf');
+    Route::put('/pembekal/{id}', [\App\Http\Controllers\PaymentVoucherController::class, 'storeSupplier'])->whereNumber('id')->name('supplier.update');
     Route::post('/', [\App\Http\Controllers\PaymentVoucherController::class, 'store'])->name('store');
     Route::post('/{id}/rekod-bayaran', [\App\Http\Controllers\PaymentVoucherController::class, 'reconcile'])->whereNumber('id')->name('reconcile');
     Route::get('/{id}/fail', [\App\Http\Controllers\PaymentVoucherController::class, 'file'])->whereNumber('id')->name('file');

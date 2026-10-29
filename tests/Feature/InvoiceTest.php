@@ -22,7 +22,7 @@ beforeEach(function () {
     (require database_path('migrations/2026_10_11_160650_create_invoice_and_delivery_order_tables.php'))->up();
     (require database_path('migrations/2026_10_12_000000_add_invoice_document_data.php'))->up();
     Schema::table('invoice_master', fn (Blueprint $table) => $table->string('invoice_title')->nullable());
-    foreach (['2026_10_18_120000_create_payment_voucher_documents_table.php', '2026_10_18_130000_add_payment_method_to_payment_voucher_documents_table.php', '2026_10_22_110000_create_payment_voucher_invoice_table.php', '2026_10_22_120000_rename_payment_voucher_invoice_link.php', '2026_10_26_100000_add_payment_allocations.php', '2026_10_28_120000_add_supplier_type_to_payment_voucher_documents_table.php', '2026_10_28_140000_link_supplier_payment_vouchers_to_quotations.php'] as $migration) {
+    foreach (['2026_10_18_120000_create_payment_voucher_documents_table.php', '2026_10_18_130000_add_payment_method_to_payment_voucher_documents_table.php', '2026_10_22_110000_create_payment_voucher_invoice_table.php', '2026_10_22_120000_rename_payment_voucher_invoice_link.php', '2026_10_26_100000_add_payment_allocations.php', '2026_10_28_120000_add_supplier_type_to_payment_voucher_documents_table.php', '2026_10_28_140000_link_supplier_payment_vouchers_to_quotations.php', '2026_10_29_160000_add_signature_fields_to_payment_voucher_documents_table.php', '2026_10_29_170000_create_payment_voucher_supplier_items_table.php', '2026_10_29_180000_add_cheque_number_to_payment_voucher_documents_table.php'] as $migration) {
         (require database_path('migrations/'.$migration))->up();
     }
 

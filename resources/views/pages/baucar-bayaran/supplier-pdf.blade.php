@@ -25,7 +25,7 @@
         .notes { margin-top: 15pt; white-space: pre-line; }
         .signatures { margin-top: 34pt; page-break-inside: avoid; }
         .signatures td { width: 50%; padding-right: 20pt; vertical-align: top; }
-        .signature { margin-top: 42pt; border-top: 1px dashed #333; padding-top: 5pt; }
+        .signature { margin-top: 42pt; border-top: 2px dotted #333; width: 145pt; padding-top: 5pt; }
     </style>
 </head>
 <body>
@@ -36,7 +36,7 @@
     <div class="rule"></div>
     <table class="meta"><tr>
         <td>Dibayar Kepada:<br><strong>{{ $supplierName }}</strong><br>{{ $quotation->supplier_address ?: '—' }}<br>{{ $quotation->supplier_phone ?: '—' }}</td>
-        <td class="right"><strong>Cara Bayaran</strong><br>{{ $voucher->payment_method }}@if($voucher->payment_method === 'Cek')<br><span style="white-space: nowrap;">[ ] No Cek: {{ $chequeNo ?: '____________' }}</span>@endif</td>
+        <td class="right"><strong>Cara Bayaran</strong><br>[ ] Tunai / Cash<br>[ ] Pindahan Bank<br><span style="white-space: nowrap;">[ ] No Cek: ____________</span></td>
     </tr></table>
     <table class="items">
         <thead><tr><th width="7%">BIL</th><th width="48%">BUTIRAN PEMBAYARAN / PAYMENT DETAILS</th><th width="20%">NO RUJUKAN</th><th width="25%">JUMLAH (RM)</th></tr></thead>
