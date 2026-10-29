@@ -81,7 +81,7 @@ class PurchaseOrderController extends Controller
             ->map(fn ($item, $index) => [
                 'id' => $index + 1,
                 'description' => $item->item_description,
-                'quantity' => $item->quantity,
+                'quantity' => (int) $item->quantity,
                 'unit' => $item->unit,
                 'price' => $item->unit_price,
             ])->values()->all();
@@ -102,7 +102,7 @@ class PurchaseOrderController extends Controller
         $order = DB::table('purchase_order_master')->where('purchase_order_id', $id)->first();
         abort_unless($order, 404);
         $items = DB::table('purchase_order_item')->where('purchase_order_id', $id)->orderBy('po_item_id')
-            ->get()->map(fn ($item, $index) => ['id'=>$index+1, 'description'=>$item->item_description, 'quantity'=>$item->quantity, 'unit'=>$item->unit, 'price'=>$item->unit_price])->all();
+            ->get()->map(fn ($item, $index) => ['id'=>$index+1, 'description'=>$item->item_description, 'quantity'=>(int) $item->quantity, 'unit'=>$item->unit, 'price'=>$item->unit_price])->all();
         return view('pages.purchase-order.edit', [
             'order'=>$order, 'items'=>$items,
             'returnToDetail'=>$request->query('from') === 'show',

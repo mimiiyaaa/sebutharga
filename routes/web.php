@@ -365,6 +365,7 @@ Route::get('/invoice/pelanggan/tambah', function () {
         'documentType' => 'Invoice',
         'createRoute' => 'invoice.customer.form',
         'createButtonLabel' => 'Cipta Invoice',
+        'allowWithoutLocalOrder' => true,
     ]);
 })->middleware('auth')->name('invoice.customer.create');
 

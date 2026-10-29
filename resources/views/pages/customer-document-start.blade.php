@@ -22,7 +22,7 @@
                         <tr x-show="filteredOrders.length === 0"><td colspan="6" class="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400">{{ __('Tiada Local Order sepadan dengan filter.') }}</td></tr>
                     </tbody></table></div></div>
                     <p x-cloak x-show="selectionError" class="mt-3 text-sm text-error-600 dark:text-error-400">{{ __('Sila pilih satu Local Order.') }}</p>
-                    <div class="mt-4 flex justify-end"><button type="submit" :disabled="!loId" class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">{{ $createButtonLabel }}</button></div>
+                    <div class="mt-4 flex flex-wrap justify-end gap-2"><button type="submit" :disabled="!loId" class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">{{ $createButtonLabel }}</button>@if($allowWithoutLocalOrder ?? false)<a href="{{ route($createRoute) }}" class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Teruskan Tanpa Local Order') }}</a>@endif</div>
                 </form>
             </x-common.component-card>
         </div>
