@@ -114,7 +114,6 @@ class SupplierDocumentController extends Controller
             'items.*.description' => 'required|string|max:2000', 'items.*.quantity' => 'required|numeric|min:0.01|max:1000000|decimal:0,2',
             'items.*.unit' => 'required|string|max:50','items.*.price' => 'required|numeric|min:0|max:1000000|decimal:0,2',
             'total_amount' => $context['isInvoice'] ? 'required|numeric|min:0|max:9999999999.99|decimal:0,2' : 'nullable',
-            'reviewed' => 'accepted',
         ]);
         $items = collect($data['items'])->map(fn ($item) => ['description'=>$item['description'],'quantity'=>(float)$item['quantity'],'unit'=>$item['unit'],'price'=>(float)$item['price']])->values()->all();
         $file = $request->file('document_file');

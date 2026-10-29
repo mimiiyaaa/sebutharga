@@ -1,12 +1,12 @@
 export default function supplierDocumentUpload(config) {
     return {
         ...config.initial, config, suppliers: config.suppliers, fileName: config.existingFile?.name || '', documentUrl: config.existingFile?.url || '', isImage: config.existingFile?.isImage || false,
-        loading: false, message: '', rawText: '', method: '', detectedSupplier: '', reviewed: false,
+        loading: false, message: '', rawText: '', method: '', detectedSupplier: '',
         registerOpen: false, registering: false, newSupplier: { company_name: '', customer_name: '', address: '', phone_no: '', email: '' },
         run: 0, nextId: config.initial.items.length + 1,
         releasePreview() { if (this.documentUrl.startsWith('blob:')) URL.revokeObjectURL(this.documentUrl); },
         destroy() { this.releasePreview(); this.run++; },
-        addItem() { this.items.push({id: this.nextId++, description:'', quantity:1, unit:'', price:0}); this.reviewed=false; },
+        addItem() { this.items.push({id: this.nextId++, description:'', quantity:1, unit:'', price:0}); },
         subtotal(item) { return Math.round(Math.max(0, Number(item.quantity)||0)*Math.max(0, Number(item.price)||0)*100)/100; },
         get gross() { return this.items.reduce((sum,item)=>sum+this.subtotal(item),0); },
         money(n) { return Number(n||0).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2}); },
@@ -20,7 +20,7 @@ export default function supplierDocumentUpload(config) {
             }
             this.releasePreview();
             this.documentUrl=URL.createObjectURL(file); this.fileName=file.name; this.isImage=file.type.startsWith('image/');
-            this.loading=true; this.reviewed=false; this.message=''; this.method=''; this.rawText=''; this.detectedSupplier='';
+            this.loading=true; this.message=''; this.method=''; this.rawText=''; this.detectedSupplier='';
             this.documentNo=''; this.documentDate=''; this.documentTitle=''; this.supplierId=''; this.totalAmount='';
             this.items=[{id:this.nextId++,description:'',quantity:1,unit:'',price:0}];
             const run=++this.run; const data=new FormData(); data.append('document_file',file);

@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-    <x-common.page-breadcrumb :pageTitle="$title" />
+    <x-common.page-breadcrumb :pageTitle="__('Baucar Daripada Pelanggan')" />
     <div class="font-outfit" x-data="{ search: '' }">
         <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white pt-4 dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div class="mb-4 flex flex-wrap items-center gap-2 px-6">

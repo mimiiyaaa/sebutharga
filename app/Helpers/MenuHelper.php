@@ -55,7 +55,10 @@ class MenuHelper
             [
                 'icon' => 'payment-voucher',
                 'name' => 'Baucar Bayaran',
-                'path' => '/baucar-bayaran',
+                'subItems' => [
+                    ['name' => 'Baucar Kepada Pembekal', 'path' => '/baucar-bayaran/pembekal'],
+                    ['name' => 'Baucar Daripada Pelanggan', 'path' => '/baucar-bayaran'],
+                ],
             ],
             [
                 'icon' => 'monitoring',
