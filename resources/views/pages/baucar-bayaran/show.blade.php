@@ -2,7 +2,7 @@
 
 @section('content')
     <x-common.document-workspace :title="__('Lihat Baucar Bayaran')" :reference="$document->voucher_no">
-        <x-slot:referenceActions><a href="{{ route('baucar-bayaran.index') }}" class="inline-flex h-9 items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-theme-xs font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a></x-slot:referenceActions>
+        <x-slot:referenceActions><a href="{{ route($document->voucher_type === 'supplier' ? 'baucar-bayaran.supplier' : 'baucar-bayaran.index') }}" class="inline-flex h-9 items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-theme-xs font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a></x-slot:referenceActions>
     <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-theme-xs dark:border-gray-800 dark:bg-gray-900">
         <x-common.document-heading :label="__('Maklumat Baucar')" :number="$document->voucher_no" :subtitle="$document->payee_name" />
     </section>
@@ -11,7 +11,7 @@
             <div class="space-y-6 lg:order-2">
                 <x-common.document-card :title="__('Maklumat Baucar')">
                     <dl class="grid grid-cols-1 gap-5 text-sm md:grid-cols-2">
-                        @foreach ([__('No. Baucar') => $document->voucher_no, __('Tarikh') => \Carbon\Carbon::parse($document->voucher_date)->format('d/m/Y'), __('Diterima Daripada') => $document->payee_name, __('Cara Bayaran') => $document->payment_method, __('Jumlah Dibayar (RM)') => number_format($document->total_amount, 2), __('Keterangan') => $document->description] as $label => $value)
+                        @foreach ([__('No. Baucar') => $document->voucher_no, __('Tarikh') => \Carbon\Carbon::parse($document->voucher_date)->format('d/m/Y'), __($document->voucher_type === 'supplier' ? 'Dibayar Kepada' : 'Diterima Daripada') => $document->payee_name, __('Cara Bayaran') => $document->payment_method, __('Jumlah Dibayar (RM)') => number_format($document->total_amount, 2), __('Keterangan') => $document->description] as $label => $value)
                             <div class="{{ $label === __('Keterangan') ? 'md:col-span-2' : '' }}"><dt class="text-gray-500 dark:text-gray-400">{{ $label }}</dt><dd class="mt-1 whitespace-pre-line break-words font-medium text-gray-800 dark:text-gray-200">{{ $value ?: '—' }}</dd></div>
                         @endforeach
                     </dl>

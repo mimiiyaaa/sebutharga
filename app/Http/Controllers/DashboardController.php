@@ -21,6 +21,14 @@ class DashboardController extends Controller
             'status' => ['nullable', Rule::in(['Selesai Dibayar', 'Bayaran Sebahagian', 'Belum Dibayar', 'Perlu Semakan'])],
             'age' => ['nullable', 'integer', 'between:0,3'],
         ]);
+        $documentRoutes = [
+            'drafts' => 'sebut-harga', 'finals' => 'sebut-harga.final',
+            'lo' => 'lo', 'po' => 'purchase-order.index',
+            'missing-do' => 'lo', 'missing-invoice' => 'lo', 'review' => 'baucar-bayaran.index',
+        ];
+        if (!empty($data['panel'])) {
+            return redirect()->route($documentRoutes[$data['panel']]);
+        }
         $end = CarbonImmutable::parse($data['end'] ?? $today->toDateString());
         $start = CarbonImmutable::parse($data['start'] ?? $end->subMonthsNoOverflow(5)->startOfMonth()->toDateString());
         if ($start > $end || $start->diffInDays($end) > 366) {
@@ -36,8 +44,7 @@ class DashboardController extends Controller
         return view('pages.dashboard.ecommerce', array_merge($result, [
             'title' => __('Dashboard'), 'start' => $start, 'end' => $end,
             'balances' => $paginate($rows, 'page'), 'selectedStatus' => $data['status'] ?? '', 'selectedAge' => $data['age'] ?? '',
-            'panel' => $data['panel'] ?? null,
-            'panelRows' => isset($data['panel']) ? $paginate($result['groups'][$data['panel']], 'records_page') : null,
+            'documentRoutes' => $documentRoutes,
         ]));
     }
 }

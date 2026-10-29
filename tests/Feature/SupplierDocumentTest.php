@@ -55,9 +55,9 @@ test('supplier extraction uses OCR and returns reviewable values with provenance
     $this->assertDatabaseHas('supplier_documents',['extraction_method'=>'teks PDF']);
 });
 
-test('supplier validation rejects invalid files customers duplicates and missing review',function(){
+test('supplier validation rejects invalid files customers duplicates and invalid amounts',function(){
     $this->postJson(route('invoice.supplier.extract'),['document_file'=>UploadedFile::fake()->create('bad.txt',1,'text/plain')])->assertUnprocessable()->assertJsonValidationErrors('document_file');
-    foreach(['supplier_id'=>2,'reviewed'=>0,'source'=>'unknown','items.0.quantity'=>-1,'total_amount'=>-1] as $key=>$value){$data=$this->supplierData;data_set($data,$key,$value);$this->post(route('invoice.supplier.store'),$data+['document_file'=>supplierTestPdf()])->assertSessionHasErrors($key);}
+    foreach(['supplier_id'=>2,'source'=>'unknown','items.0.quantity'=>-1,'total_amount'=>-1] as $key=>$value){$data=$this->supplierData;data_set($data,$key,$value);$this->post(route('invoice.supplier.store'),$data+['document_file'=>supplierTestPdf()])->assertSessionHasErrors($key);}
     $this->assertDatabaseCount('supplier_documents',0);
     $this->post(route('invoice.supplier.store'),$this->supplierData+['document_file'=>supplierTestPdf()])->assertSessionHasNoErrors();
     $this->post(route('invoice.supplier.store'),$this->supplierData+['document_file'=>supplierTestPdf()])->assertSessionHasErrors('document_no');
@@ -156,3 +156,11 @@ test('supplier lists render matching headers and empty states without a quantity
     $response->assertSee('colspan="'.($prefix === 'invoice.supplier' ? 7 : 5).'"',false);
     if ($prefix === 'invoice.supplier') $response->assertSee('Jumlah (RM)');
 })->with(['invoice.supplier','delivery-order.supplier']);
+
+
+test('supplier document can be saved without a review checkbox', function () {
+    $data = $this->supplierData;
+    unset($data['reviewed']);
+    $this->post(route('invoice.supplier.store'), $data + ['document_file' => supplierTestPdf()])->assertSessionHasNoErrors();
+    $this->assertDatabaseCount('supplier_documents', 1);
+});

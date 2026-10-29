@@ -384,7 +384,7 @@ class PaymentVoucherController extends Controller
         });
         $disk->delete($document->file_path);
 
-        return redirect()->route('baucar-bayaran.index')->with('success', __('Baucar bayaran berjaya dipadam.'));
+        return redirect()->route($document->voucher_type === 'supplier' ? 'baucar-bayaran.supplier' : 'baucar-bayaran.index')->with('success', __('Baucar bayaran berjaya dipadam.'));
     }
 
     private function document(int $id): object

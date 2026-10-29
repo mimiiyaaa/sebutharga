@@ -28,7 +28,7 @@ beforeEach(function () {
         '2026_10_18_130000_add_payment_method_to_payment_voucher_documents_table.php',
         '2026_10_22_110000_create_payment_voucher_invoice_table.php',
         '2026_10_22_120000_rename_payment_voucher_invoice_link.php',
-        '2026_10_26_100000_add_payment_allocations.php'] as $migration) {
+        '2026_10_26_100000_add_payment_allocations.php', '2026_10_28_120000_add_supplier_type_to_payment_voucher_documents_table.php', '2026_10_28_140000_link_supplier_payment_vouchers_to_quotations.php'] as $migration) {
         (require database_path('migrations/'.$migration))->up();
     }
     DB::table('customer_supplier')->insert(['customer_id'=>1,'company_name'=>'Customer']);
@@ -101,4 +101,21 @@ test('legacy vouchers require explicit amount verification before counting towar
     $this->post(route('baucar-bayaran.reconcile',1), ['allocations'=>[1=>60], 'total_amount'=>60])->assertSessionHasNoErrors();
     expect(\App\Services\InvoicePayments::summary(1,150)['balance_amount'])->toEqual(90);
     $this->post(route('baucar-bayaran.reconcile',1), ['allocations'=>[1=>60], 'total_amount'=>60])->assertStatus(422);
+});
+
+
+test('supplier voucher detail and deletion return to supplier list', function () {
+    $this->post(route('baucar-bayaran.store'), receiptPayload('SUPPLIER-TEST', [1=>50], 50))->assertSessionHasNoErrors();
+    DB::table('payment_voucher_documents')->where('id', 1)->update(['voucher_type' => 'supplier']);
+    DB::table('payment_voucher_invoice')->delete();
+    $this->get(route('baucar-bayaran.show', 1))->assertOk()->assertSee('Dibayar Kepada')->assertSee(route('baucar-bayaran.supplier'));
+    $this->delete(route('baucar-bayaran.delete', 1))->assertRedirect(route('baucar-bayaran.supplier'));
+});
+
+test('voucher without invoice allows entering its actual amount', function () {
+    $this->get(route('baucar-bayaran.form', ['tanpa_invoice' => 1]))->assertOk()->assertSee('Isi amaun baucar secara manual kerana tiada invoice dikaitkan.');
+    $payload = receiptPayload('NO-INVOICE', [], 75);
+    $this->post(route('baucar-bayaran.store'), $payload)->assertSessionHasNoErrors();
+    $this->assertDatabaseHas('payment_voucher_documents', ['voucher_no' => 'NO-INVOICE', 'total_amount' => 75, 'voucher_type' => 'customer']);
+    $this->assertDatabaseCount('payment_voucher_invoice', 0);
 });

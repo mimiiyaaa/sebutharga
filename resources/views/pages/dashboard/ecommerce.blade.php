@@ -40,7 +40,7 @@
         <p class="text-theme-xs text-gray-500 lg:col-span-2 dark:text-gray-400">{{ __('Carta mengikut julat tarikh. Ringkasan dan baki merangkumi rekod hingga tarikh akhir; status dokumen mengikut keadaan semasa.') }}</p>
     </section>
     @if($pendingCount)
-        <div class="rounded-xl border border-warning-200 bg-warning-50 p-4 text-sm text-warning-700 dark:border-warning-800 dark:bg-warning-500/10 dark:text-warning-400">{{ $pendingCount }} {{ __('baucar perlu semakan. Amaun yang belum disahkan tidak ditolak daripada baki invois.') }} <a class="underline" href="{{ $dashboardLink(['panel' => 'review']) }}#dashboard-records">{{ __('Semak') }}</a></div>
+        <div class="rounded-xl border border-warning-200 bg-warning-50 p-4 text-sm text-warning-700 dark:border-warning-800 dark:bg-warning-500/10 dark:text-warning-400">{{ $pendingCount }} {{ __('baucar perlu semakan. Amaun yang belum disahkan tidak ditolak daripada baki invois.') }} <a class="underline" href="{{ route('baucar-bayaran.index') }}">{{ __('Semak') }}</a></div>
     @endif
     @php
         $metricThemes = [
@@ -53,7 +53,7 @@
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         @foreach ($metrics as [$label, $value, $hint, $tag, $group])
             @php([$surface, $icon, $ink, $path] = $metricThemes[$loop->index])
-            <a href="{{ $dashboardLink(['panel' => $group]) }}#dashboard-records" class="block rounded-2xl border p-5 shadow-theme-xs transition hover:shadow-theme-md focus-visible:outline-2 focus-visible:outline-brand-500 {{ $surface }}">
+            <a href="{{ route($documentRoutes[$group]) }}" class="block rounded-2xl border p-5 shadow-theme-xs transition hover:shadow-theme-md focus-visible:outline-2 focus-visible:outline-brand-500 {{ $surface }}">
                 <div class="flex items-center justify-between gap-3">
                     <span class="flex h-11 w-11 items-center justify-center rounded-xl shadow-theme-xs {{ $icon }}"><svg class="h-6 w-6 stroke-current" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="{{ $path }}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
                     <span class="rounded-full bg-white/70 px-3 py-1 text-theme-xs font-semibold dark:bg-gray-900/40 {{ $ink }}">{{ __($tag) }}</span>
@@ -127,7 +127,7 @@
             <h2 class="text-base font-semibold text-gray-900 dark:text-white/90">{{ __('Perlu Tindakan') }}</h2><p class="mt-1 text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Senarai semakan urusan yang belum lengkap') }}</p>
             <div class="mt-4 divide-y divide-gray-100 dark:divide-gray-800">
                 @foreach ($actions as [$label, $count, $hint, $group])
-                    <div class="flex items-center gap-4 py-3"><span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-warning-50 font-semibold text-warning-700 dark:bg-warning-500/10 dark:text-warning-400">{{ $count }}</span><div class="min-w-0 flex-1"><h3 class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ __($label) }}</h3><p class="mt-0.5 text-theme-xs text-gray-500 dark:text-gray-400">{{ __($hint) }}</p></div><a href="{{ $dashboardLink(['panel' => $group]) }}#dashboard-records" class="document-action">{{ __('Lihat') }}</a></div>
+                    <div class="flex items-center gap-4 py-3"><span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-warning-50 font-semibold text-warning-700 dark:bg-warning-500/10 dark:text-warning-400">{{ $count }}</span><div class="min-w-0 flex-1"><h3 class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ __($label) }}</h3><p class="mt-0.5 text-theme-xs text-gray-500 dark:text-gray-400">{{ __($hint) }}</p></div><a href="{{ route($documentRoutes[$group]) }}" class="document-action">{{ __('Lihat') }}</a></div>
                 @endforeach
             </div>
         </section>
@@ -146,14 +146,6 @@
         <div class="p-4">{{ $balances->links() }}</div>
         <div class="px-4 pb-4"><a class="document-action" href="{{ $dashboardLink() }}#invoice-balances">{{ __('Reset penapis invois') }}</a></div>
     </section>
-    @if($panel)
-        <section id="dashboard-records" class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-            <div class="flex items-center justify-between gap-3 p-5"><h2 class="font-semibold text-gray-900 dark:text-white/90">{{ __(['drafts' => 'Sebut Harga Draf', 'finals' => 'Final Menunggu LO', 'lo' => 'Local Order', 'po' => 'Purchase Order', 'missing-do' => 'LO belum ada DO', 'missing-invoice' => 'LO belum ada invois', 'review' => 'Baucar perlu semakan'][$panel]) }} ({{ $panelRows->total() }})</h2><a href="{{ $dashboardLink() }}" class="document-action">{{ __('Tutup') }}</a></div>
-            <table class="w-full text-start text-sm text-gray-700 dark:text-gray-300"><thead class="bg-gray-50 dark:bg-gray-800"><tr><th class="p-4 text-start">{{ __('No. Dokumen') }}</th><th class="p-4 text-start">{{ __('Maklumat') }}</th><th class="p-4 text-start">{{ __('Tindakan') }}</th></tr></thead><tbody>
-                @forelse($panelRows as $row)<tr class="border-t border-gray-100 dark:border-gray-800"><td class="p-4">{{ $row['number'] }}</td><td class="p-4">{{ $row['description'] }}</td><td class="p-4"><a href="{{ $row['url'] }}" class="document-action">{{ __('Lihat') }}</a></td></tr>
-                @empty<tr><td colspan="3" class="p-6 text-center">{{ __('Tiada rekod untuk pilihan ini.') }}</td></tr>@endforelse
-            </tbody></table><div class="p-4">{{ $panelRows->links() }}</div>
-        </section>
-    @endif
+
 </div>
 @endsection

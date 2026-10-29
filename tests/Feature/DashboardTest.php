@@ -67,7 +67,7 @@ test('monitoring uses due dates verified payments and customer snapshots', funct
     dashboardReceipt(4, 6, '2026-11-01', 100);
     $response = $this->get(route('monitoring'))->assertOk()->assertSee('Snapshot Customer')->assertSee('27/10/2026 14:35');
     $data = $response->viewData('monitoring');
-    expect($data['summary'])->toBe(['unpaid' => 2, 'overdue' => 1, 'upcoming' => 1, 'review' => 1, 'paid' => 1])
+    expect($data['summary'])->toBe(['unpaid' => 2, 'unpaid_total' => 200, 'overdue' => 1, 'overdue_total' => 100, 'upcoming' => 1, 'upcoming_total' => 100, 'review' => 1, 'review_total' => 100, 'paid' => 1, 'paid_total' => 100])
         ->and($data['records']->firstWhere('invoice_id', 1)['balance'])->toEqual(75)
         ->and($data['records']->pluck('invoice_id')->all())->not->toContain(4, 7, 8);
     $this->get(route('monitoring', ['priority' => 'Sudah Lewat']))->assertOk()
@@ -102,7 +102,7 @@ test('dashboard distinguishes period receipts from cumulative balances and exclu
         ->and($data['statuses']['Perlu Semakan'])->toBe(1)
         ->and($data['pendingCount'])->toBe(1);
     $this->get(route('dashboard',['start'=>'2026-10-01','end'=>'2026-10-27']))->assertOk()->assertSee('INV-1')->assertDontSee('INV-CONTOH')->assertSee('1,000.00');
-    $this->get(route('dashboard',['start'=>'2026-10-01','end'=>'2026-10-27','panel'=>'review']))->assertOk()->assertSee('PV-4');
+    $this->get(route('dashboard',['start'=>'2026-10-01','end'=>'2026-10-27','panel'=>'review']))->assertRedirect(route('baucar-bayaran.index'));
 });
 
 test('aging boundaries and paid invoices use actual allocation amounts', function () {
@@ -136,4 +136,13 @@ test('dashboard empty states date validation and authentication work', function 
     $this->get(route('dashboard',['panel'=>'invalid']))->assertSessionHasErrors('panel');
     auth()->logout();
     $this->get(route('dashboard'))->assertRedirect(route('login'));
+});
+
+
+test('dashboard document cards navigate to sidebar pages without an inline records panel', function () {
+    $response = $this->get(route('dashboard'))->assertOk()->assertDontSee('dashboard-records')->assertDontSee('panel=');
+    foreach (['drafts' => 'sebut-harga', 'finals' => 'sebut-harga.final', 'lo' => 'lo', 'po' => 'purchase-order.index'] as $panel => $destination) {
+        $response->assertSee('href="'.route($destination).'"', false);
+        $this->get(route('dashboard', ['panel' => $panel]))->assertRedirect(route($destination));
+    }
 });
