@@ -64,209 +64,25 @@ class PaymentVoucherController extends Controller
         ]);
     }
 
+    private function supplierInvoiceReferences(?int $id = null)
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('supplier_invoice_payments')) return collect();
+        return DB::table('supplier_invoice_payments as payment')->join('supplier_documents as invoice', 'invoice.id', '=', 'payment.supplier_document_id')
+            ->when($id, fn ($q) => $q->where('payment.payment_voucher_id', $id))->orderBy('invoice.id')
+            ->get(['payment.payment_voucher_id', 'payment.amount', 'invoice.id', 'invoice.document_no', 'invoice.total_amount']);
+    }
+
     public function supplier()
     {
-        $vouchers = DB::table('payment_voucher_documents as voucher')
-            ->leftJoin('customer_supplier as supplier', 'supplier.customer_id', '=', 'voucher.supplier_id')
-            ->leftJoin('pembekal_quotation_master as quotation', 'quotation.supplier_quotation_id', '=', 'voucher.supplier_quotation_id')
-            ->where('voucher.voucher_type', 'supplier')
-            ->orderByDesc('voucher.id')
-            ->get([
-                'voucher.id', 'voucher.voucher_no', 'voucher.voucher_date', 'voucher.payment_method', 'voucher.cheque_no', 'voucher.total_amount',
-                'supplier.company_name as supplier_name', 'quotation.supplier_quotation_id', 'quotation.quotation_no_supplier',
-                'quotation.quotation_title',
-            ]);
+        $vouchers = DB::table('payment_voucher_documents')->where('voucher_type', 'supplier')->orderByDesc('id')
+            ->get()->map(function ($voucher) { $voucher->supplier_name = $voucher->payee_name; return $voucher; });
 
+        $references = $this->supplierInvoiceReferences()->groupBy('payment_voucher_id');
+        foreach ($vouchers as $voucher) $voucher->invoice_numbers = $references->get($voucher->id, collect())->pluck('document_no')->implode(', ');
         return view('pages.baucar-bayaran.supplier-index', [
             'title' => __('Baucar Kepada Pembekal'),
             'vouchers' => $vouchers,
         ]);
-    }
-
-    public function supplierCreate()
-    {
-        $quotations = DB::table('pembekal_quotation_master as quotation')
-            ->leftJoin('customer_supplier as supplier', 'supplier.customer_id', '=', 'quotation.supplier_id')
-            ->orderByDesc('quotation.supplier_quotation_id')
-            ->get([
-                'quotation.supplier_quotation_id', 'quotation.quotation_no_supplier', 'quotation.quotation_date',
-                'quotation.quotation_title', 'quotation.company_name', 'supplier.company_name as supplier_registered_name',
-            ]);
-
-        $totals = DB::table('pembekal_quotation_item')
-            ->whereIn('supplier_quotation_id', $quotations->pluck('supplier_quotation_id'))
-            ->select('supplier_quotation_id', DB::raw('SUM(subtotal) as total_amount'))
-            ->groupBy('supplier_quotation_id')
-            ->pluck('total_amount', 'supplier_quotation_id');
-
-        $quotations->each(function ($quotation) use ($totals) {
-            $quotation->total_amount = (float) ($totals->get($quotation->supplier_quotation_id) ?? 0);
-            $quotation->supplier_name = $quotation->supplier_registered_name ?: $quotation->company_name;
-        });
-
-        return view('pages.baucar-bayaran.supplier-select-quotation', [
-            'title' => __('Pilih Sebut Harga Pembekal'),
-            'quotations' => $quotations,
-        ]);
-    }
-
-    public function supplierForm(Request $request, ?int $id = null)
-    {
-        $document = $id ? DB::table('payment_voucher_documents')->where('id', $id)->where('voucher_type', 'supplier')->firstOrFail() : null;
-        $quotations = DB::table('pembekal_quotation_master as q')
-            ->join('customer_supplier as s', 's.customer_id', '=', 'q.supplier_id')->where('s.jenis_customer', 2)
-            ->orderByDesc('q.supplier_quotation_id')
-            ->get(['q.*', 's.company_name as supplier_name', 's.address as supplier_address', 's.phone_no as supplier_phone', 's.email as supplier_email']);
-        $sourceItems = DB::table('pembekal_quotation_item')->whereIn('supplier_quotation_id', $quotations->pluck('supplier_quotation_id'))
-            ->orderBy('supplier_quotation_item_id')->get()->groupBy('supplier_quotation_id');
-        $mapItems = fn ($items) => $items->values()->map(fn ($item, $i) => ['id'=>$i+1, 'description'=>$item->item_description, 'quantity'=>(int)$item->quantity, 'unit'=>$item->unit, 'price'=>(float)$item->unit_price])->all();
-        foreach ($quotations as $quote) {
-            $quote->items = $mapItems($sourceItems->get($quote->supplier_quotation_id, collect()));
-            $quote->person_in_charge = $quote->person_in_charge ?? '';
-            $quote->quotation_title = $quote->quotation_title ?? '';
-        }
-        $selected = old('supplier_quotation_id', $request->query('supplier_quotation_id', $document?->supplier_quotation_id));
-        $quotation = $quotations->firstWhere('supplier_quotation_id', $selected);
-        if (!$quotation) return redirect()->route('baucar-bayaran.supplier.create')->withErrors(['supplier_quotation_id'=>__('Sila pilih sebut harga pembekal.')]);
-        $savedItems = $document ? DB::table('payment_voucher_supplier_item')->where('payment_voucher_id', $id)->orderBy('id')->get() : collect();
-        $initialItems = $savedItems->isNotEmpty() ? $mapItems($savedItems) : $quotation->items;
-        $oldItems = json_decode(old('items_json', 'null'), true);
-        if (is_array($oldItems)) $initialItems = $oldItems;
-        return view('pages.baucar-bayaran.supplier', [
-            'title'=>__($document ? 'Edit Baucar Kepada Pembekal' : 'Tambah Baucar Kepada Pembekal'),
-            'document'=>$document, 'quotation'=>$quotation, 'quotationOptions'=>$quotations->values(),
-            'nextVoucherNo'=>$document?->voucher_no ?? $this->nextVoucherNumber(),
-            'preparedBy'=>old('prepared_by', $document?->prepared_by ?? auth()->user()?->name),
-            'preparedRole'=>old('prepared_role', $document?->prepared_role ?? config('purchase_order.prepared_role')),
-            'receivedBy'=>old('received_by', $document?->received_by ?? $quotation->supplier_name),
-            'receivedRole'=>old('received_role', $document?->received_role ?? 'Tandatangan Penerima'),
-            'chequeNo'=>old('cheque_no', $document?->cheque_no), 'initialSupplierItems'=>$initialItems,
-        ]);
-    }
-
-    public function storeSupplier(Request $request, ?int $id = null)
-    {
-        $existing = $id ? DB::table('payment_voucher_documents')->where('id', $id)->where('voucher_type', 'supplier')->firstOrFail() : null;
-        $data = $request->validate([
-            'supplier_quotation_id' => ['required', 'integer', 'exists:pembekal_quotation_master,supplier_quotation_id'],
-            'supplier_id' => ['required', 'integer', Rule::exists('customer_supplier', 'customer_id')->where('jenis_customer', 2)],
-            'voucher_no' => ['required', 'string', 'max:100', Rule::unique('payment_voucher_documents', 'voucher_no')->ignore($id)],
-            'voucher_date' => ['required', 'date_format:Y-m-d'],
-            'payment_method' => ['required', 'string', Rule::in(['Tunai', 'Pindahan Bank', 'Cek', 'Lain-lain'])],
-            'cheque_no' => ['nullable', 'string', 'max:100'],
-            'description' => ['nullable', 'string', 'max:5000'],
-            'total_amount' => ['required', 'numeric', 'min:0.01', 'max:9999999999.99', 'decimal:0,2'],
-            'prepared_by' => ['required', 'string', 'max:255'],
-            'prepared_role' => ['required', 'string', 'max:255'],
-            'received_by' => ['required', 'string', 'max:255'],
-            'received_role' => ['required', 'string', 'max:255'],
-            'items_json' => ['required', 'json'],
-        ]);
-        $items = json_decode($data['items_json'], true);
-        validator(['items' => $items], [
-            'items' => ['required', 'array', 'min:1', 'max:100'],
-            'items.*' => ['required', 'array'],
-            'items.*.description' => ['required', 'string', 'max:2000'],
-            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:1000000'],
-            'items.*.unit' => ['required', 'string', 'max:50'],
-            'items.*.price' => ['required', 'numeric', 'min:0', 'max:1000000', 'decimal:0,2'],
-        ])->validate();
-        $items = collect($items)->map(fn ($item) => (object) [
-            'item_description' => $item['description'],
-            'quantity' => (int) $item['quantity'],
-            'unit' => $item['unit'],
-            'unit_price' => (float) $item['price'],
-            'subtotal' => round((int) $item['quantity'] * (float) $item['price'], 2),
-        ]);
-
-        $quotation = DB::table('pembekal_quotation_master as quotation')
-            ->leftJoin('customer_supplier as supplier', 'supplier.customer_id', '=', 'quotation.supplier_id')
-            ->where('quotation.supplier_quotation_id', $data['supplier_quotation_id'])
-            ->first([
-                'quotation.*', 'supplier.company_name as supplier_registered_name', 'supplier.address as supplier_address',
-                'supplier.phone_no as supplier_phone', 'supplier.email as supplier_email',
-            ]);
-        abort_unless($quotation, 404);
-        abort_unless((int) $quotation->supplier_id === (int) $data['supplier_id'], 422);
-        $supplierName = $quotation->supplier_registered_name ?: $quotation->company_name;
-        $calculatedTotal = $items->sum(fn ($item) => InvoicePayments::cents($item->subtotal));
-        if ($calculatedTotal !== InvoicePayments::cents($data['total_amount'])) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['total_amount' => __('Jumlah pecahan bayaran mesti sama dengan amaun baucar.')]);
-        }
-        $path = 'payment-vouchers/supplier/'.\Illuminate\Support\Str::uuid().'.pdf';
-        $fileName = preg_replace('/[^A-Za-z0-9._-]/', '-', $data['voucher_no']).'.pdf';
-
-        try {
-            $pdf = Pdf::loadView('pages.baucar-bayaran.supplier-pdf', [
-                'voucher' => (object) array_merge(['description' => null], $data, ['payee_name' => $supplierName]),
-                'quotation' => $quotation,
-                'items' => $items,
-                'supplierName' => $supplierName,
-                'preparedBy' => $data['prepared_by'],
-                'preparedRole' => $data['prepared_role'],
-                'receivedBy' => $data['received_by'],
-                'receivedRole' => $data['received_role'],
-                'chequeNo' => $data['cheque_no'] ?? null,
-            ])->setPaper('a4')->setOption('isRemoteEnabled', false);
-            Storage::disk('local')->put($path, $pdf->output());
-
-            DB::transaction(function () use ($data, $supplierName, $path, $fileName, $request, $items, $existing, $id) {
-            $record = [
-                'voucher_no' => $data['voucher_no'],
-                'voucher_type' => 'supplier',
-                'voucher_date' => $data['voucher_date'],
-                'payee_name' => $supplierName,
-                'supplier_id' => $data['supplier_id'],
-                'supplier_quotation_id' => $data['supplier_quotation_id'],
-                'payment_method' => $data['payment_method'],
-                'cheque_no' => $data['cheque_no'] ?? null,
-                'description' => $data['description'] ?? null,
-                'total_amount' => $data['total_amount'],
-                'prepared_by' => $data['prepared_by'],
-                'prepared_role' => $data['prepared_role'],
-                'received_by' => $data['received_by'],
-                'received_role' => $data['received_role'],
-                'file_path' => $path,
-                'file_name' => mb_substr($fileName, 0, 255),
-                'file_mime' => 'application/pdf',
-                'uploaded_by' => $existing?->uploaded_by ?? $request->user()->id,
-                'created_at' => $existing?->created_at ?? now(),
-                'updated_at' => now(),
-            ];
-            if ($existing) {
-                DB::table('payment_voucher_documents')->where('id', $id)->where('voucher_type', 'supplier')->lockForUpdate()->firstOrFail();
-                DB::table('payment_voucher_documents')->where('id', $id)->update($record);
-                DB::table('payment_voucher_supplier_item')->where('payment_voucher_id', $id)->delete();
-                $voucherId = $id;
-            } else {
-                $voucherId = DB::table('payment_voucher_documents')->insertGetId($record);
-            }
-            foreach ($items as $item) {
-                DB::table('payment_voucher_supplier_item')->insert([
-                    'payment_voucher_id' => $voucherId,
-                    'item_description' => $item->item_description,
-                    'quantity' => $item->quantity,
-                    'unit' => $item->unit,
-                    'unit_price' => $item->unit_price,
-                    'subtotal' => $item->subtotal,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-            });
-        } catch (\Throwable $exception) {
-            Storage::disk('local')->delete($path);
-            if ($exception instanceof \Illuminate\Database\UniqueConstraintViolationException) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['voucher_no' => __('Nombor baucar sudah digunakan.')]);
-            }
-            throw $exception;
-        }
-
-        if ($existing) {
-            Storage::disk('local')->delete($existing->file_path);
-            return redirect()->route('baucar-bayaran.show', $id)->with('success', __('Baucar berjaya dikemas kini.'));
-        }
-        return redirect()->route('baucar-bayaran.supplier')->with('success', __('Baucar bayaran pembekal berjaya disimpan.'));
     }
 
     public function create()
@@ -406,7 +222,8 @@ class PaymentVoucherController extends Controller
                     'supplier.phone_no as supplier_phone', 'supplier.email as supplier_email',
                 ]) : null;
             $supplierQuotation ??= (object) ['supplier_quotation_id' => null, 'supplier_registered_name' => null, 'company_name' => $document->payee_name, 'quotation_no_supplier' => null, 'supplier_phone' => null, 'supplier_email' => null, 'supplier_address' => null];
-            $supplierQuotation->supplier_name = $supplierQuotation->supplier_registered_name ?: $supplierQuotation->company_name;
+            $details = \App\Services\SupplierVoucherDetails::values($document, DB::table('customer_supplier')->where('customer_id', $document->supplier_id)->first());
+            foreach (['supplier_name', 'supplier_address', 'supplier_phone', 'supplier_email'] as $field) $supplierQuotation->$field = $details[$field];
             $supplierQuotationItems = $supplierQuotation->supplier_quotation_id ? DB::table('pembekal_quotation_item')
                 ->where('supplier_quotation_id', $supplierQuotation->supplier_quotation_id)
                 ->orderBy('supplier_quotation_item_id')
@@ -423,7 +240,7 @@ class PaymentVoucherController extends Controller
                 'title' => __('Lihat Baucar Bayaran'),
                 'document' => $document,
                 'supplierQuotation' => $supplierQuotation,
-                'supplierQuotationItems' => $supplierQuotationItems,
+                'supplierQuotationItems' => $supplierQuotationItems, 'details' => $details, 'invoiceReferences' => $this->supplierInvoiceReferences($id),
             ]);
         }
 
@@ -490,11 +307,16 @@ class PaymentVoucherController extends Controller
         $items = DB::table('payment_voucher_supplier_item')->where('payment_voucher_id', $id)->orderBy('id')->get();
         $previewHtml = null;
         if ($items->isNotEmpty()) {
-            $quotation = DB::table('pembekal_quotation_master as q')
+            $quotation = $document->supplier_quotation_id ? DB::table('pembekal_quotation_master as q')
                 ->leftJoin('customer_supplier as s', 's.customer_id', '=', 'q.supplier_id')
                 ->where('q.supplier_quotation_id', $document->supplier_quotation_id)
-                ->first(['q.quotation_no_supplier', 's.address as supplier_address', 's.phone_no as supplier_phone']);
-            $quotation ??= (object) ['quotation_no_supplier' => '—', 'supplier_address' => null, 'supplier_phone' => null];
+                ->first(['q.quotation_no_supplier', 's.address as supplier_address', 's.phone_no as supplier_phone']) : null;
+            $quotation ??= (object) ['quotation_no_supplier' => '-', 'supplier_address' => null, 'supplier_phone' => null];
+            $details = \App\Services\SupplierVoucherDetails::values($document, DB::table('customer_supplier')->where('customer_id', $document->supplier_id)->first());
+            $quotation->supplier_address = $details['supplier_address'];
+            $quotation->supplier_phone = $details['supplier_phone'];
+            $references = $this->supplierInvoiceReferences($id)->values();
+            foreach ($items as $index => $item) $item->invoice_no = $references->get($index)?->document_no ?? '-';
             $previewHtml = view('pages.baucar-bayaran.supplier-pdf', [
                 'voucher' => $document, 'quotation' => $quotation, 'items' => $items,
                 'supplierName' => $document->payee_name, 'preparedBy' => $document->prepared_by,

@@ -132,7 +132,16 @@ class SupplierDocumentController extends Controller
                 'notes'=>$data['notes'] ?? null,'updated_at'=>now(),
             ];
             if ($existing) {
-                DB::table('supplier_documents')->where('id', $existing->id)->where('kind', $context['kind'])->update($values);
+                DB::transaction(function () use ($existing, $context, $values) {
+                    $lockedInvoice = DB::table('supplier_documents')->where('id', $existing->id)->lockForUpdate()->firstOrFail();
+                    if (\Illuminate\Support\Facades\Schema::hasTable('supplier_invoice_payments')) {
+                        $payments = DB::table('supplier_invoice_payments')->where('supplier_document_id', $existing->id)->get();
+                        if ($payments->isNotEmpty() && ((int) $lockedInvoice->supplier_id !== (int) $values['supplier_id'] || $payments->sum(fn ($p) => \App\Services\InvoicePayments::cents($p->amount)) > \App\Services\InvoicePayments::cents($values['total_amount']))) {
+                            throw ValidationException::withMessages(['total_amount' => __('Semak rekod bayaran dahulu sebelum menukar pembekal atau mengurangkan amaun invois.')]);
+                        }
+                    }
+                    DB::table('supplier_documents')->where('id', $existing->id)->where('kind', $context['kind'])->update($values);
+                });
             } else {
                 DB::table('supplier_documents')->insert($values + ['created_by'=>$request->user()->id, 'created_at'=>now()]);
             }
@@ -171,9 +180,14 @@ class SupplierDocumentController extends Controller
     public function destroy(Request $request, int $id)
     {
         $document = $this->document($request,$id);
-        $disk = Storage::disk('local');
-        if ($disk->exists($document->file_path) && !$disk->delete($document->file_path)) return back()->with('error',__('Fail tidak dapat dipadam. Sila cuba semula.'));
-        DB::table('supplier_documents')->where('id',$document->id)->where('kind',$document->kind)->delete();
+        $deleted = DB::transaction(function () use ($document) {
+            DB::table('supplier_documents')->where('id', $document->id)->lockForUpdate()->firstOrFail();
+            if (\Illuminate\Support\Facades\Schema::hasTable('supplier_invoice_payments') && DB::table('supplier_invoice_payments')->where('supplier_document_id', $document->id)->exists()) return false;
+            DB::table('supplier_documents')->where('id', $document->id)->delete();
+            return true;
+        });
+        if (!$deleted) return back()->with('error', __('Semak dan keluarkan rekod bayaran invois ini sebelum memadamnya.'));
+        Storage::disk('local')->delete($document->file_path);
         return redirect()->route($this->context($request)['prefix'])->with('success',__('Dokumen pembekal berjaya dipadam.'));
     }
 }

@@ -29,20 +29,21 @@
     </style>
 </head>
 <body>
+    @php $details = \App\Services\SupplierVoucherDetails::values($voucher); @endphp
     <table class="header"><tr>
-        <td><div class="company">{{ config('purchase_order.issuer_name') }}</div><div>{{ config('purchase_order.issuer_address') }}</div><div>{{ config('purchase_order.issuer_phone') }} | {{ config('purchase_order.issuer_email') }}</div></td>
+        <td><div class="company">{{ $details['issuer_name'] }}</div><div>{{ $details['issuer_address'] }}</div><div>{{ $details['issuer_phone'] }} | {{ $details['issuer_email'] }}</div></td>
         <td><div class="title">BAUCAR BAYARAN</div><div class="right"><strong>No. Dokumen: {{ $voucher->voucher_no }}</strong><br>Tarikh: {{ \Carbon\Carbon::parse($voucher->voucher_date)->locale('ms')->translatedFormat('d F Y') }}</div></td>
     </tr></table>
     <div class="rule"></div>
     <table class="meta"><tr>
-        <td>Dibayar Kepada:<br><strong>{{ $supplierName }}</strong><br>{{ $quotation->supplier_address ?: '—' }}<br>{{ $quotation->supplier_phone ?: '—' }}</td>
+        <td>Dibayar Kepada:<br><strong>{{ $supplierName }}</strong><br>{{ $quotation->supplier_address ?: '—' }}<br>{{ $quotation->supplier_phone ?: '-' }}@if($details['supplier_email'])<br>{{ $details['supplier_email'] }}@endif @if($details['supplier_person'])<br>{{ $details['supplier_person'] }}@endif</td>
         <td class="right"><strong>Cara Bayaran</strong><br>[ ] Tunai / Cash<br>[ ] Pindahan Bank<br><span style="white-space: nowrap;">[ ] No Cek: ____________</span></td>
     </tr></table>
     <table class="items">
-        <thead><tr><th width="7%">BIL</th><th width="48%">BUTIRAN PEMBAYARAN / PAYMENT DETAILS</th><th width="20%">NO RUJUKAN</th><th width="25%">JUMLAH (RM)</th></tr></thead>
+        <thead><tr><th width="7%">BIL</th><th width="48%">BUTIRAN PEMBAYARAN / PAYMENT DETAILS</th><th width="20%">NO. INVOIS</th><th width="25%">JUMLAH (RM)</th></tr></thead>
         <tbody>
             @foreach ($items as $item)
-                <tr><td class="center">{{ $loop->iteration }}</td><td>{{ $item->item_description }}<br><small>{{ number_format((float) $item->quantity, 2) }} {{ $item->unit }} × RM {{ number_format((float) $item->unit_price, 2) }}</small></td><td class="center">{{ $quotation->quotation_no_supplier }}</td><td class="right">{{ number_format((float) $item->subtotal, 2) }}</td></tr>
+                <tr><td class="center">{{ $loop->iteration }}</td><td>{{ $item->item_description }}<br><small>{{ number_format((float) $item->quantity, 2) }} {{ $item->unit }} × RM {{ number_format((float) $item->unit_price, 2) }}</small></td><td class="center">{{ $item->invoice_no ?? '-' }}</td><td class="right">{{ number_format((float) $item->subtotal, 2) }}</td></tr>
             @endforeach
         </tbody>
     </table>

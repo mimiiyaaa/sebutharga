@@ -28,7 +28,7 @@ beforeEach(function () {
         '2026_10_18_130000_add_payment_method_to_payment_voucher_documents_table.php',
         '2026_10_22_110000_create_payment_voucher_invoice_table.php',
         '2026_10_22_120000_rename_payment_voucher_invoice_link.php',
-        '2026_10_26_100000_add_payment_allocations.php', '2026_10_28_120000_add_supplier_type_to_payment_voucher_documents_table.php', '2026_10_28_140000_link_supplier_payment_vouchers_to_quotations.php', '2026_10_29_160000_add_signature_fields_to_payment_voucher_documents_table.php', '2026_10_29_170000_create_payment_voucher_supplier_items_table.php', '2026_10_29_180000_add_cheque_number_to_payment_voucher_documents_table.php'] as $migration) {
+        '2026_10_26_100000_add_payment_allocations.php', '2026_10_28_120000_add_supplier_type_to_payment_voucher_documents_table.php', '2026_10_28_140000_link_supplier_payment_vouchers_to_quotations.php', '2026_10_29_160000_add_signature_fields_to_payment_voucher_documents_table.php', '2026_10_29_170000_create_payment_voucher_supplier_items_table.php', '2026_10_29_180000_add_cheque_number_to_payment_voucher_documents_table.php', '2026_11_01_110000_add_supplier_payment_status.php', '2026_11_01_120000_add_supplier_voucher_details.php'] as $migration) {
         (require database_path('migrations/'.$migration))->up();
     }
     DB::table('customer_supplier')->insert(['customer_id'=>1,'company_name'=>'Customer']);
@@ -121,59 +121,76 @@ test('voucher without invoice allows entering its actual amount', function () {
 });
 
 
-test('supplier voucher saves edited items and rejects a mismatched total', function () {
+
+function supplierPaymentSetup(): void {
     Schema::table('customer_supplier', function (Blueprint $t) {
-        $t->integer('jenis_customer')->default(1); $t->text('address')->nullable(); $t->string('phone_no')->nullable(); $t->string('email')->nullable();
+        $t->integer('jenis_customer')->default(1); $t->text('address')->nullable(); $t->string('phone_no')->nullable(); $t->string('email')->nullable(); $t->string('customer_name')->nullable();
     });
-    Schema::create('pembekal_quotation_master', function (Blueprint $t) {
-        $t->increments('supplier_quotation_id'); $t->integer('supplier_id'); $t->string('company_name'); $t->string('quotation_no_supplier');
-    });
-    Schema::create('pembekal_quotation_item', function (Blueprint $t) {
-        $t->increments('supplier_quotation_item_id'); $t->integer('supplier_quotation_id'); $t->text('item_description'); $t->integer('quantity'); $t->string('unit'); $t->decimal('unit_price',12,2); $t->decimal('subtotal',12,2);
-    });
+    Schema::create('companies', function (Blueprint $t) { $t->increments('company_id'); $t->string('nama_syarikat'); });
+    (require database_path('migrations/2026_10_12_020000_create_supplier_documents.php'))->up();
+    (require database_path('migrations/2026_11_01_100000_create_supplier_invoice_payments.php'))->up();
     DB::table('customer_supplier')->insert(['customer_id'=>2,'company_name'=>'Supplier','jenis_customer'=>2]);
-    DB::table('pembekal_quotation_master')->insert(['supplier_quotation_id'=>1,'supplier_id'=>2,'company_name'=>'Supplier','quotation_no_supplier'=>'SQ-1']);
-    DB::table('pembekal_quotation_item')->insert(['supplier_quotation_id'=>1,'item_description'=>'Original item','quantity'=>1,'unit'=>'unit','unit_price'=>100,'subtotal'=>100]);
-    $payload=['supplier_quotation_id'=>1,'supplier_id'=>2,'voucher_no'=>'SUP-1','voucher_date'=>'2026-10-29','payment_method'=>'Cek','total_amount'=>50,'prepared_by'=>'Admin','prepared_role'=>'Manager','received_by'=>'Supplier','received_role'=>'Receiver','items_json'=>json_encode([['description'=>'Edited item','quantity'=>2,'unit'=>'unit','price'=>25]])];
-    $bad=$payload; $bad['total_amount']=60;
-    $this->post(route('baucar-bayaran.supplier.store'),$bad)->assertSessionHasErrors('total_amount');
-    $this->assertDatabaseCount('payment_voucher_documents',0);
-    $this->post(route('baucar-bayaran.supplier.store'),$payload)->assertSessionHasNoErrors()->assertRedirect(route('baucar-bayaran.supplier'));
-    $this->assertDatabaseHas('payment_voucher_supplier_item',['item_description'=>'Edited item','quantity'=>2,'subtotal'=>50]);
-    $this->assertDatabaseMissing('payment_voucher_supplier_item',['item_description'=>'Original item']);
-    $this->assertDatabaseHas('payment_voucher_documents', ['voucher_no'=>'SUP-1', 'payment_method'=>'Cek', 'cheque_no'=>null]);
+    DB::table('customer_supplier')->insert(['customer_id'=>3,'company_name'=>'Other Supplier','jenis_customer'=>2]);
+    foreach ([1=>2,2=>2,3=>3] as $id=>$supplier) DB::table('supplier_documents')->insert(['id'=>$id,'kind'=>'invoice','supplier_id'=>$supplier,'supplier_name'=>'Supplier','document_no'=>'SINV-'.$id,'document_date'=>'2026-10-29','source'=>'PDF','file_path'=>'test.pdf','file_name'=>'test.pdf','file_mime'=>'application/pdf','extraction_method'=>'manual','items'=>'[]','total_amount'=>100]);
+}
+function supplierPaymentPayload($number, $payments): array {
+    return ['supplier_id'=>2,'voucher_no'=>$number,'voucher_date'=>'2026-11-01','payment_method'=>'Cek','supplier_payment_status'=>'paid',
+        'issuer_name'=>'Issuer','issuer_address'=>'Issuer Address','issuer_phone'=>'12345','issuer_email'=>'issuer@example.test',
+        'supplier_name'=>'Supplier Snapshot','supplier_address'=>'Supplier Address','supplier_phone'=>'67890','supplier_email'=>'supplier@example.test','supplier_person'=>'Person',
+        'prepared_by'=>'Tester','prepared_role'=>'Manager','received_by'=>'Supplier','received_role'=>'Receiver','payments'=>$payments];
+}
+
+test('supplier invoice payment saves voucher references details and PDF together in one form', function () {
+    supplierPaymentSetup();
+    $this->get(route('baucar-bayaran.supplier.create',['invoice_id'=>1]))->assertOk()->assertSee('Invois Yang Dibayar')->assertDontSee('Sebut Harga Dipautkan')->assertViewHas('selectedSupplierId',2);
+    $payload=supplierPaymentPayload('SPV-1',[['invoice_id'=>1,'amount'=>40],['invoice_id'=>2,'amount'=>25]]);
+    $this->post(route('baucar-bayaran.supplier.store'),$payload)->assertSessionHasNoErrors()->assertRedirect(route('baucar-bayaran.show',1));
+    $this->assertDatabaseHas('payment_voucher_documents',['id'=>1,'total_amount'=>65,'supplier_quotation_id'=>null,'supplier_payment_status'=>'paid']);
+    $this->assertDatabaseHas('supplier_invoice_payments',['payment_voucher_id'=>1,'supplier_document_id'=>1,'amount'=>40]);
+    $this->assertDatabaseHas('supplier_invoice_payments',['payment_voucher_id'=>1,'supplier_document_id'=>2,'amount'=>25]);
     $path=DB::table('payment_voucher_documents')->value('file_path');
     expect(Storage::disk('local')->get($path))->toStartWith('%PDF');
-    $this->get(route('baucar-bayaran.show',1))->assertOk()->assertSee('Edited item');
-    $this->get(route('baucar-bayaran.supplier.edit',1))->assertOk()->assertSee('Edit Baucar Kepada Pembekal')->assertSee('name="supplier_quotation_id"', false)->assertViewHas('initialSupplierItems', fn ($items) => $items[0]['description'] === 'Edited item');
-    $this->get(route('baucar-bayaran.supplier.form', ['supplier_quotation_id'=>1]))->assertOk()->assertDontSee('Tukar Pilihan');
-    DB::table('customer_supplier')->insert(['customer_id'=>3,'company_name'=>'New Supplier','jenis_customer'=>2]);
-    DB::table('pembekal_quotation_master')->insert(['supplier_quotation_id'=>2,'supplier_id'=>3,'company_name'=>'New Supplier','quotation_no_supplier'=>'SQ-2']);
-    $payload['supplier_quotation_id']=2; $payload['supplier_id']=3;
-    $payload['items_json']=json_encode([['description'=>'Replacement item','quantity'=>3,'unit'=>'unit','price'=>25]]);
-    $this->put(route('baucar-bayaran.supplier.update',1),$payload)->assertSessionHasErrors('total_amount');
-    expect(Storage::disk('local')->exists($path))->toBeTrue();
-    $payload['total_amount']=75;
+    $this->get(route('baucar-bayaran.show',1))->assertOk()->assertSee('SINV-1')->assertSee('Supplier Address')->assertDontSee('Padankan');
+    $this->get(route('baucar-bayaran.supplier'))->assertOk()->assertSee('SINV-1')->assertSee('Supplier');
+    $this->get(route('baucar-bayaran.supplier.edit',1))->assertOk()->assertViewHas('referencesLocked',true)->assertViewHas('initialPayments',fn($p)=>count($p)===2 && $p[0]['amount']===40.0);
+    $preview=$this->get(route('baucar-bayaran.supplier.preview',1))->assertOk()->viewData('previewHtml');
+    expect($preview)->toContain('SINV-1')->toContain('SINV-2')->toContain('Issuer Address')->toContain('[ ] Tunai / Cash')->toContain('[ ] Pindahan Bank')->toContain('[ ] No Cek: ____________');
+    $this->get(route('baucar-bayaran.supplier.pdf',1))->assertOk()->assertHeader('Content-Type','application/pdf');
+    $this->get(route('monitoring.voucher',1))->assertRedirect(route('baucar-bayaran.supplier.edit',1));
+    $payload['payments']=[['invoice_id'=>1,'amount'=>30],['invoice_id'=>2,'amount'=>80]]; $payload['supplier_payment_status']='unpaid'; $payload['issuer_name']='Updated Issuer';
     $this->put(route('baucar-bayaran.supplier.update',1),$payload)->assertSessionHasNoErrors()->assertRedirect(route('baucar-bayaran.show',1));
-    $this->assertDatabaseCount('payment_voucher_documents',1);
-    $this->assertDatabaseCount('payment_voucher_supplier_item',1);
-    $this->assertDatabaseHas('payment_voucher_documents',['id'=>1,'supplier_id'=>3,'supplier_quotation_id'=>2,'total_amount'=>75]);
-    $this->assertDatabaseHas('payment_voucher_supplier_item',['item_description'=>'Replacement item','subtotal'=>75]);
-    $newPath=DB::table('payment_voucher_documents')->value('file_path');
-    expect($newPath)->not->toBe($path)->and(Storage::disk('local')->exists($path))->toBeFalse();
-    expect(Storage::disk('local')->get($newPath))->toStartWith('%PDF');
-    $this->get(route('baucar-bayaran.show',1))->assertOk()->assertSee(route('baucar-bayaran.supplier.preview',1))->assertDontSee('Muat Turun PDF');
-    $this->get(route('baucar-bayaran.supplier.preview',1))->assertOk()->assertSee('Kembali ke Maklumat Baucar')->assertSee('Muat Turun PDF')->assertSee(route('baucar-bayaran.supplier.pdf',1))->assertSee('srcdoc=', false)->assertDontSee('download=1');
-    $this->get(route('baucar-bayaran.file',['id'=>1,'download'=>1]))->assertOk()->assertDownload('SUP-1.pdf');
-    $preview = $this->get(route('baucar-bayaran.supplier.preview',1))->viewData('previewHtml');
-    expect($preview)->toContain('[ ] Tunai / Cash', '[ ] Pindahan Bank', '[ ] No Cek: ____________', '2px dotted');
-    $pdfResponse = $this->get(route('baucar-bayaran.supplier.pdf',1))->assertOk()->assertHeader('Content-Type','application/pdf');
-    expect($pdfResponse->headers->get('Content-Disposition'))->toStartWith('inline;');
+    $this->assertDatabaseCount('supplier_invoice_payments',2); $this->assertDatabaseCount('payment_voucher_supplier_item',2);
+    $this->assertDatabaseHas('supplier_invoice_payments',['supplier_document_id'=>2,'amount'=>80]);
+    Storage::disk('local')->assertMissing($path);
+    $this->get(route('baucar-bayaran.show',1))->assertSee('Updated Issuer')->assertSee('SINV-2');
+    $this->delete(route('baucar-bayaran.delete',1))->assertRedirect(route('baucar-bayaran.supplier'));
+    $this->assertDatabaseCount('supplier_invoice_payments',0);
+});
 
-    $this->get(route('baucar-bayaran.supplier.edit',1))->assertOk()->assertViewHas('quotation', fn ($q) => $q->supplier_id === 3);
+test('supplier invoice payment rejects missing foreign duplicate and excessive amounts without changing existing records', function () {
+    supplierPaymentSetup();
+    $payload=supplierPaymentPayload('SPV-1',[['invoice_id'=>1,'amount'=>60]]);
+    $this->post(route('baucar-bayaran.supplier.store'),$payload)->assertSessionHasNoErrors();
+    $path=DB::table('payment_voucher_documents')->value('file_path');
+    foreach ([[],[['invoice_id'=>2,'amount'=>1]],[['invoice_id'=>3,'amount'=>1]],[['invoice_id'=>1,'amount'=>1],['invoice_id'=>1,'amount'=>2]],[['invoice_id'=>1,'amount'=>101]]] as $payments) {
+        $bad=$payload; $bad['payments']=$payments;
+        $this->put(route('baucar-bayaran.supplier.update',1),$bad)->assertSessionHasErrors();
+        $this->assertDatabaseHas('supplier_invoice_payments',['supplier_document_id'=>1,'amount'=>60]);
+        Storage::disk('local')->assertExists($path);
+    }
+    $bad=$payload; $bad['supplier_id']=3; $bad['payments']=[['invoice_id'=>3,'amount'=>20]];
+    $this->put(route('baucar-bayaran.supplier.update',1),$bad)->assertSessionHasErrors('supplier_id');
+    $payload['supplier_name']='Forged supplier name';
+    $this->put(route('baucar-bayaran.supplier.update',1),$payload)->assertSessionHasNoErrors();
+    $this->assertDatabaseHas('payment_voucher_documents',['id'=>1,'payee_name'=>'Supplier','supplier_id'=>2]);
+    $next=supplierPaymentPayload('SPV-2',[['invoice_id'=>1,'amount'=>41]]);
+    $this->post(route('baucar-bayaran.supplier.store'),$next)->assertSessionHasErrors('payments.0.amount');
+    $next['payments'][0]['amount']=40;
+    $this->post(route('baucar-bayaran.supplier.store'),$next)->assertSessionHasNoErrors();
+    expect(DB::table('supplier_invoice_payments')->where('supplier_document_id',1)->sum('amount'))->toEqual(100);
+    $this->get(route('baucar-bayaran.supplier.create',['invoice_id'=>999]))->assertNotFound();
     DB::table('payment_voucher_documents')->where('id',1)->update(['voucher_type'=>'customer']);
-    $this->get(route('baucar-bayaran.supplier.edit',1))->assertNotFound();
-    $this->get(route('baucar-bayaran.supplier.preview',1))->assertNotFound();
     $this->put(route('baucar-bayaran.supplier.update',1),$payload)->assertNotFound();
-
+    auth()->logout();
+    $this->post(route('baucar-bayaran.supplier.store'),$payload)->assertRedirect(route('login'));
 });

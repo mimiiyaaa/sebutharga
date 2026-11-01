@@ -7,7 +7,7 @@
         <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white pt-4 dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div class="mb-4 px-6">
                 <div class="flex w-full flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-1.5 dark:border-gray-700 dark:bg-gray-900/50">
-                    <input x-model="filters.search" type="search" placeholder="{{ __('Cari no. baucar, sebut harga atau pembekal') }}" aria-label="{{ __('Cari no. baucar, sebut harga atau pembekal') }}" class="h-11 min-w-40 flex-1 rounded-lg border-0 bg-white px-3 text-theme-sm text-gray-700 shadow-theme-xs focus:ring-2 focus:ring-brand-500/20 dark:bg-gray-800 dark:text-gray-300">
+                    <input x-model="filters.search" type="search" placeholder="{{ __('Cari no. baucar, invois atau pembekal') }}" aria-label="{{ __('Cari no. baucar, invois atau pembekal') }}" class="h-11 min-w-40 flex-1 rounded-lg border-0 bg-white px-3 text-theme-sm text-gray-700 shadow-theme-xs focus:ring-2 focus:ring-brand-500/20 dark:bg-gray-800 dark:text-gray-300">
                     <input x-model="filters.date" type="date" aria-label="{{ __('Tarikh Baucar') }}" class="h-11 w-44 shrink-0 rounded-lg border-0 bg-white px-3 text-theme-sm text-gray-700 shadow-theme-xs focus:ring-2 focus:ring-brand-500/20 dark:bg-gray-800 dark:text-gray-300">
                     <button type="button" @click="resetFilters()" class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">{{ __('See all') }}</button>
                     <a href="{{ route('baucar-bayaran.supplier.create') }}" class="inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-4 text-theme-sm font-medium text-white transition hover:bg-brand-600">+ {{ __('Tambah Baucar') }}</a>
@@ -18,7 +18,7 @@
                 <table class="w-full min-w-[980px] text-theme-sm font-medium leading-6 text-gray-700 dark:text-gray-300">
                     <thead class="border-y border-gray-100 bg-gray-50 dark:border-white/[0.05] dark:bg-gray-900">
                         <tr>
-                            @foreach (['No. Baucar', 'No. Sebut Harga Pembekal', 'Pembekal', 'Tarikh', 'Cara Bayaran', 'No. Cek'] as $heading)
+                            @foreach (['No. Baucar', 'No. Invois Pembekal', 'Pembekal', 'Tarikh', 'Cara Bayaran', 'No. Cek'] as $heading)
                                 <th class="px-6 py-3 text-start text-theme-sm font-semibold text-gray-500 dark:text-gray-400">{{ __($heading) }}</th>
                             @endforeach
                             <th class="px-6 py-3 text-end text-theme-sm font-semibold text-gray-500 dark:text-gray-400">{{ __('Jumlah (RM)') }}</th>
@@ -27,9 +27,9 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                         @forelse ($vouchers as $voucher)
-                            <tr x-show="matches({ number: @js(strtolower($voucher->voucher_no)), quotation: @js(strtolower($voucher->quotation_no_supplier ?? '')), supplier: @js(strtolower($voucher->supplier_name ?? '')), date: @js($voucher->voucher_date) })" class="border-b border-gray-100 hover:bg-gray-50 dark:border-white/[0.05] dark:hover:bg-white/[0.03]">
-                                <td class="px-4 py-3.5 text-gray-700 sm:px-6 dark:text-gray-400"><a href="{{ route('baucar-bayaran.show', $voucher->id) }}" class="font-semibold text-gray-800 hover:underline dark:text-white/90">{{ $voucher->voucher_no }}</a><span class="mt-1 block text-theme-xs text-gray-500 dark:text-gray-400">{{ \Carbon\Carbon::parse($voucher->voucher_date)->format('d/m/Y') }}</span></td>
-                                <td class="px-4 py-3.5 sm:px-6"><span class="font-medium text-gray-700 dark:text-gray-300">{{ $voucher->quotation_no_supplier ?: '—' }}</span><span class="mt-1 block text-theme-xs text-gray-500 dark:text-gray-400">{{ $voucher->quotation_title ?: '—' }}</span></td>
+                            <tr x-show="matches({ number: @js(strtolower($voucher->voucher_no)), quotation: @js(strtolower($voucher->invoice_numbers ?? '')), supplier: @js(strtolower($voucher->supplier_name ?? '')), date: @js($voucher->voucher_date) })" class="border-b border-gray-100 hover:bg-gray-50 dark:border-white/[0.05] dark:hover:bg-white/[0.03]">
+                                <td class="px-4 py-3.5 text-gray-700 sm:px-6 dark:text-gray-400"><span class="font-semibold text-gray-800 dark:text-white/90">{{ $voucher->voucher_no }}</span><span class="mt-1 block text-theme-xs text-gray-500 dark:text-gray-400">{{ \Carbon\Carbon::parse($voucher->voucher_date)->format('d/m/Y') }}</span></td>
+                                <td class="px-4 py-3.5 sm:px-6"><span class="font-medium text-gray-700 dark:text-gray-300">{{ $voucher->invoice_numbers ?: __('Belum pilih invois') }}</span></td>
                                 <td class="px-4 py-3.5 text-gray-800 sm:px-6 dark:text-white/90">{{ $voucher->supplier_name ?: '—' }}</td>
                                 <td class="px-4 py-3.5 text-gray-700 sm:px-6 dark:text-gray-400">{{ \Carbon\Carbon::parse($voucher->voucher_date)->format('d/m/Y') }}</td>
                                 <td class="px-4 py-3.5 text-gray-700 sm:px-6 dark:text-gray-400">{{ $voucher->payment_method ?: '—' }}</td>

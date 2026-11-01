@@ -15,13 +15,20 @@ beforeEach(function () {
         $t->increments('invoice_id'); $t->integer('customer_id'); $t->string('invoice_no'); $t->string('document_kind');
         $t->date('invoice_date'); $t->date('due_date')->nullable(); $t->decimal('total_amount',12,2); $t->text('document_data')->nullable();
     });
-    Schema::create('payment_voucher_documents', function (Blueprint $t) { $t->increments('id'); $t->string('voucher_no'); $t->date('voucher_date'); });
+    Schema::create('payment_voucher_documents', function (Blueprint $t) { $t->increments('id'); $t->string('voucher_no'); $t->date('voucher_date'); $t->string('voucher_type')->default('customer'); $t->integer('supplier_id')->nullable(); $t->string('payee_name')->default('Supplier'); $t->decimal('total_amount',12,2)->default(0); });
     Schema::create('payment_voucher_invoice', function (Blueprint $t) { $t->increments('id'); $t->integer('invoice_id'); $t->integer('payment_voucher_id'); $t->decimal('amount',12,2)->nullable(); });
     Schema::create('lo_inden_master', function (Blueprint $t) { $t->increments('lo_inden_id'); $t->string('lo_inden_no'); $t->integer('customer_id'); $t->integer('quotation_id')->nullable(); $t->integer('quotation_detail_id')->nullable(); $t->date('lo_inden_date'); });
-    Schema::create('purchase_order_master', function (Blueprint $t) { $t->increments('purchase_order_id'); $t->string('po_no'); $t->date('po_date'); });
+    Schema::create('purchase_order_master', function (Blueprint $t) { $t->increments('purchase_order_id'); $t->string('po_no'); $t->date('po_date'); $t->integer('lo_inden_id')->nullable(); });
     Schema::create('sebutharga_master', function (Blueprint $t) { $t->increments('quotation_id'); $t->integer('quotation_detail_id')->nullable(); $t->string('quotation_no'); });
     Schema::create('sebutharga_detail', function (Blueprint $t) { $t->increments('quotation_detail_id'); $t->integer('quotation_id'); $t->date('quotation_date'); $t->string('quotation_title')->nullable(); $t->string('status_draft'); $t->timestamp('sent_at')->nullable(); $t->integer('status_quotation')->nullable(); });
-    Schema::create('delivery_order_master', function (Blueprint $t) { $t->increments('delivery_order_id'); $t->integer('customer_id'); $t->string('document_kind'); $t->date('do_date'); $t->text('document_data')->nullable(); });
+    Schema::create('delivery_order_master', function (Blueprint $t) { $t->increments('delivery_order_id'); $t->string('do_no')->default('DO-1'); $t->integer('customer_id'); $t->string('document_kind'); $t->date('do_date'); $t->text('document_data')->nullable(); });
+    Schema::create('supplier_documents', function (Blueprint $t) {
+        $t->id(); $t->string('kind'); $t->integer('supplier_id'); $t->string('supplier_name');
+        $t->string('document_no'); $t->date('document_date'); $t->decimal('total_amount',12,2)->nullable();
+    });
+    (require database_path('migrations/2026_11_01_100000_create_supplier_invoice_payments.php'))->up();
+    (require database_path('migrations/2026_11_01_110000_add_supplier_payment_status.php'))->up();
+    Schema::table('payment_voucher_documents', fn (Blueprint $t) => $t->timestamp('updated_at')->nullable());
     $user = new User(); $user->id = 42; $user->name = 'Tester'; $this->actingAs($user);
 });
 
@@ -47,7 +54,7 @@ test('payment notifications show outstanding customer invoices and pending revie
 });
 
 test('monitoring has its own authenticated page with real data and leaves dashboard', function () {
-    $this->get(route('monitoring'))->assertOk()->assertSee('Pemantauan Bayaran dan Reminder')->assertDontSee('Data contoh')->assertSee('Tiada peringatan bayaran buat masa ini.');
+    $this->get(route('monitoring'))->assertOk()->assertSee('Pemantauan Bayaran dan Reminder')->assertDontSee('Data contoh')->assertSee('Tiada invois untuk pilihan ini.');
     $this->get(route('dashboard'))->assertOk()->assertDontSee('Pemantauan Bayaran dan Reminder');
     auth()->logout();
     $this->get(route('monitoring'))->assertRedirect(route('login'));
@@ -67,7 +74,7 @@ test('monitoring uses due dates verified payments and customer snapshots', funct
     dashboardReceipt(4, 6, '2026-11-01', 100);
     $response = $this->get(route('monitoring'))->assertOk()->assertSee('Snapshot Customer')->assertSee('27/10/2026 14:35');
     $data = $response->viewData('monitoring');
-    expect($data['summary'])->toBe(['unpaid' => 2, 'unpaid_total' => 200, 'overdue' => 1, 'overdue_total' => 100, 'upcoming' => 1, 'upcoming_total' => 100, 'review' => 1, 'review_total' => 100, 'paid' => 1, 'paid_total' => 100])
+    expect($data['summary'])->toBe(['unpaid' => 2, 'unpaid_total' => 200, 'overdue' => 1, 'overdue_total' => 75, 'upcoming' => 1, 'upcoming_total' => 100, 'review' => 1, 'review_total' => 100, 'paid' => 1, 'paid_total' => 100])
         ->and($data['records']->firstWhere('invoice_id', 1)['balance'])->toEqual(75)
         ->and($data['records']->pluck('invoice_id')->all())->not->toContain(4, 7, 8);
     $this->get(route('monitoring', ['priority' => 'Sudah Lewat']))->assertOk()
@@ -145,4 +152,68 @@ test('dashboard document cards navigate to sidebar pages without an inline recor
         $response->assertSee('href="'.route($destination).'"', false);
         $this->get(route('dashboard', ['panel' => $panel]))->assertRedirect(route($destination));
     }
+});
+
+
+test('monitoring separates partial payments from due priority and includes settled invoices', function () {
+    dashboardInvoice(1, '2020-01-01', 1000);
+    dashboardInvoice(2, '2020-01-01', 100);
+    dashboardReceipt(1, 1, '2020-01-02', 250);
+    dashboardReceipt(2, 2, '2020-01-02', 100);
+    $response = $this->get(route('monitoring'))->assertOk()->assertSee('Bayaran Sebahagian')->assertSee('INV-2');
+    expect($response->viewData('customerTotals'))->toEqual(['total'=>1100, 'paid'=>350, 'balance'=>750]);
+    $this->get(route('monitoring', ['priority'=>'Belum Dibayar']))->assertViewHas('customerRecords', fn ($r) => $r->isEmpty());
+    $this->get(route('monitoring', ['priority'=>'Bayaran Sebahagian']))->assertViewHas('customerRecords', fn ($r) => $r->count() === 1);
+    $this->get(route('monitoring', ['from'=>'invalid']))->assertSessionHasErrors('from');
+});
+
+test('LO monitoring uses explicit links and shows missing documents without guessing by customer', function () {
+    DB::table('customer_supplier')->insert(['customer_id'=>1,'company_name'=>'Customer']);
+    foreach ([1,2] as $id) DB::table('lo_inden_master')->insert(['lo_inden_id'=>$id,'lo_inden_no'=>'LO-'.$id,'customer_id'=>1,'lo_inden_date'=>'2020-01-01']);
+    DB::table('purchase_order_master')->insert(['purchase_order_id'=>1,'po_no'=>'PO-1','po_date'=>'2020-01-01']);
+    dashboardInvoice(1, '2020-01-01', 100, 'customer', json_encode(['lo_inden_id'=>1,'lo_reference'=>'LO-2']));
+    DB::table('delivery_order_master')->insert(['customer_id'=>1,'document_kind'=>'customer','do_date'=>'2020-01-01','document_data'=>json_encode(['lo_reference'=>'LO-1'])]);
+    $this->get(route('monitoring.lo',1))->assertOk()->assertSee('PO-1');
+    $this->put(route('monitoring.lo.save',1), ['orders'=>[1]])->assertRedirect(route('monitoring',['tab'=>'lo']));
+    $response=$this->get(route('monitoring',['tab'=>'lo']))->assertOk()->assertSee('PO-1');
+    expect($response->viewData('loRecords')->firstWhere('lo_inden_id',1)->complete)->toBeTrue()
+        ->and($response->viewData('loRecords')->firstWhere('lo_inden_id',2)->invoices)->toBeEmpty();
+    $this->put(route('monitoring.lo.save',2), ['orders'=>[1]])->assertSessionHasErrors('orders');
+    $this->put(route('monitoring.lo.save',1), [])->assertRedirect();
+    expect(DB::table('purchase_order_master')->value('lo_inden_id'))->toBeNull();
+});
+
+test('supplier voucher status controls invoice monitoring and can be reversed', function () {
+    DB::table('supplier_documents')->insert(['id'=>1,'kind'=>'invoice','supplier_id'=>10,'supplier_name'=>'Supplier','document_no'=>'SUP-STATUS','document_date'=>'2020-01-01','total_amount'=>100]);
+    DB::table('payment_voucher_documents')->insert(['id'=>1,'voucher_no'=>'PV-STATUS','voucher_date'=>'2020-01-02','voucher_type'=>'supplier','supplier_id'=>10,'total_amount'=>100]);
+    DB::table('supplier_invoice_payments')->insert(['payment_voucher_id'=>1,'supplier_document_id'=>1,'amount'=>100]);
+    $this->get(route('monitoring',['tab'=>'supplier']))->assertOk()->assertViewHas('supplierRecords',fn ($r) => $r->first()['balance']===100 && $r->first()['status']==='Belum Dibayar');
+    $this->put(route('monitoring.voucher.status',1),['supplier_payment_status'=>'paid'])->assertRedirect(route('baucar-bayaran.show',1));
+    $this->assertDatabaseHas('payment_voucher_documents',['id'=>1,'supplier_payment_status'=>'paid','supplier_status_changed_by'=>42]);
+    $this->get(route('monitoring',['tab'=>'supplier']))->assertViewHas('supplierRecords',fn ($r) => $r->first()['balance']===0 && $r->first()['status']==='Selesai Dibayar');
+    $this->put(route('monitoring.voucher.status',1),['supplier_payment_status'=>'unpaid'])->assertRedirect();
+    $this->get(route('monitoring',['tab'=>'supplier']))->assertViewHas('supplierRecords',fn ($r) => $r->first()['paid']===0 && $r->first()['balance']===100);
+    $this->put(route('monitoring.voucher.status',1),['supplier_payment_status'=>'invalid'])->assertSessionHasErrors('supplier_payment_status');
+    DB::table('payment_voucher_documents')->where('id',1)->update(['voucher_type'=>'customer']);
+    $this->put(route('monitoring.voucher.status',1),['supplier_payment_status'=>'paid'])->assertNotFound();
+    auth()->logout();
+    $this->put(route('monitoring.voucher.status',1),['supplier_payment_status'=>'paid'])->assertRedirect(route('login'));
+});
+
+
+test('supplier monitoring shows voucher existence independently of actual payments', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-11-01'));
+    foreach ([1, 2] as $id) DB::table('supplier_documents')->insert(['id'=>$id,'kind'=>'invoice','supplier_id'=>10,'supplier_name'=>'Supplier','document_no'=>'SUP-'.$id,'document_date'=>'2026-10-01','total_amount'=>100]);
+    foreach ([1 => ['paid', '2026-10-02'], 2 => ['unpaid', '2026-10-03'], 3 => ['paid', '2026-12-01']] as $id => [$status, $date]) {
+        DB::table('payment_voucher_documents')->insert(['id'=>$id,'voucher_no'=>'PV-RECORD-'.$id,'voucher_date'=>$date,'voucher_type'=>'supplier','supplier_id'=>10,'total_amount'=>20,'supplier_payment_status'=>$status]);
+        DB::table('supplier_invoice_payments')->insert(['payment_voucher_id'=>$id,'supplier_document_id'=>1,'amount'=>20]);
+    }
+    $response = $this->get(route('monitoring',['tab'=>'supplier']))->assertOk()->assertSee('Sudah Ada Baucar')->assertSee('Belum Ada Baucar')->assertSee('PV-RECORD-3');
+    $rows = $response->viewData('supplierRecords');
+    expect($rows->firstWhere('id', 1)['linked_vouchers'])->toHaveCount(3)
+        ->and($rows->firstWhere('id', 1)['paid'])->toEqual(20)
+        ->and($rows->firstWhere('id', 1)['balance'])->toEqual(80)
+        ->and($rows->firstWhere('id', 2)['linked_vouchers'])->toBeEmpty();
+    $this->get(route('monitoring',['tab'=>'customer']))->assertOk()->assertDontSee('Sudah Ada Baucar');
+    $this->travelBack();
 });

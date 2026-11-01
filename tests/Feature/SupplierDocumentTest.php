@@ -164,3 +164,25 @@ test('supplier document can be saved without a review checkbox', function () {
     $this->post(route('invoice.supplier.store'), $data + ['document_file' => supplierTestPdf()])->assertSessionHasNoErrors();
     $this->assertDatabaseCount('supplier_documents', 1);
 });
+
+
+test('supplier invoice payments prevent reducing totals changing supplier or deleting a matched invoice', function () {
+    (require database_path('migrations/2026_10_18_120000_create_payment_voucher_documents_table.php'))->up();
+    (require database_path('migrations/2026_11_01_100000_create_supplier_invoice_payments.php'))->up();
+    $this->post(route('invoice.supplier.store'),$this->supplierData+['document_file'=>supplierTestPdf()])->assertSessionHasNoErrors();
+    $document=DB::table('supplier_documents')->first();
+    DB::table('payment_voucher_documents')->insert(['id'=>1,'voucher_no'=>'PV-1','voucher_date'=>'2026-10-29','payee_name'=>'Supplier','total_amount'=>100,'file_path'=>'pv.pdf','file_name'=>'pv.pdf','file_mime'=>'application/pdf']);
+    DB::table('supplier_invoice_payments')->insert(['payment_voucher_id'=>1,'supplier_document_id'=>$document->id,'amount'=>100]);
+    $data=$this->supplierData; $data['total_amount']=50;
+    $this->put(route('invoice.supplier.update',$document->id),$data)->assertSessionHasErrors('total_amount');
+    DB::table('customer_supplier')->insert(['customer_id'=>3,'jenis_customer'=>2,'company_name'=>'Other supplier']);
+    $data=$this->supplierData; $data['supplier_id']=3;
+    $this->put(route('invoice.supplier.update',$document->id),$data)->assertSessionHasErrors('total_amount');
+    $this->delete(route('invoice.supplier.delete',$document->id))->assertSessionHas('error');
+    $this->assertDatabaseHas('supplier_documents',['id'=>$document->id,'supplier_id'=>1,'total_amount'=>106]);
+    Storage::disk('local')->assertExists($document->file_path);
+    DB::table('payment_voucher_documents')->where('id',1)->delete();
+    $this->assertDatabaseCount('supplier_invoice_payments',0);
+    $this->delete(route('invoice.supplier.delete',$document->id))->assertRedirect(route('invoice.supplier'));
+    Storage::disk('local')->assertMissing($document->file_path);
+});
