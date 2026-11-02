@@ -59,9 +59,9 @@
     <div class="pt-8 pb-7 flex items-center justify-center gap-2">
         <a href="/">
             <div class="hidden [.sidebar-expanded_&]:block">
-                <x-common.brand-logo class="h-24 w-24" />
+                <x-common.brand-logo :transparent="true" class="h-24 w-24" />
             </div>
-            <x-common.brand-logo class="block h-9 w-9 [.sidebar-expanded_&]:hidden" />
+            <x-common.brand-logo :transparent="true" class="block h-9 w-9 [.sidebar-expanded_&]:hidden" />
         </a>
     </div>
 
