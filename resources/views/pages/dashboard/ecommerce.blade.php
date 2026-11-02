@@ -11,8 +11,7 @@
         <span class="rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-theme-xs font-medium text-brand-700 dark:border-brand-800 dark:bg-brand-500/10 dark:text-brand-300">{{ __('Dikemas kini') }}: {{ now('Asia/Kuala_Lumpur')->format('d/m/Y H:i') }}</span>
     </div>
     <section class="relative isolate overflow-hidden rounded-3xl border border-brand-100 bg-white shadow-theme-xs dark:border-gray-800 dark:bg-gray-900">
-        <div class="pointer-events-none absolute inset-y-0 end-0 w-1/2 bg-gradient-to-t from-brand-50 to-white dark:from-brand-500/10 dark:to-gray-900" aria-hidden="true"></div>
-        <div class="relative grid items-center gap-4 px-6 py-7 sm:grid-cols-[minmax(0,1fr)_240px] sm:px-8 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div class="relative px-6 py-7 sm:px-8">
             <div>
                 <p class="text-theme-xs font-semibold uppercase tracking-widest text-brand-600 dark:text-brand-400">K1 Resources</p>
                 <h2 class="mt-3 text-3xl font-semibold leading-tight tracking-tight text-gray-900 dark:text-white/90 lg:text-4xl">{{ __('Selamat datang kembali') }}!</h2>
@@ -22,7 +21,6 @@
                     <span class="rounded-lg bg-brand-50 px-3 py-2 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">{{ __('Baki setakat') }} {{ $end->format('d/m/Y') }}</span>
                 </div>
             </div>
-            <img src="{{ asset('images/dashboard-mascot.png') }}" alt="{{ __('Maskot dashboard') }}" class="hidden h-36 w-full max-w-[160px] justify-self-end object-contain drop-shadow-sm sm:block lg:h-44">
         </div>
     </section>
 
