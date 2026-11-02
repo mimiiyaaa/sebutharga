@@ -14,7 +14,7 @@
                 <div aria-hidden="true" class="pointer-events-none absolute -end-8 -bottom-16 h-64 w-64 rounded-full border border-white/10"></div>
                 <div class="relative flex items-center gap-4">
                     <span class="inline-flex h-24 w-24 shrink-0 overflow-hidden rounded-full sm:h-28 sm:w-28"><x-common.brand-logo class="h-full w-full" /></span>
-                    <div><p class="text-base font-semibold tracking-wide">K1Resources</p><p class="mt-1 text-xs text-white/60">{{ __('Sistem Pengurusan Sebut Harga & Invoice') }}</p></div>
+                    <div><p class="text-base font-semibold tracking-wide">K ONE Resources</p><p class="mt-1 text-xs text-white/60">{{ __('Sistem Sebut Harga & Invoice') }}</p></div>
                 </div>
                 <div class="relative my-8 lg:my-16">
                     <span class="mb-5 block h-1 w-10 rounded-full bg-white/50"></span>
