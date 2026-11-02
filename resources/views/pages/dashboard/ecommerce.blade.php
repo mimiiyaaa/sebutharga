@@ -44,9 +44,10 @@
             ['border-success-200 bg-success-50 dark:border-success-900 dark:bg-success-500/10', 'bg-success-600 text-white', 'text-success-700 dark:text-success-400', 'M3 7h18v14H3V7Zm2-4h14v4H5V3Zm4 9h6m-6 4h6'],
             ['border-warning-200 bg-warning-50 dark:border-warning-900 dark:bg-warning-500/10', 'bg-warning-500 text-white', 'text-warning-700 dark:text-warning-400', 'M4 4h16v16H4V4Zm4 4h8m-8 4h8m-8 4h5'],
             ['border-brand-200 bg-brand-50 dark:border-brand-900 dark:bg-brand-500/10', 'bg-brand-500 text-white', 'text-brand-700 dark:text-brand-300', 'M4 5h16v14H4V5Zm4-3h8v3H8V2Zm0 7h8m-8 4h8'],
+            ['border-success-200 bg-success-50 dark:border-success-900 dark:bg-success-500/10', 'bg-success-600 text-white', 'text-success-700 dark:text-success-400', 'M4 4h16v16H4V4Zm4 4h8m-8 4h8m-8 4h5'],
         ];
     @endphp
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
         @foreach ($documentStats as $stat)
             @php
                 [$surface, $icon, $ink, $path] = $documentMetricThemes[$loop->index];
@@ -59,7 +60,7 @@
     </div>
     <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-6 py-5 dark:border-gray-800"><h2 class="border-s-4 border-brand-500 ps-3 text-base font-semibold text-gray-900 dark:border-brand-400 dark:text-white/90">{{ __('Status Outstanding Bayaran Invois Terkini') }}</h2><span class="text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Berdasarkan invois kepada pelanggan') }}</span></div>
-        <div class="grid gap-5 p-6 md:grid-cols-2 xl:grid-cols-4">
+        <div class="grid gap-5 p-6 md:grid-cols-3">
             @foreach ($financial as [$label, $amount, $hint])
                 <div class="rounded-xl bg-gray-50 p-5 dark:bg-gray-800/50"><p class="text-sm text-gray-600 dark:text-gray-400">{{ __($label) }}</p><p @class(['mt-2 text-2xl font-semibold tabular-nums', 'text-gray-900 dark:text-white/90' => $loop->first, 'text-success-600 dark:text-success-400' => $loop->iteration === 2, 'text-warning-600 dark:text-warning-400' => $loop->last])><span class="text-sm font-medium">RM</span> {{ number_format($amount, 2) }}</p><p class="mt-2 text-theme-xs text-gray-500 dark:text-gray-400">{{ __($hint) }}</p></div>
             @endforeach
@@ -68,8 +69,19 @@
     @if($pendingCount)
         <div class="order-last rounded-xl border border-warning-200 bg-warning-50 p-4 text-sm text-warning-700 dark:border-warning-800 dark:bg-warning-500/10 dark:text-warning-400">{{ $pendingCount }} {{ __('baucar perlu semakan. Amaun yang belum disahkan tidak ditolak daripada baki invois.') }} <a class="underline" href="{{ route('baucar-bayaran.index') }}">{{ __('Semak') }}</a></div>
     @endif
+    <div class="grid gap-6 xl:grid-cols-2">
+        @foreach ([['Ringkasan Jualan LO', 'Jumlah Jualan', 'Bilangan LO', $loSummary, 'lo'], ['Ringkasan Belian PO', 'Jumlah Belian', 'Bilangan PO', $poSummary, 'po']] as [$title, $amountLabel, $countLabel, $summary, $type])
+            <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-6 py-5 dark:border-gray-800"><h2 class="border-s-4 border-brand-500 ps-3 text-base font-semibold text-gray-900 dark:border-brand-400 dark:text-white/90">{{ __($title) }}</h2><span class="text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Mengikut tempoh dipilih') }}</span></div>
+                <div class="grid gap-4 p-6 sm:grid-cols-2">
+                    <div class="rounded-xl bg-gray-50 p-5 dark:bg-gray-800/50"><p class="text-sm text-gray-600 dark:text-gray-400">{{ __($amountLabel) }}</p><p class="mt-2 text-2xl font-semibold tabular-nums text-brand-600 dark:text-brand-400"><span class="text-sm font-medium">RM</span> {{ number_format((float) $summary->amount, 2) }}</p><p class="mt-2 text-theme-xs text-gray-500 dark:text-gray-400">{{ $type === 'lo' ? __('Jumlah nilai semua LO') : __('Jumlah nilai bersih semua PO') }}</p></div>
+                    <div class="rounded-xl bg-gray-50 p-5 dark:bg-gray-800/50"><p class="text-sm text-gray-600 dark:text-gray-400">{{ __($countLabel) }}</p><p class="mt-2 text-2xl font-semibold tabular-nums text-gray-900 dark:text-white/90">{{ number_format((int) $summary->count) }}</p><p class="mt-2 text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Bilangan dokumen dalam tempoh') }}</p></div>
+                </div>
+            </section>
+        @endforeach
+    </div>
     <div class="order-7 grid gap-6 xl:grid-cols-2">
-        @foreach ([['Top 5 Pelanggan', 'Pelanggan', 'Bil. Invois', 'Jumlah Jualan', $topCustomers], ['Top 5 Pembekal', 'Pembekal', 'Bil. Baucar', 'Jumlah Pembelian', $topSuppliers]] as [$title, $partyLabel, $countLabel, $amountLabel, $records])
+        @foreach ([['Top 5 Pelanggan', 'Pelanggan', 'Bil. Invois', 'Jumlah Jualan', $topCustomers], ['Top 5 Pembekal', 'Pembekal', 'Bil. PO', 'Jumlah Belian', $topSuppliers]] as [$title, $partyLabel, $countLabel, $amountLabel, $records])
             <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
                 <div class="border-b border-gray-100 px-6 py-5 dark:border-gray-800"><h2 class="text-base font-semibold text-gray-900 dark:text-white/90">{{ __($title) }}</h2><p class="mt-1 text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Mengikut jumlah tertinggi dalam tempoh dipilih') }}</p></div>
                 <div class="overflow-x-auto"><table class="w-full text-start text-sm"><thead class="bg-gray-50 text-theme-xs text-gray-500 dark:bg-gray-800/50 dark:text-gray-400"><tr><th class="px-5 py-3 text-start font-medium">#</th><th class="px-5 py-3 text-start font-medium">{{ __($partyLabel) }}</th><th class="px-5 py-3 text-end font-medium">{{ __($countLabel) }}</th><th class="px-5 py-3 text-end font-medium">{{ __($amountLabel) }}</th></tr></thead><tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -107,13 +119,6 @@
         </div>
     </section>
 
-    <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-6 py-5 dark:border-gray-800"><h2 class="border-s-4 border-blue-light-500 ps-3 text-base font-semibold text-gray-900 dark:border-blue-light-400 dark:text-white/90">{{ __('Ringkasan Belian Pembekal') }}</h2><span class="text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Berdasarkan baucar bayaran pembekal') }}</span></div>
-        <div class="p-6">
-            <div class="rounded-xl bg-blue-light-50 p-5 dark:bg-blue-light-500/10"><p class="text-sm text-blue-light-700 dark:text-blue-light-300">{{ __('Jumlah Belian') }}</p><p class="mt-2 text-2xl font-semibold tabular-nums text-blue-light-700 dark:text-blue-light-300"><span class="text-sm font-medium">RM</span> {{ number_format($supplierPurchases, 2) }}</p></div>
-        </div>
-    </section>
-    </div>
 
     <div class="order-last grid items-stretch gap-6 xl:grid-cols-3">
         <section class="min-w-0 rounded-2xl border border-gray-200 bg-white p-6 xl:col-span-2 dark:border-gray-800 dark:bg-gray-900">

@@ -11,14 +11,57 @@ use Illuminate\Validation\ValidationException;
 
 class InvoiceController extends Controller
 {
+    public function selectSource()
+    {
+        $localOrders = \App\Services\CustomerDocumentLo::options();
+        $deliveryOrders = DB::table('delivery_order_master as delivery')
+            ->leftJoin('customer_supplier as customer', 'customer.customer_id', '=', 'delivery.customer_id')
+            ->where('delivery.document_kind', 'customer')
+            ->orderByDesc('delivery.do_date')->orderByDesc('delivery.delivery_order_id')
+            ->get(['delivery.delivery_order_id', 'delivery.do_no', 'delivery.customer_id', 'delivery.do_date', 'customer.company_name', 'customer.customer_name']);
+        $purchaseOrders = DB::table('purchase_order_master as po')
+            ->leftJoin('customer_supplier as supplier', 'supplier.customer_id', '=', 'po.customer_id')
+            ->orderByDesc('po.po_date')->orderByDesc('po.purchase_order_id')
+            ->get(['po.purchase_order_id', 'po.po_no', 'po.customer_id as supplier_id', 'po.po_date', 'po.net_amount', 'supplier.company_name']);
+
+        return view('pages.invoice.select-source', compact('localOrders', 'deliveryOrders', 'purchaseOrders'));
+    }
+
     public function create(Request $request)
     {
         $prefix = 'K1R-IV-'.now()->year.'-';
         $last = DB::table('invoice_master')->where('invoice_no', 'like', $prefix.'%')->pluck('invoice_no')
             ->map(fn ($number) => (int) substr($number, strlen($prefix)))->max() ?? 0;
 
+        $sourceDefaults = [];
+        $sourceType = $request->query('source_type');
+        $sourceId = $request->integer('source_id');
+        if ($sourceType === 'lo' && $sourceId) {
+            $request->merge(['lo_inden_id' => $sourceId]);
+            $sourceDefaults = \App\Services\CustomerDocumentLo::defaults($request);
+        } elseif ($sourceType === 'do' && $sourceId) {
+            $delivery = DB::table('delivery_order_master as delivery')
+                ->leftJoin('customer_supplier as customer', 'customer.customer_id', '=', 'delivery.customer_id')
+                ->where('delivery.document_kind', 'customer')->where('delivery.delivery_order_id', $sourceId)
+                ->first(['delivery.*', 'customer.company_name', 'customer.customer_name', 'customer.address']);
+            abort_unless($delivery, 404);
+            $document = json_decode($delivery->document_data ?? '{}', true) ?: [];
+            $prices = DB::table('purchase_order_item')->where('purchase_order_id', $delivery->purchase_order_id)->get()->keyBy('item_description');
+            $sourceDefaults = [
+                'values' => ['source_reference' => $delivery->do_no, 'customer_id' => $delivery->customer_id, 'customer_name' => $delivery->company_name ?: $delivery->customer_name, 'customer_address' => $document['delivery_address'] ?? $delivery->address ?? ''],
+                'initialItems' => DB::table('delivery_order_item')->where('delivery_order_id', $delivery->delivery_order_id)->orderBy('do_item_id')->get()->map(fn ($item) => ['description' => $item->item_description, 'quantity' => $item->quantity, 'unit' => $item->unit, 'price' => (float) ($prices->get($item->item_description)?->unit_price ?? 0)])->all(),
+            ];
+        } elseif ($sourceType === 'po' && $sourceId) {
+            $purchaseOrder = DB::table('purchase_order_master as po')->where('po.purchase_order_id', $sourceId)->first();
+            abort_unless($purchaseOrder, 404);
+            $sourceDefaults = [
+                'values' => ['source_reference' => $purchaseOrder->po_no],
+                'initialItems' => DB::table('purchase_order_item')->where('purchase_order_id', $purchaseOrder->purchase_order_id)->orderBy('po_item_id')->get()->map(fn ($item) => ['description' => $item->item_description, 'quantity' => $item->quantity, 'unit' => $item->unit, 'price' => $item->unit_price])->all(),
+            ];
+        }
+
         return view('pages.invoice.create', [
-            ...\App\Services\CustomerDocumentLo::defaults($request),
+            ...$sourceDefaults,
             'title' => __('Cipta Invois Kepada Pelanggan'),
             'nextNumber' => $prefix.str_pad((string) ($last + 1), 3, '0', STR_PAD_LEFT),
             'customers' => DB::table('customer_supplier')->where('jenis_customer', 1)->orderBy('company_name')->get(),
@@ -75,6 +118,7 @@ class InvoiceController extends Controller
             'invoice_date' => 'required|date_format:Y-m-d',
             'invoice_title' => 'nullable|string|max:255',
             'lo_reference' => 'nullable|string|max:100',
+            'source_reference' => 'nullable|string|max:100',
             'customer_id' => ['required', 'integer', Rule::exists('customer_supplier', 'customer_id')->where('jenis_customer', 1)],
             'issuer_name' => 'required|string|max:255', 'issuer_address' => 'required|string|max:2000',
             'issuer_phone' => 'nullable|string|max:50', 'issuer_email' => 'nullable|email|max:255',

@@ -367,17 +367,7 @@ Route::get('/invoice/tambah', function () {
 
 Route::get('/invoice/pembekal/tambah', [\App\Http\Controllers\SupplierDocumentController::class, 'create'])->middleware('auth')->name('invoice.supplier.create');
 
-Route::get('/invoice/pelanggan/tambah', function () {
-    return view('pages.customer-document-start', [
-        'localOrders' => \App\Services\CustomerDocumentLo::options(),
-        'title' => 'Tambah Invoice Kepada Pelanggan',
-        'backRoute' => 'invoice.customer',
-        'documentType' => 'Invoice',
-        'createRoute' => 'invoice.customer.form',
-        'createButtonLabel' => 'Cipta Invoice',
-        'allowWithoutLocalOrder' => true,
-    ]);
-})->middleware('auth')->name('invoice.customer.create');
+Route::get('/invoice/pelanggan/tambah', [\App\Http\Controllers\InvoiceController::class, 'selectSource'])->middleware('auth')->name('invoice.customer.create');
 
 Route::get('/invoice/pelanggan/cipta', [\App\Http\Controllers\InvoiceController::class, 'create'])->middleware('auth')->name('invoice.customer.form');
 

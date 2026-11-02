@@ -59,32 +59,36 @@ class PurchaseOrderController extends Controller
 
     public function create(Request $request)
     {
-        $validated = $request->validate([
-            'supplier_quotation_id' => ['required', 'integer', 'exists:pembekal_quotation_master,supplier_quotation_id'],
-        ]);
-        $quotation = DB::table('pembekal_quotation_master as source')
-            ->leftJoin('customer_supplier as supplier', 'supplier.customer_id', '=', 'source.supplier_id')
-            ->where('source.supplier_quotation_id', $validated['supplier_quotation_id'])
-            ->select('source.*', 'source.quotation_no_supplier as quotation_no', 'source.quotation_id',
-                'source.company_name', 'supplier.customer_name', 'supplier.customer_id')
-            ->first();
-        if (!$quotation) {
-            return redirect()->route('purchase-order.create')->withErrors(['supplier_quotation_id' => __('Sila pilih sebut harga pembekal.')]);
-        }
+        $quotation = null;
+        $initialItems = [];
+        if ($request->filled('supplier_quotation_id')) {
+            $validated = $request->validate([
+                'supplier_quotation_id' => ['required', 'integer', 'exists:pembekal_quotation_master,supplier_quotation_id'],
+            ]);
+            $quotation = DB::table('pembekal_quotation_master as source')
+                ->leftJoin('customer_supplier as supplier', 'supplier.customer_id', '=', 'source.supplier_id')
+                ->where('source.supplier_quotation_id', $validated['supplier_quotation_id'])
+                ->select('source.*', 'source.quotation_no_supplier as quotation_no', 'source.quotation_id',
+                    'source.company_name', 'supplier.customer_name', 'supplier.customer_id')
+                ->first();
+            if (!$quotation) {
+                return redirect()->route('purchase-order.create')->withErrors(['supplier_quotation_id' => __('Sila pilih sebut harga pembekal.')]);
+            }
 
-        // Isi item PO dengan item daripada sebut harga terpilih sebagai nilai awal.
-        // Pengguna masih boleh mengedit, membuang atau menambah item dalam form.
-        $initialItems = DB::table('pembekal_quotation_item')
-            ->where('supplier_quotation_id', $quotation->supplier_quotation_id)
-            ->orderBy('supplier_quotation_item_id')
-            ->get(['item_description', 'quantity', 'unit', 'unit_price'])
-            ->map(fn ($item, $index) => [
-                'id' => $index + 1,
-                'description' => $item->item_description,
-                'quantity' => (int) $item->quantity,
-                'unit' => $item->unit,
-                'price' => $item->unit_price,
-            ])->values()->all();
+            // Isi item PO dengan item daripada sebut harga terpilih sebagai nilai awal.
+            // Pengguna masih boleh mengedit, membuang atau menambah item dalam form.
+            $initialItems = DB::table('pembekal_quotation_item')
+                ->where('supplier_quotation_id', $quotation->supplier_quotation_id)
+                ->orderBy('supplier_quotation_item_id')
+                ->get(['item_description', 'quantity', 'unit', 'unit_price'])
+                ->map(fn ($item, $index) => [
+                    'id' => $index + 1,
+                    'description' => $item->item_description,
+                    'quantity' => (int) $item->quantity,
+                    'unit' => $item->unit,
+                    'price' => $item->unit_price,
+                ])->values()->all();
+        }
 
         return view('pages.purchase-order.create', [
             'title' => 'Tambah Purchase Order',
@@ -125,7 +129,7 @@ class PurchaseOrderController extends Controller
         $data = $request->validate([
             'quotation_id'=>['nullable','integer','exists:sebutharga_master,quotation_id'],
             'quotation_detail_id'=>['nullable','integer',Rule::exists('sebutharga_detail','quotation_detail_id')->where('quotation_id',$request->quotation_id)],
-            'supplier_quotation_id'=>[Rule::requiredIf(!$existing), 'nullable','integer','exists:pembekal_quotation_master,supplier_quotation_id'],
+            'supplier_quotation_id'=>['nullable','integer','exists:pembekal_quotation_master,supplier_quotation_id'],
             'customer_id'=>['required','integer',Rule::exists('customer_supplier','customer_id')->where('jenis_customer',2)],
             'po_date'=>'required|date','items_json'=>'required|json',
             'discount_percent'=>'nullable|numeric|min:0|max:100',

@@ -22,6 +22,7 @@
     }">
         @csrf
         @if(!$editId && !empty($values['lo_inden_id']))<input type="hidden" name="lo_inden_id" value="{{ $values['lo_inden_id'] }}">@endif
+        @if(!$editId && !empty($values['source_reference']))<input type="hidden" name="source_reference" value="{{ $values['source_reference'] }}">@endif
         @if($editId) @method('PUT') @endif
         @if ($errors->any())
             <ul role="alert" class="rounded-xl bg-error-50 p-5 text-sm text-error-700 dark:bg-error-500/10 dark:text-error-400">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
