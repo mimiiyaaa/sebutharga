@@ -20,6 +20,11 @@ class DashboardController extends Controller
             'panel' => ['nullable', Rule::in(['drafts', 'finals', 'lo', 'po', 'missing-do', 'missing-invoice', 'review'])],
             'status' => ['nullable', Rule::in(['Selesai Dibayar', 'Bayaran Sebahagian', 'Belum Dibayar', 'Perlu Semakan'])],
             'age' => ['nullable', 'integer', 'between:0,3'],
+            'lo_q' => 'nullable|string|max:200',
+            'po_q' => 'nullable|string|max:200',
+            'customer_q' => 'nullable|string|max:200',
+            'supplier_q' => 'nullable|string|max:200',
+            'invoice_q' => 'nullable|string|max:200',
         ]);
         $documentRoutes = [
             'drafts' => 'sebut-harga', 'finals' => 'sebut-harga.final',
@@ -34,13 +39,14 @@ class DashboardController extends Controller
         if ($start > $end || $start->diffInDays($end) > 366) {
             throw ValidationException::withMessages(['start' => __('Pilih julat tarikh yang sah, maksimum 366 hari.')]);
         }
-        $result = $dashboard->build($start, $end);
+        $result = $dashboard->build($start, $end, $data);
         $rows = $result['balances']->filter(fn ($row) =>
             ($request->filled('status') ? $row['status'] === $data['status'] : ($row['balance'] > 0 || $row['status'] === 'Perlu Semakan'))
-            && (!$request->filled('age') || $row['bucket'] === (int) $data['age']))->values();
+            && (!$request->filled('age') || $row['bucket'] === (int) $data['age'])
+            && (trim($data['invoice_q'] ?? '') === '' || \Illuminate\Support\Str::contains($row['number'].' '.$row['customer'], trim($data['invoice_q']), ignoreCase: true)))->values();
         $paginate = fn ($records, $name) => new LengthAwarePaginator(
             $records->forPage(max(1, $request->integer($name, 1)), 10)->values(), $records->count(), 10,
-            max(1, $request->integer($name, 1)), ['path' => $request->url(), 'query' => $request->query(), 'pageName' => $name]);
+            max(1, $request->integer($name, 1)), ['path' => $request->url(), 'query' => $request->query(), 'pageName' => $name, 'fragment' => 'invoice-balances']);
         return view('pages.dashboard.ecommerce', array_merge($result, [
             'title' => __('Dashboard'), 'start' => $start, 'end' => $end,
             'balances' => $paginate($rows, 'page'), 'selectedStatus' => $data['status'] ?? '', 'selectedAge' => $data['age'] ?? '',

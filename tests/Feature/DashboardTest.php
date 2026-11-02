@@ -15,10 +15,10 @@ beforeEach(function () {
         $t->increments('invoice_id'); $t->integer('customer_id'); $t->string('invoice_no'); $t->string('document_kind');
         $t->date('invoice_date'); $t->date('due_date')->nullable(); $t->decimal('total_amount',12,2); $t->text('document_data')->nullable();
     });
-    Schema::create('payment_voucher_documents', function (Blueprint $t) { $t->increments('id'); $t->string('voucher_no'); $t->date('voucher_date'); $t->string('voucher_type')->default('customer'); $t->integer('supplier_id')->nullable(); $t->string('payee_name')->default('Supplier'); $t->decimal('total_amount',12,2)->default(0); });
+    Schema::create('payment_voucher_documents', function (Blueprint $t) { $t->increments('id'); $t->string('voucher_no'); $t->date('voucher_date'); $t->string('voucher_type')->default('customer'); $t->integer('supplier_id')->nullable(); $t->string('payee_name')->default('Supplier'); $t->text('supplier_details')->nullable(); $t->decimal('total_amount',12,2)->default(0); });
     Schema::create('payment_voucher_invoice', function (Blueprint $t) { $t->increments('id'); $t->integer('invoice_id'); $t->integer('payment_voucher_id'); $t->decimal('amount',12,2)->nullable(); });
-    Schema::create('lo_inden_master', function (Blueprint $t) { $t->increments('lo_inden_id'); $t->string('lo_inden_no'); $t->integer('customer_id'); $t->integer('quotation_id')->nullable(); $t->integer('quotation_detail_id')->nullable(); $t->date('lo_inden_date'); });
-    Schema::create('purchase_order_master', function (Blueprint $t) { $t->increments('purchase_order_id'); $t->string('po_no'); $t->date('po_date'); $t->integer('lo_inden_id')->nullable(); });
+    Schema::create('lo_inden_master', function (Blueprint $t) { $t->increments('lo_inden_id'); $t->string('lo_inden_no'); $t->integer('customer_id'); $t->integer('quotation_id')->nullable(); $t->integer('quotation_detail_id')->nullable(); $t->date('lo_inden_date'); $t->decimal('amount',12,2)->default(0); });
+    Schema::create('purchase_order_master', function (Blueprint $t) { $t->increments('purchase_order_id'); $t->string('po_no'); $t->integer('customer_id')->nullable(); $t->date('po_date'); $t->decimal('net_amount',12,2)->default(0); $t->integer('lo_inden_id')->nullable(); });
     Schema::create('sebutharga_master', function (Blueprint $t) { $t->increments('quotation_id'); $t->integer('quotation_detail_id')->nullable(); $t->string('quotation_no'); $t->date('quotation_date')->nullable(); });
     Schema::create('sebutharga_detail', function (Blueprint $t) { $t->increments('quotation_detail_id'); $t->integer('quotation_id'); $t->date('quotation_date'); $t->string('quotation_title')->nullable(); $t->string('status_draft'); $t->timestamp('sent_at')->nullable(); $t->integer('status_quotation')->nullable(); });
     Schema::create('delivery_order_master', function (Blueprint $t) { $t->increments('delivery_order_id'); $t->string('do_no')->default('DO-1'); $t->integer('customer_id'); $t->string('document_kind'); $t->date('do_date'); $t->text('document_data')->nullable(); });
@@ -216,4 +216,52 @@ test('supplier monitoring shows voucher existence independently of actual paymen
         ->and($rows->firstWhere('id', 2)['linked_vouchers'])->toBeEmpty();
     $this->get(route('monitoring',['tab'=>'customer']))->assertOk()->assertDontSee('Sudah Ada Baucar');
     $this->travelBack();
+});
+
+
+test('standalone vouchers are complete records and never settle supplier invoices', function () {
+    DB::table('supplier_documents')->insert(['id'=>1,'kind'=>'invoice','supplier_id'=>10,'supplier_name'=>'Supplier','document_no'=>'SUP-1','document_date'=>'2020-01-01','total_amount'=>100]);
+    DB::table('payment_voucher_documents')->insert(['id'=>1,'voucher_no'=>'PV-STANDALONE','voucher_date'=>'2020-01-02','voucher_type'=>'supplier','supplier_id'=>10,'total_amount'=>100,'supplier_payment_status'=>'paid','supplier_details'=>json_encode(['source_type'=>'standalone'])]);
+    $response=$this->get(route('monitoring',['tab'=>'supplier']))->assertOk()->assertSee('Baucar Standalone');
+    expect($response->viewData('supplierRecords')->first()['paid'])->toEqual(0)
+        ->and($response->viewData('supplierRecords')->first()['balance'])->toEqual(100)
+        ->and($response->viewData('vouchers')->first()->unallocated)->toEqual(0);
+});
+
+
+test('dashboard searches only affect their own sections and combine with invoice status', function () {
+    DB::table('customer_supplier')->insert([['customer_id'=>1,'company_name'=>'Alpha'],['customer_id'=>2,'company_name'=>'Beta']]);
+    foreach ([1,2] as $id) {
+        DB::table('lo_inden_master')->insert(['lo_inden_id'=>$id,'lo_inden_no'=>'LO-'.$id,'customer_id'=>$id,'lo_inden_date'=>'2026-10-01','amount'=>$id*100]);
+        DB::table('purchase_order_master')->insert(['purchase_order_id'=>$id,'po_no'=>'PO-'.$id,'customer_id'=>$id,'po_date'=>'2026-10-01','net_amount'=>$id*50]);
+        dashboardInvoice($id,'2026-10-01',100);
+        DB::table('invoice_master')->where('invoice_id',$id)->update(['customer_id'=>$id]);
+    }
+    dashboardReceipt(1,1,'2026-10-02',100);
+    $query=['start'=>'2026-10-01','end'=>'2026-10-27','lo_q'=>'alpha','po_q'=>'PO-2','invoice_q'=>'Beta'];
+    $response=$this->get(route('dashboard',$query))->assertOk();
+    expect($response->viewData('loSummary')->amount)->toEqual(100)
+        ->and($response->viewData('poSummary')->amount)->toEqual(100)
+        ->and($response->viewData('balances')->total())->toBe(1)
+        ->and($response->viewData('balances')->first()['number'])->toBe('INV-2')
+        ->and($response->viewData('financial')[0][1])->toEqual(200)
+        ->and($response->viewData('topCustomers'))->toHaveCount(2);
+    $query['invoice_q']='Alpha'; $query['status']='Selesai Dibayar';
+    $this->get(route('dashboard',$query))->assertOk()->assertViewHas('balances',fn($rows)=>$rows->total()===1 && $rows->first()['number']==='INV-1');
+    $query['invoice_q']='missing';
+    $this->get(route('dashboard',$query))->assertOk()->assertViewHas('balances',fn($rows)=>$rows->total()===0);
+    $this->get(route('dashboard',['lo_q'=>['invalid']]))->assertSessionHasErrors('lo_q');
+});
+
+test('dashboard ranking searches include matches outside the original top five', function () {
+    foreach (range(1,6) as $id) {
+        DB::table('customer_supplier')->insert(['customer_id'=>$id,'company_name'=>'Company '.$id]);
+        dashboardInvoice($id,'2026-10-01',$id*100);
+        DB::table('invoice_master')->where('invoice_id',$id)->update(['customer_id'=>$id]);
+        DB::table('purchase_order_master')->insert(['purchase_order_id'=>$id,'po_no'=>'PO-'.$id,'customer_id'=>$id,'po_date'=>'2026-10-01','net_amount'=>$id*50]);
+    }
+    $response=$this->get(route('dashboard',['start'=>'2026-10-01','end'=>'2026-10-27','customer_q'=>'company 1','supplier_q'=>'company 2']))->assertOk();
+    expect($response->viewData('topCustomers')->pluck('name')->all())->toBe(['Company 1'])
+        ->and($response->viewData('topSuppliers')->pluck('name')->all())->toBe(['Company 2'])
+        ->and($response->viewData('poSummary')->count)->toBe(6);
 });

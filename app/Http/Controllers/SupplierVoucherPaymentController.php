@@ -14,9 +14,16 @@ use Illuminate\Validation\ValidationException;
 
 class SupplierVoucherPaymentController extends Controller
 {
+    public function create(Request $request)
+    {
+        if ($request->filled('invoice_id')) return $this->form($request);
+        return view('pages.baucar-bayaran.supplier-select-source', ['title' => __('Tambah Baucar Pembekal')]);
+    }
+
     public function form(Request $request, ?int $id = null)
     {
         $document = $id ? DB::table('payment_voucher_documents')->where('id', $id)->where('voucher_type', 'supplier')->firstOrFail() : null;
+        $standalone = $document ? (json_decode($document->supplier_details ?? '{}', true)['source_type'] ?? 'invoice') === 'standalone' : $request->query('source') === 'standalone';
         $suppliers = DB::table('customer_supplier')->where('jenis_customer', 2)->orderBy('company_name')->get();
         $invoices = DB::table('supplier_documents')->where('kind', 'invoice')->orderByDesc('document_date')->get();
         $otherPayments = DB::table('supplier_invoice_payments as p')->join('payment_voucher_documents as v', 'v.id', '=', 'p.payment_voucher_id')
@@ -39,12 +46,13 @@ class SupplierVoucherPaymentController extends Controller
             $payments = $links->map(fn ($p) => ['invoice_id' => (string) $p->supplier_document_id, 'amount' => $submitted->get($p->supplier_document_id)['amount'] ?? (float) $p->amount])->all();
         }
         $sourceInvoice = $links->isNotEmpty() ? $invoices->firstWhere('id', $links->first()->supplier_document_id) : $selectedInvoice;
-        $details['supplier_name'] = $sourceInvoice?->supplier_name ?? $document?->payee_name ?? $supplier?->company_name ?? '';
+        $details['supplier_name'] = $standalone ? old('supplier_name', $document?->payee_name ?? $supplier?->company_name ?? '') : ($sourceInvoice?->supplier_name ?? $document?->payee_name ?? $supplier?->company_name ?? '');
         if (!$payments) $payments = [['invoice_id' => (string) ($selectedInvoice?->id ?? ''), 'amount' => $document?->total_amount ?? '']];
         $year = now()->year;
         $numbers = DB::table('payment_voucher_documents')->where('voucher_no', 'like', "K1R-PV-$year-%")->pluck('voucher_no');
         $next = $numbers->map(fn ($n) => (int) substr($n, strlen("K1R-PV-$year-")))->max() + 1;
-        return view($document ? 'pages.baucar-bayaran.supplier-edit' : 'pages.baucar-bayaran.supplier', [
+        return view($document && !$standalone ? 'pages.baucar-bayaran.supplier-edit' : 'pages.baucar-bayaran.supplier', [
+            'standalone' => $standalone,
             'title' => __($document ? 'Edit Baucar Kepada Pembekal' : 'Rekod Bayaran Pembekal'),
             'document' => $document, 'suppliers' => $suppliers, 'invoiceOptions' => $invoices->values(),
             'companies' => DB::table('companies')->orderBy('nama_syarikat')->get(), 'details' => $details,
@@ -61,13 +69,16 @@ class SupplierVoucherPaymentController extends Controller
     public function save(Request $request, ?int $id = null)
     {
         $existing = $id ? DB::table('payment_voucher_documents')->where('id', $id)->where('voucher_type', 'supplier')->firstOrFail() : null;
+        $standalone = $existing ? (json_decode($existing->supplier_details ?? '{}', true)['source_type'] ?? 'invoice') === 'standalone' : $request->input('source_type', 'invoice') === 'standalone';
         $data = $request->validate([
-            'supplier_id' => ['required', 'integer', Rule::exists('customer_supplier', 'customer_id')->where('jenis_customer', 2)],
+            'source_type' => ['nullable', Rule::in(['invoice', 'standalone'])],
+            'total_amount' => $standalone ? 'required|numeric|min:0.01|max:9999999999.99|decimal:0,2' : 'nullable',
+            'supplier_id' => [$standalone ? 'nullable' : 'required', 'integer', Rule::exists('customer_supplier', 'customer_id')->where('jenis_customer', 2)],
             'voucher_no' => ['required', 'string', 'max:100', Rule::unique('payment_voucher_documents', 'voucher_no')->ignore($id)],
             'voucher_date' => 'required|date_format:Y-m-d', 'supplier_payment_status' => 'required|in:paid,unpaid',
             'payment_method' => ['required', Rule::in(['Tunai', 'Pindahan Bank', 'Cek', 'Lain-lain'])],
-            'cheque_no' => 'nullable|string|max:100', 'description' => 'nullable|string|max:5000',
-            'payments' => 'required|array|min:1|max:100', 'payments.*.invoice_id' => 'required|integer|distinct',
+            'cheque_no' => 'nullable|string|max:100', 'description' => ($standalone ? 'required' : 'nullable').'|string|max:5000',
+            'payments' => $standalone ? 'prohibited' : 'required|array|min:1|max:100', 'payments.*.invoice_id' => 'required|integer|distinct',
             'payments.*.amount' => 'required|numeric|min:0.01|max:9999999999.99|decimal:0,2',
             'issuer_name' => 'required|string|max:255', 'issuer_address' => 'nullable|string|max:2000',
             'issuer_phone' => 'nullable|string|max:50', 'issuer_email' => 'nullable|email|max:255',
@@ -76,14 +87,16 @@ class SupplierVoucherPaymentController extends Controller
             'prepared_by' => 'required|string|max:255', 'prepared_role' => 'required|string|max:255',
             'received_by' => 'nullable|string|max:255', 'received_role' => 'nullable|string|max:255',
         ]);
+        $data['payments'] = $standalone ? [] : $data['payments'];
+        $data['supplier_id'] = $data['supplier_id'] ?? null;
         $newPath = 'payment-vouchers/supplier/'.Str::uuid().'.pdf';
         $oldPath = null;
         try {
-            $voucherId = DB::transaction(function () use ($data, $request, $id, $existing, $newPath, &$oldPath) {
+            $voucherId = DB::transaction(function () use ($data, $request, $id, $existing, $newPath, $standalone, &$oldPath) {
                 $locked = $id ? DB::table('payment_voucher_documents')->where('id', $id)->where('voucher_type', 'supplier')->lockForUpdate()->firstOrFail() : null;
                 $oldPath = $locked?->file_path;
                 $oldIds = $id ? DB::table('supplier_invoice_payments')->where('payment_voucher_id', $id)->pluck('supplier_document_id') : collect();
-                if ($locked && (int) $locked->supplier_id !== (int) $data['supplier_id']) {
+                if ($locked && !$standalone && (int) $locked->supplier_id !== (int) $data['supplier_id']) {
                     throw ValidationException::withMessages(['supplier_id' => __('Pembekal asal baucar tidak boleh ditukar.')]);
                 }
                 $submittedIds = collect($data['payments'])->pluck('invoice_id')->map(fn ($id) => (int) $id)->sort()->values()->all();
@@ -109,10 +122,16 @@ class SupplierVoucherPaymentController extends Controller
                     $items->push((object) ['item_description' => __('Bayaran invois').' '.$invoice->document_no, 'quantity' => 1, 'unit' => 'bayaran', 'unit_price' => $amount / 100, 'subtotal' => $amount / 100, 'invoice_no' => $invoice->document_no]);
                 }
                 if ($total > 999999999999) throw ValidationException::withMessages(['payments' => __('Jumlah bayaran melebihi had yang dibenarkan.')]);
-                // Always use the invoice identity, never a name supplied by the browser.
-                $data['supplier_name'] = $invoices->get($submittedIds[0])->supplier_name;
+                if ($standalone) {
+                    $total = InvoicePayments::cents($data['total_amount']);
+                    $items->push((object) ['item_description' => $data['description'], 'quantity' => 1, 'unit' => 'bayaran', 'unit_price' => $total / 100, 'subtotal' => $total / 100, 'invoice_no' => '-']);
+                } else {
+                    // Invoice-linked vouchers retain the source invoice identity.
+                    $data['supplier_name'] = $invoices->get($submittedIds[0])->supplier_name;
+                }
                 $details = collect($data)->only(['issuer_name','issuer_address','issuer_phone','issuer_email','supplier_name','supplier_person','supplier_address','supplier_phone','supplier_email'])->all();
-                $details['invoice_numbers'] = $items->pluck('invoice_no')->all();
+                $details['source_type'] = $standalone ? 'standalone' : 'invoice';
+                $details['invoice_numbers'] = $standalone ? [] : $items->pluck('invoice_no')->all();
                 $record = collect($data)->only(['voucher_no','voucher_date','payment_method','cheque_no','description','prepared_by','prepared_role','received_by','received_role','supplier_id','supplier_payment_status'])->all();
                 $record += ['voucher_type' => 'supplier', 'supplier_quotation_id' => null, 'payee_name' => $data['supplier_name'], 'total_amount' => $total / 100,
                     'supplier_details' => json_encode($details, JSON_UNESCAPED_UNICODE), 'file_path' => $newPath,

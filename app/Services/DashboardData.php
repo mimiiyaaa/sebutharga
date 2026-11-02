@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardData
 {
-    public function build(CarbonImmutable $start, CarbonImmutable $end): array
+    public function build(CarbonImmutable $start, CarbonImmutable $end, array $filters = []): array
     {
         $cutoff = $end->toDateString();
         $invoices = DB::table('invoice_master as i')->leftJoin('customer_supplier as c', 'c.customer_id', '=', 'i.customer_id')
@@ -42,14 +42,15 @@ class DashboardData
 
         $los = DB::table('lo_inden_master')->whereDate('lo_inden_date', '<=', $cutoff)->get();
         $pos = DB::table('purchase_order_master')->whereDate('po_date', '<=', $cutoff)->get();
-        $loSummary = DB::table('lo_inden_master')
-            ->whereBetween('lo_inden_date', [$start->toDateString(), $cutoff])
-            ->selectRaw('COUNT(*) as count, COALESCE(SUM(amount), 0) as amount')
-            ->first();
-        $poSummary = DB::table('purchase_order_master')
-            ->whereBetween('po_date', [$start->toDateString(), $cutoff])
-            ->selectRaw('COUNT(*) as count, COALESCE(SUM(net_amount), 0) as amount')
-            ->first();
+        $matches = fn ($value, $key) => trim($filters[$key] ?? '') === ''
+            || \Illuminate\Support\Str::contains((string) $value, trim($filters[$key]), ignoreCase: true);
+        $parties = DB::table('customer_supplier')->pluck('company_name', 'customer_id');
+        $selectedLos = $los->filter(fn ($lo) => $lo->lo_inden_date >= $start->toDateString()
+            && $matches($lo->lo_inden_no.' '.$parties->get($lo->customer_id, ''), 'lo_q'));
+        $selectedPos = $pos->filter(fn ($po) => $po->po_date >= $start->toDateString()
+            && $matches($po->po_no.' '.$parties->get($po->customer_id, ''), 'po_q'));
+        $loSummary = (object) ['count' => $selectedLos->count(), 'amount' => $selectedLos->sum('amount')];
+        $poSummary = (object) ['count' => $selectedPos->count(), 'amount' => $selectedPos->sum('net_amount')];
         $documentStats = [
             ['label' => 'Jumlah Sebut Harga', 'value' => DB::table('sebutharga_master as quotation')
                 ->join('sebutharga_detail as detail', 'detail.quotation_detail_id', '=', 'quotation.quotation_detail_id')
@@ -73,7 +74,7 @@ class DashboardData
                     'count' => $records->count(),
                     'amount' => $records->sum(fn ($invoice) => InvoicePayments::cents($invoice->total_amount)) / 100,
                 ];
-            })->sortByDesc('amount')->take(5)->values();
+            })->filter(fn ($row) => $matches($row['name'], 'customer_q'))->sortByDesc('amount')->take(5)->values();
         $poSuppliers = DB::table('purchase_order_master as po')
             ->leftJoin('customer_supplier as supplier', 'supplier.customer_id', '=', 'po.customer_id')
             ->whereBetween('po.po_date', [$start->toDateString(), $cutoff])
@@ -87,7 +88,7 @@ class DashboardData
                     'count' => $records->count(),
                     'amount' => $records->sum(fn ($po) => (float) $po->net_amount),
                 ];
-            })->sortByDesc('amount')->take(5)->values();
+            })->filter(fn ($row) => $matches($row['name'], 'supplier_q'))->sortByDesc('amount')->take(5)->values();
         $details = DB::table('sebutharga_detail')->whereDate('quotation_date', '<=', $cutoff)->orderByDesc('quotation_detail_id')->get()->groupBy('quotation_id');
         $masters = DB::table('sebutharga_master')->whereIn('quotation_id', $details->keys())->get()->keyBy('quotation_id');
         $drafts = collect(); $finals = collect();

@@ -14,7 +14,7 @@ class MonitoringLinksController extends Controller
         $data = $request->validate(['supplier_payment_status' => 'required|in:paid,unpaid']);
         DB::transaction(function () use ($data, $request, $id) {
             $voucher = DB::table('payment_voucher_documents')->where('voucher_type', 'supplier')->where('id', $id)->lockForUpdate()->firstOrFail();
-            if ($data['supplier_payment_status'] === 'paid') {
+            if ($data['supplier_payment_status'] === 'paid' && (json_decode($voucher->supplier_details ?? '{}', true)['source_type'] ?? 'invoice') !== 'standalone') {
                 $recorded = DB::table('supplier_invoice_payments')->where('payment_voucher_id', $id)->get()->sum(fn ($p) => InvoicePayments::cents($p->amount));
                 if ($recorded !== InvoicePayments::cents($voucher->total_amount) || $recorded <= 0) {
                     throw ValidationException::withMessages(['supplier_payment_status' => __('Lengkapkan invois dan amaun melalui Edit Baucar sebelum menandakan Dah Bayar.')]);

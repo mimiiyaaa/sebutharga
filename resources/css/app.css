@@ -1607,3 +1607,26 @@ pre code,
 .item-editor-table > thead th {
   @apply text-white dark:text-white;
 }
+
+/* Compact application shell at desktop widths; browser zoom and mobile sizing remain user-controlled. */
+@media screen and (min-width: 1024px) {
+  html.app-compact {
+    font-size: 80%;
+    --text-title-2xl: 4.5rem;
+    --text-title-2xl--line-height: 5.625rem;
+    --text-title-xl: 3.75rem;
+    --text-title-xl--line-height: 4.5rem;
+    --text-title-lg: 3rem;
+    --text-title-lg--line-height: 3.75rem;
+    --text-title-md: 2.25rem;
+    --text-title-md--line-height: 2.75rem;
+    --text-title-sm: 1.875rem;
+    --text-title-sm--line-height: 2.375rem;
+    --text-theme-xl: 1.25rem;
+    --text-theme-xl--line-height: 1.875rem;
+    --text-theme-sm: 0.875rem;
+    --text-theme-sm--line-height: 1.25rem;
+    --text-theme-xs: 0.75rem;
+    --text-theme-xs--line-height: 1.125rem;
+  }
+}

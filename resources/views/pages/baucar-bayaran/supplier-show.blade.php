@@ -40,7 +40,7 @@
                     </div>
                 </div>
                 <div class="grid grid-cols-1 gap-5 p-6 sm:grid-cols-2 lg:grid-cols-3">
-                    @foreach ([__('No. Baucar') => $document->voucher_no, __('Tarikh') => \Carbon\Carbon::parse($document->voucher_date)->format('d/m/Y'), __('Pembekal') => $supplierQuotation->supplier_name, __('No. Invois Pembekal') => $invoiceReferences->pluck('document_no')->implode(', '), __('Cara Bayaran') => $document->payment_method, __('Amaun Baucar') => 'RM '.number_format((float) $document->total_amount, 2)] as $label => $value)
+                    @foreach ([__('No. Baucar') => $document->voucher_no, __('Tarikh') => \Carbon\Carbon::parse($document->voucher_date)->format('d/m/Y'), __('Pembekal') => $supplierQuotation->supplier_name, __('No. Invois Pembekal') => ($invoiceReferences->pluck('document_no')->implode(', ') ?: ((json_decode($document->supplier_details ?? '{}', true)['source_type'] ?? '') === 'standalone' ? __('Baucar Standalone') : '-')), __('Cara Bayaran') => $document->payment_method, __('Amaun Baucar') => 'RM '.number_format((float) $document->total_amount, 2)] as $label => $value)
                         <div><p class="text-sm text-gray-500 dark:text-gray-400">{{ $label }}</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $value ?: '—' }}</p></div>
                     @endforeach
                     @if ($document->description)<div class="sm:col-span-2 lg:col-span-3"><p class="text-sm text-gray-500 dark:text-gray-400">{{ __('Keterangan') }}</p><p class="mt-2 whitespace-pre-line break-words text-base font-medium text-gray-800 dark:text-white/90">{{ $document->description }}</p></div>@endif

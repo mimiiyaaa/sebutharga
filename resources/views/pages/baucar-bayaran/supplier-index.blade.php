@@ -29,7 +29,7 @@
                         @forelse ($vouchers as $voucher)
                             <tr x-show="matches({ number: @js(strtolower($voucher->voucher_no)), quotation: @js(strtolower($voucher->invoice_numbers ?? '')), supplier: @js(strtolower($voucher->supplier_name ?? '')), date: @js($voucher->voucher_date) })" class="border-b border-gray-100 hover:bg-gray-50 dark:border-white/[0.05] dark:hover:bg-white/[0.03]">
                                 <td class="px-4 py-3.5 text-gray-700 sm:px-6 dark:text-gray-400"><span class="font-semibold text-gray-800 dark:text-white/90">{{ $voucher->voucher_no }}</span><span class="mt-1 block text-theme-xs text-gray-500 dark:text-gray-400">{{ \Carbon\Carbon::parse($voucher->voucher_date)->format('d/m/Y') }}</span></td>
-                                <td class="px-4 py-3.5 sm:px-6"><span class="font-medium text-gray-700 dark:text-gray-300">{{ $voucher->invoice_numbers ?: __('Belum pilih invois') }}</span></td>
+                                <td class="px-4 py-3.5 sm:px-6"><span class="font-medium text-gray-700 dark:text-gray-300">{{ $voucher->invoice_numbers ?: __((json_decode($voucher->supplier_details ?? '{}', true)['source_type'] ?? '') === 'standalone' ? 'Tanpa Invois' : 'Belum pilih invois') }}</span></td>
                                 <td class="px-4 py-3.5 text-gray-800 sm:px-6 dark:text-white/90">{{ $voucher->supplier_name ?: '—' }}</td>
                                 <td class="px-4 py-3.5 text-gray-700 sm:px-6 dark:text-gray-400">{{ \Carbon\Carbon::parse($voucher->voucher_date)->format('d/m/Y') }}</td>
                                 <td class="px-4 py-3.5 text-gray-700 sm:px-6 dark:text-gray-400">{{ $voucher->payment_method ?: '—' }}</td>

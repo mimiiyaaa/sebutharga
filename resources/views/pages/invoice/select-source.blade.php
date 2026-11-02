@@ -4,13 +4,15 @@
     <x-common.document-workspace :title="__('Pilih Rujukan Invoice')" :subtitle="__('Pilih LO, PO atau DO sebagai rujukan invoice')">
         <x-slot:referenceActions><a href="{{ route('invoice.customer') }}" class="inline-flex h-9 items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-theme-xs font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">{{ __('Kembali') }}</a></x-slot:referenceActions>
         <div class="space-y-6" x-data="{ tab: 'lo' }">
-            <div class="flex flex-wrap items-center gap-3">
-                <div class="inline-flex w-fit rounded-lg border border-gray-200 bg-white p-1 dark:border-gray-700 dark:bg-gray-900">
-                    <button type="button" @click="tab = 'lo'" :class="tab === 'lo' ? 'bg-brand-500 text-white shadow-theme-xs' : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'" class="rounded-md px-3 py-1.5 text-xs font-medium">{{ __('LO') }}</button>
-                    <button type="button" @click="tab = 'po'" :class="tab === 'po' ? 'bg-brand-500 text-white shadow-theme-xs' : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'" class="rounded-md px-3 py-1.5 text-xs font-medium">{{ __('PO') }}</button>
-                    <button type="button" @click="tab = 'do'" :class="tab === 'do' ? 'bg-brand-500 text-white shadow-theme-xs' : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'" class="rounded-md px-3 py-1.5 text-xs font-medium">{{ __('DO') }}</button>
+            <div class="flex flex-wrap items-center gap-4">
+                <div class="flex flex-wrap items-center gap-3">
+                    @foreach(['lo' => ['LO', 'bg-blue-light-600 hover:bg-blue-light-700 dark:bg-blue-light-600 dark:hover:bg-blue-light-700'], 'po' => ['PO', 'bg-brand-500 hover:bg-brand-600 dark:bg-brand-500 dark:hover:bg-brand-600'], 'do' => ['DO', 'bg-brand-700 hover:bg-brand-800 dark:bg-brand-700 dark:hover:bg-brand-800']] as $key => [$label, $tone])
+                        <button type="button" @click="tab = @js($key)" :aria-pressed="tab === @js($key)" :class="tab === @js($key) ? 'ring-2 ring-brand-300 ring-offset-2 dark:ring-brand-400 dark:ring-offset-gray-900' : ''" class="inline-flex h-10 min-w-20 items-center justify-center rounded-lg px-5 text-sm font-semibold text-white shadow-theme-xs transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 {{ $tone }}">{{ __($label) }}</button>
+                    @endforeach
                 </div>
-                <a href="{{ route('invoice.customer.form') }}" class="text-xs font-medium text-gray-600 underline dark:text-gray-300">{{ __('Teruskan Tanpa Rujukan') }}</a>
+                <form method="GET" action="{{ route('invoice.customer.form') }}">
+                    <button type="submit" class="inline-flex h-10 items-center justify-center rounded-lg border border-blue-light-200 bg-blue-light-50 px-5 text-sm font-semibold text-blue-light-700 shadow-theme-xs transition hover:bg-blue-light-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 dark:border-blue-light-800 dark:bg-blue-light-500/10 dark:text-blue-light-300 dark:hover:bg-blue-light-500/20">{{ __('Teruskan Tanpa Rujukan') }}</button>
+                </form>
             </div>
 
             <section x-show="tab === 'lo'" x-cloak class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">

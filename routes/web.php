@@ -43,7 +43,7 @@ Route::middleware('auth')->prefix('baucar-bayaran')->name('baucar-bayaran.')->gr
     Route::get('/tambah', [\App\Http\Controllers\PaymentVoucherController::class, 'create'])->name('create');
     Route::get('/tambah/form', [\App\Http\Controllers\PaymentVoucherController::class, 'form'])->name('form');
     Route::get('/pembekal', [\App\Http\Controllers\PaymentVoucherController::class, 'supplier'])->name('supplier');
-    Route::get('/pembekal/tambah', [\App\Http\Controllers\SupplierVoucherPaymentController::class, 'form'])->name('supplier.create');
+    Route::get('/pembekal/tambah', [\App\Http\Controllers\SupplierVoucherPaymentController::class, 'create'])->name('supplier.create');
     Route::get('/pembekal/tambah/form', [\App\Http\Controllers\SupplierVoucherPaymentController::class, 'form'])->name('supplier.form');
     Route::post('/pembekal', [\App\Http\Controllers\SupplierVoucherPaymentController::class, 'save'])->name('supplier.store');
     Route::get('/pembekal/{id}/edit', [\App\Http\Controllers\SupplierVoucherPaymentController::class, 'form'])->whereNumber('id')->name('supplier.edit');

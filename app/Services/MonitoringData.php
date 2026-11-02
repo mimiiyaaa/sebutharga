@@ -27,7 +27,8 @@ class MonitoringData
         });
         $voucherAllocations = DB::table('supplier_invoice_payments')->get()->groupBy('payment_voucher_id');
         $vouchers = DB::table('payment_voucher_documents')->where('voucher_type', 'supplier')->whereDate('voucher_date', '<=', $today->toDateString())->get()->map(function ($v) use ($voucherAllocations) {
-            $v->unallocated = max(0, InvoicePayments::cents($v->total_amount) - $voucherAllocations->get($v->id, collect())->sum(fn ($p) => InvoicePayments::cents($p->amount))) / 100;
+            $v->standalone = (json_decode($v->supplier_details ?? '{}', true)['source_type'] ?? 'invoice') === 'standalone';
+            $v->unallocated = $v->standalone ? 0 : max(0, InvoicePayments::cents($v->total_amount) - $voucherAllocations->get($v->id, collect())->sum(fn ($p) => InvoicePayments::cents($p->amount))) / 100;
             return $v;
         });
         $orders = DB::table('lo_inden_master as lo')->leftJoin('customer_supplier as customer', 'customer.customer_id', '=', 'lo.customer_id')

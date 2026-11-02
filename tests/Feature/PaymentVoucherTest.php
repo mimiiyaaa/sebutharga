@@ -194,3 +194,33 @@ test('supplier invoice payment rejects missing foreign duplicate and excessive a
     auth()->logout();
     $this->post(route('baucar-bayaran.supplier.store'),$payload)->assertRedirect(route('login'));
 });
+
+
+test('supplier standalone voucher has a full page choice and saves without any invoice', function () {
+    supplierPaymentSetup();
+    $this->get(route('baucar-bayaran.supplier.create'))->assertOk()->assertSee('Baucar Standalone')->assertSee('Daripada Invois');
+    $this->get(route('baucar-bayaran.supplier.form', ['source'=>'standalone']))->assertOk()->assertDontSee('Invois Yang Dibayar');
+    $payload = supplierPaymentPayload('PV-STANDALONE', []);
+    unset($payload['payments']);
+    $payload += ['source_type'=>'standalone','total_amount'=>75.50,'description'=>'Upah angkut barang'];
+    $payload['supplier_id'] = null;
+    $payload['supplier_name'] = 'Ali';
+    $payload['supplier_payment_status'] = 'unpaid';
+    $this->post(route('baucar-bayaran.supplier.store'), $payload)->assertSessionHasNoErrors()->assertRedirect(route('baucar-bayaran.show',1));
+    $this->assertDatabaseHas('payment_voucher_documents', ['id'=>1,'supplier_id'=>null,'payee_name'=>'Ali','total_amount'=>75.50]);
+    $this->assertDatabaseCount('supplier_invoice_payments',0);
+    $this->get(route('baucar-bayaran.supplier'))->assertOk()->assertSee('Tanpa Invois');
+    $this->get(route('baucar-bayaran.show',1))->assertOk()->assertSee('Baucar Standalone')->assertSee('Upah angkut barang');
+    $this->get(route('baucar-bayaran.supplier.edit',1))->assertOk()->assertViewHas('standalone',true)->assertDontSee('Invois Yang Dibayar');
+    $this->get(route('baucar-bayaran.supplier.preview',1))->assertOk()->assertViewHas('previewHtml',fn($html)=>str_contains($html,'Upah angkut barang'));
+    $this->put(route('monitoring.voucher.status',1),['supplier_payment_status'=>'paid'])->assertSessionHasNoErrors();
+    $this->assertDatabaseHas('payment_voucher_documents',['id'=>1,'supplier_payment_status'=>'paid']);
+    $payload['total_amount']=80;
+    $this->put(route('baucar-bayaran.supplier.update',1), $payload)->assertSessionHasNoErrors();
+    $this->assertDatabaseHas('payment_voucher_documents',['id'=>1,'total_amount'=>80]);
+    $this->assertDatabaseCount('supplier_invoice_payments',0);
+    $payload['total_amount']=0;
+    $this->put(route('baucar-bayaran.supplier.update',1), $payload)->assertSessionHasErrors('total_amount');
+    $payload['total_amount']=80; $payload['payments']=[['invoice_id'=>1,'amount'=>80]];
+    $this->put(route('baucar-bayaran.supplier.update',1), $payload)->assertSessionHasErrors('payments');
+});
