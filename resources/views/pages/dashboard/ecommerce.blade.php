@@ -117,10 +117,10 @@
     </section>
     </div>
 
-    <div class="grid grid-cols-1 gap-5">
+    <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
         @foreach ([['Top 5 Pelanggan', 'Pelanggan', 'Bil. Invois', 'Jumlah Jualan', $topCustomers], ['Top 5 Pembekal', 'Pembekal', 'Bil. PO', 'Jumlah Belian', $topSuppliers]] as [$title, $partyLabel, $countLabel, $amountLabel, $records])
             @php($searchKey = $partyLabel === 'Pelanggan' ? 'customer_q' : 'supplier_q')
-            <section id="ranking-{{ $searchKey }}" class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+            <section id="ranking-{{ $searchKey }}" class="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
                 <div class="border-b border-gray-100 px-5 py-4 dark:border-gray-800"><h2 class="text-sm font-semibold text-gray-900 dark:text-white/90">{{ __($title) }}</h2><p class="mt-1 text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Mengikut jumlah tertinggi dalam tempoh dipilih') }}</p></div>
                 <x-dashboard.section-search :name="$searchKey" :anchor="'ranking-'.$searchKey" :placeholder="$partyLabel === 'Pelanggan' ? 'Cari nama pelanggan' : 'Cari nama pembekal'" />
                 <div class="overflow-x-auto"><table class="w-full text-start text-theme-xs"><thead class="bg-gray-50 text-theme-xs text-gray-500 dark:bg-gray-800/50 dark:text-gray-400"><tr><th class="px-5 py-3 text-start font-medium">#</th><th class="px-5 py-3 text-start font-medium">{{ __($partyLabel) }}</th><th class="px-5 py-3 text-end font-medium">{{ __($countLabel) }}</th><th class="px-5 py-3 text-end font-medium">{{ __($amountLabel) }}</th></tr></thead><tbody class="divide-y divide-gray-100 dark:divide-gray-800">
