@@ -43,7 +43,6 @@
                     @endif
                     <td data-label="{{ __('Tindakan') }}" class="p-4">
                         <div class="document-actions">
-                            @if($isInvoice)<a href="{{ route('baucar-bayaran.supplier.create', ['invoice_id' => $document->id]) }}" class="document-action document-action-primary">{{ __('Rekod Bayaran') }}</a>@endif
                             <a href="{{ route($prefix . '.show', $document->id) }}" class="document-action">{{ __('Lihat') }}</a>
                             <form method="POST" action="{{ route($prefix . '.delete', $document->id) }}" @submit.prevent="$dispatch('confirm-action', { form: $el, message: @js(__('Padam rekod dan fail dokumen ini?')) })">
                                 @csrf
