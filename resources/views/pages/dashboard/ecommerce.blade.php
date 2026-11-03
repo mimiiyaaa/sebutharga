@@ -240,6 +240,32 @@ $searchKey = $partyLabel === 'Pelanggan' ? 'customer_q' : 'supplier_q';
             </div>
         </section>
 
+    <div class="grid gap-5 xl:grid-cols-2">
+    <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-800"><h2 class="border-s-4 border-brand-500 ps-3 text-sm font-semibold text-gray-900 dark:border-brand-400 dark:text-white/90">{{ __('Status Sebut Harga') }}</h2><span class="text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Ringkasan sebut harga Final') }}</span></div>
+        @php($quotationStatusTotal = $quotationStatus['waiting'] + $quotationStatus['success'] + $quotationStatus['failed'])
+        <div class="grid gap-4 p-5">
+            <div class="relative mx-auto h-32 w-32">
+                <svg viewBox="0 0 120 120" class="h-full w-full -rotate-90" role="img" aria-label="{{ __('Status Sebut Harga') }}">
+                    <circle cx="60" cy="60" r="48" fill="none" stroke-width="13" class="stroke-gray-100 dark:stroke-gray-800" />
+                    @php($offset = 0)
+                    @foreach ([['Berjaya', $quotationStatus['success'], 'stroke-success-500'], ['Menunggu', $quotationStatus['waiting'], 'stroke-brand-500'], ['Tidak Berjaya', $quotationStatus['failed'], 'stroke-error-500']] as [$label, $count, $color])
+                        @if($count > 0)<circle cx="60" cy="60" r="48" fill="none" stroke-width="13" pathLength="{{ max(1, $quotationStatusTotal) }}" stroke-dasharray="{{ $count }} {{ max(1, $quotationStatusTotal) - $count }}" stroke-dashoffset="{{ -$offset }}" class="{{ $color }}"><title>{{ __($label) }}: {{ $count }}</title></circle>@endif
+                        @php($offset += $count)
+                    @endforeach
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center"><span class="text-2xl font-semibold text-gray-900 dark:text-white/90">{{ $quotationStatusTotal }}</span><span class="text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Sebut Harga') }}</span></div>
+            </div>
+            <div class="space-y-4 text-sm">
+                @foreach ([['Berjaya', $quotationStatus['success'], 'stroke-success-500'], ['Menunggu', $quotationStatus['waiting'], 'stroke-brand-500'], ['Tidak Berjaya', $quotationStatus['failed'], 'stroke-error-500']] as [$label, $count, $color])
+                    <div class="flex items-center gap-3 text-gray-600 dark:text-gray-400"><svg class="h-3 w-3 {{ $color }}" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4" fill="none" stroke-width="3" /></svg><span class="flex-1">{{ __($label) }}</span><span class="font-semibold text-gray-900 dark:text-white/90">{{ $count }}</span></div>
+                @endforeach
+            </div>
+        </div>
+    </section>
+
+
+    <div class="min-w-0">
         <section class="min-w-0 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
             <h2 class="text-sm font-semibold text-gray-900 dark:text-white/90">{{ __('Trend Invois & Penerimaan') }}</h2>
             <p class="mt-1 text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Perbandingan bulanan · RM ribu') }}</p>

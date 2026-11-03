@@ -60,6 +60,10 @@
                                     @csrf
                                     <button type="submit" class="inline-flex h-9 items-center rounded-lg bg-success-500 px-3 text-xs font-semibold text-white transition hover:bg-success-600">{{ __('Setuju') }}</button>
                                 </form>
+                                <form method="POST" action="{{ route('sebut-harga.final.disagree', [$quotation->quotation_id, $draft->quotation_detail_id]) }}" @submit.prevent="$dispatch('confirm-action', { form: $el, message: 'Tandakan sebut harga ini sebagai tidak berjaya?', button: 'Tidak Berjaya' })">
+                                    @csrf
+                                    <button type="submit" class="inline-flex h-9 items-center rounded-lg bg-error-500 px-3 text-xs font-semibold text-white transition hover:bg-error-600">{{ __('Tidak Berjaya') }}</button>
+                                </form>
                                 <span class="inline-flex h-9 items-center rounded-lg bg-peach-100 px-3 text-xs font-medium text-peach-700 dark:bg-peach-500/15 dark:text-peach-300">{{ __('Menunggu LO') }}</span>
                                 <form method="POST" action="{{ route('sebut-harga.final.undo-send', [$quotation->quotation_id, $draft->quotation_detail_id]) }}">
                                     @csrf
