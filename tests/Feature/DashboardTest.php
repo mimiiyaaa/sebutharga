@@ -19,6 +19,7 @@ beforeEach(function () {
     Schema::create('payment_voucher_invoice', function (Blueprint $t) { $t->increments('id'); $t->integer('invoice_id'); $t->integer('payment_voucher_id'); $t->decimal('amount',12,2)->nullable(); });
     Schema::create('lo_inden_master', function (Blueprint $t) { $t->increments('lo_inden_id'); $t->string('lo_inden_no'); $t->integer('customer_id'); $t->integer('quotation_id')->nullable(); $t->integer('quotation_detail_id')->nullable(); $t->date('lo_inden_date'); $t->decimal('amount',12,2)->default(0); });
     Schema::create('purchase_order_master', function (Blueprint $t) { $t->increments('purchase_order_id'); $t->string('po_no'); $t->integer('customer_id')->nullable(); $t->date('po_date'); $t->decimal('net_amount',12,2)->default(0); $t->integer('lo_inden_id')->nullable(); });
+    Schema::create('purchase_order_item', function (Blueprint $t) { $t->id(); $t->integer('purchase_order_id'); $t->text('item_description'); });
     Schema::create('sebutharga_master', function (Blueprint $t) { $t->increments('quotation_id'); $t->integer('quotation_detail_id')->nullable(); $t->string('quotation_no'); $t->date('quotation_date')->nullable(); });
     Schema::create('sebutharga_detail', function (Blueprint $t) { $t->increments('quotation_detail_id'); $t->integer('quotation_id'); $t->date('quotation_date'); $t->string('quotation_title')->nullable(); $t->string('status_draft'); $t->timestamp('sent_at')->nullable(); $t->integer('status_quotation')->nullable(); });
     Schema::create('delivery_order_master', function (Blueprint $t) { $t->increments('delivery_order_id'); $t->string('do_no')->default('DO-1'); $t->integer('customer_id'); $t->string('document_kind'); $t->date('do_date'); $t->text('document_data')->nullable(); });
@@ -246,6 +247,14 @@ test('dashboard searches only affect their own sections and combine with invoice
         ->and($response->viewData('balances')->first()['number'])->toBe('INV-2')
         ->and($response->viewData('financial')[0][1])->toEqual(200)
         ->and($response->viewData('topCustomers'))->toHaveCount(2);
+    expect($response->viewData('orderRecords')['lo']->pluck('number')->all())->toBe(['LO-1'])
+        ->and($response->viewData('orderRecords')['po']->pluck('number')->all())->toBe(['PO-2']);
+    $response->assertSee(route('lo.show', 1), false)->assertSee(route('purchase-order.show', 2), false);
+    $empty=$this->get(route('dashboard', array_merge($query, ['lo_q'=>'not-found'])))->assertOk()
+        ->assertSee('Tiada rekod sepadan dengan carian dan tempoh dipilih.');
+    expect($empty->viewData('orderRecords')['lo'])->toHaveCount(0)
+        ->and($empty->viewData('loSummary')->amount)->toEqual(0)
+        ->and($empty->viewData('orderRecords')['po'])->toHaveCount(1);
     $query['invoice_q']='Alpha'; $query['status']='Selesai Dibayar';
     $this->get(route('dashboard',$query))->assertOk()->assertViewHas('balances',fn($rows)=>$rows->total()===1 && $rows->first()['number']==='INV-1');
     $query['invoice_q']='missing';
@@ -256,6 +265,7 @@ test('dashboard searches only affect their own sections and combine with invoice
 test('dashboard ranking searches include matches outside the original top five', function () {
     foreach (range(1,6) as $id) {
         DB::table('customer_supplier')->insert(['customer_id'=>$id,'company_name'=>'Company '.$id]);
+        DB::table('lo_inden_master')->insert(['lo_inden_id'=>$id,'lo_inden_no'=>'LO-'.$id,'customer_id'=>$id,'lo_inden_date'=>'2026-10-01','amount'=>$id*200]);
         dashboardInvoice($id,'2026-10-01',$id*100);
         DB::table('invoice_master')->where('invoice_id',$id)->update(['customer_id'=>$id]);
         DB::table('purchase_order_master')->insert(['purchase_order_id'=>$id,'po_no'=>'PO-'.$id,'customer_id'=>$id,'po_date'=>'2026-10-01','net_amount'=>$id*50]);
@@ -264,4 +274,37 @@ test('dashboard ranking searches include matches outside the original top five',
     expect($response->viewData('topCustomers')->pluck('name')->all())->toBe(['Company 1'])
         ->and($response->viewData('topSuppliers')->pluck('name')->all())->toBe(['Company 2'])
         ->and($response->viewData('poSummary')->count)->toBe(6);
+});
+
+
+test('supervisor dashboard uses LO sales and PO purchases with descriptions and actual quotation decisions', function () {
+    DB::table('customer_supplier')->insert(['customer_id'=>1,'company_name'=>'Alpha']);
+    foreach ([1,2,3] as $id) {
+        DB::table('sebutharga_master')->insert(['quotation_id'=>$id,'quotation_detail_id'=>$id,'quotation_no'=>'QT-'.$id]);
+        DB::table('sebutharga_detail')->insert(['quotation_detail_id'=>$id,'quotation_id'=>$id,'quotation_date'=>'2026-10-01','quotation_title'=>'Projek eHilir','status_draft'=>'Final','sent_at'=>'2026-10-02','status_quotation'=>[1=>1,2=>0,3=>null][$id]]);
+    }
+    DB::table('lo_inden_master')->insert(['lo_inden_id'=>1,'lo_inden_no'=>'LO-1','customer_id'=>1,'quotation_detail_id'=>1,'lo_inden_date'=>'2026-10-01','amount'=>250000]);
+    DB::table('purchase_order_master')->insert(['purchase_order_id'=>1,'po_no'=>'PO-1','customer_id'=>1,'po_date'=>'2026-10-01','net_amount'=>200000]);
+    DB::table('purchase_order_item')->insert(['purchase_order_id'=>1,'item_description'=>'Server Dell R360']);
+    dashboardInvoice(1,'2026-10-01',99);
+    $response=$this->get(route('dashboard',['start'=>'2026-10-01','end'=>'2026-10-27']))->assertOk()
+        ->assertSee('Projek eHilir')->assertSee('Server Dell R360')->assertSee('Trend Invois')->assertSee('Tempoh Baki Invois')->assertSee('Ringkasan Bayaran Invois');
+    expect($response->viewData('loSummary')->amount)->toEqual(250000)
+        ->and($response->viewData('poSummary')->amount)->toEqual(200000)
+        ->and($response->viewData('topCustomers')->first()['amount'])->toEqual(250000)
+        ->and($response->viewData('topSuppliers')->first()['amount'])->toEqual(200000)
+        ->and($response->viewData('quotationStatus'))->toBe(['total'=>3,'waiting'=>1,'success'=>1,'failed'=>1]);
+});
+
+test('supplier financial summary excludes unpaid future and standalone vouchers', function () {
+    DB::table('supplier_documents')->insert([
+        ['id'=>1,'kind'=>'invoice','supplier_id'=>1,'supplier_name'=>'Alpha','document_no'=>'SI-1','document_date'=>'2026-09-01','total_amount'=>1000],
+        ['id'=>2,'kind'=>'invoice','supplier_id'=>1,'supplier_name'=>'Alpha','document_no'=>'SI-2','document_date'=>'2026-11-01','total_amount'=>900],
+    ]);
+    foreach ([1=>['paid','2026-10-02',250],2=>['unpaid','2026-10-02',200],3=>['paid','2026-11-01',100],4=>['paid','2026-10-02',50]] as $id=>$values) {
+        DB::table('payment_voucher_documents')->insert(['id'=>$id,'voucher_no'=>'PV-'.$id,'voucher_date'=>$values[1],'voucher_type'=>'supplier','supplier_payment_status'=>$values[0],'total_amount'=>$values[2]]);
+        if ($id !== 4) DB::table('supplier_invoice_payments')->insert(['payment_voucher_id'=>$id,'supplier_document_id'=>1,'amount'=>$values[2]]);
+    }
+    $data=(new DashboardData())->build(CarbonImmutable::parse('2026-10-01'),CarbonImmutable::parse('2026-10-27'));
+    expect($data['supplierTotals'])->toEqual(['total'=>1000,'paid'=>250,'balance'=>750]);
 });

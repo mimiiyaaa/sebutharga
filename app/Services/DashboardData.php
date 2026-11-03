@@ -51,6 +51,18 @@ class DashboardData
             && $matches($po->po_no.' '.$parties->get($po->customer_id, ''), 'po_q'));
         $loSummary = (object) ['count' => $selectedLos->count(), 'amount' => $selectedLos->sum('amount')];
         $poSummary = (object) ['count' => $selectedPos->count(), 'amount' => $selectedPos->sum('net_amount')];
+        $orderRecords = [
+            'lo' => $selectedLos->sortByDesc('lo_inden_date')->map(fn ($lo) => [
+                'number' => $lo->lo_inden_no, 'party' => $parties->get($lo->customer_id, '—'),
+                'date' => $lo->lo_inden_date, 'amount' => $lo->amount,
+                'url' => route('lo.show', $lo->lo_inden_id),
+            ])->values(),
+            'po' => $selectedPos->sortByDesc('po_date')->map(fn ($po) => [
+                'number' => $po->po_no, 'party' => $parties->get($po->customer_id, '—'),
+                'date' => $po->po_date, 'amount' => $po->net_amount,
+                'url' => route('purchase-order.show', $po->purchase_order_id),
+            ])->values(),
+        ];
         $documentStats = [
             ['label' => 'Jumlah Sebut Harga', 'value' => DB::table('sebutharga_master as quotation')
                 ->join('sebutharga_detail as detail', 'detail.quotation_detail_id', '=', 'quotation.quotation_detail_id')
@@ -63,36 +75,41 @@ class DashboardData
             ['label' => 'Jumlah INV', 'value' => DB::table('invoice_master')->whereBetween('invoice_date', [$start->toDateString(), $cutoff])->count(), 'url' => route('invoice.customer')],
             ['label' => 'Jumlah Baucar Bayaran', 'value' => DB::table('payment_voucher_documents')->whereBetween('voucher_date', [$start->toDateString(), $cutoff])->count(), 'url' => route('baucar-bayaran.index')],
         ];
-        $topCustomers = $invoices
-            ->filter(fn ($invoice) => $invoice->invoice_date >= $start->toDateString())
-            ->groupBy(fn ($invoice) => (string) ($invoice->customer_id ?? 'unknown'))
-            ->map(function ($records) {
-                $first = $records->first();
-                $snapshot = json_decode($first->document_data ?? '{}', true) ?: [];
-                return [
-                    'name' => $first->company_name ?: ($snapshot['customer_name'] ?? '—'),
+        $titles = DB::table('sebutharga_detail')->pluck('quotation_title', 'quotation_detail_id');
+        $poItems = DB::table('purchase_order_item')->orderBy('purchase_order_id')->get()->groupBy('purchase_order_id');
+        $describe = fn ($values) => $values->filter()->unique()->take(3)->implode('; ');
+        $topCustomers = $los->filter(fn ($lo) => $lo->lo_inden_date >= $start->toDateString())
+            ->groupBy('customer_id')->map(function ($records) use ($parties, $titles, $describe) {
+                return ['name' => $parties->get($records->first()->customer_id, '—'),
                     'count' => $records->count(),
-                    'amount' => $records->sum(fn ($invoice) => InvoicePayments::cents($invoice->total_amount)) / 100,
-                ];
+                    'amount' => $records->sum(fn ($lo) => InvoicePayments::cents($lo->amount)) / 100,
+                    'description' => $describe($records->map(fn ($lo) => $titles->get($lo->quotation_detail_id))) ?: '—'];
             })->filter(fn ($row) => $matches($row['name'], 'customer_q'))->sortByDesc('amount')->take(5)->values();
-        $poSuppliers = DB::table('purchase_order_master as po')
-            ->leftJoin('customer_supplier as supplier', 'supplier.customer_id', '=', 'po.customer_id')
-            ->whereBetween('po.po_date', [$start->toDateString(), $cutoff])
-            ->get(['po.customer_id as supplier_id', 'po.net_amount', 'supplier.company_name']);
-        $topSuppliers = $poSuppliers
-            ->groupBy(fn ($po) => (string) ($po->supplier_id ?? 'unknown'))
-            ->map(function ($records) {
-                $first = $records->first();
-                return [
-                    'name' => $first->company_name ?: '—',
+        $topSuppliers = $pos->filter(fn ($po) => $po->po_date >= $start->toDateString())
+            ->groupBy('customer_id')->map(function ($records) use ($parties, $poItems, $describe) {
+                return ['name' => $parties->get($records->first()->customer_id, '—'),
                     'count' => $records->count(),
-                    'amount' => $records->sum(fn ($po) => (float) $po->net_amount),
-                ];
+                    'amount' => $records->sum(fn ($po) => InvoicePayments::cents($po->net_amount)) / 100,
+                    'description' => $describe($records->flatMap(fn ($po) => $poItems->get($po->purchase_order_id, collect())->pluck('item_description'))) ?: '—'];
             })->filter(fn ($row) => $matches($row['name'], 'supplier_q'))->sortByDesc('amount')->take(5)->values();
+        $supplierInvoices = DB::table('supplier_documents')->where('kind', 'invoice')->whereDate('document_date', '<=', $cutoff)->get();
+        $supplierPayments = DB::table('supplier_invoice_payments as p')
+            ->join('payment_voucher_documents as v', 'v.id', '=', 'p.payment_voucher_id')
+            ->where('v.voucher_type', 'supplier')->where('v.supplier_payment_status', 'paid')
+            ->whereDate('v.voucher_date', '<=', $cutoff)->get(['p.supplier_document_id', 'p.amount'])->groupBy('supplier_document_id');
+        $supplierTotals = ['total' => 0, 'paid' => 0, 'balance' => 0];
+        foreach ($supplierInvoices as $invoice) {
+            $total = InvoicePayments::cents($invoice->total_amount);
+            $paid = $supplierPayments->get($invoice->id, collect())->sum(fn ($p) => InvoicePayments::cents($p->amount));
+            $supplierTotals['total'] += $total;
+            $supplierTotals['paid'] += $paid;
+            $supplierTotals['balance'] += max(0, $total - $paid);
+        }
+        $supplierTotals = array_map(fn ($amount) => $amount / 100, $supplierTotals);
         $details = DB::table('sebutharga_detail')->whereDate('quotation_date', '<=', $cutoff)->orderByDesc('quotation_detail_id')->get()->groupBy('quotation_id');
         $masters = DB::table('sebutharga_master')->whereIn('quotation_id', $details->keys())->get()->keyBy('quotation_id');
         $drafts = collect(); $finals = collect();
-        $quotationStatus = ['total' => 0, 'waiting' => 0, 'success' => 0];
+        $quotationStatus = ['total' => 0, 'waiting' => 0, 'success' => 0, 'failed' => 0];
         foreach ($details as $id => $versions) {
             $master = $masters->get($id);
             if (!$master) continue;
@@ -101,7 +118,8 @@ class DashboardData
                 && $active->quotation_date >= $start->toDateString() && $active->quotation_date <= $cutoff) {
                 $quotationStatus['total']++;
                 if ($active->sent_at && $active->status_quotation === null) $quotationStatus['waiting']++;
-                elseif ((int) $active->status_quotation === 1) $quotationStatus['success']++;
+                elseif ($active->status_quotation !== null && (int) $active->status_quotation === 1) $quotationStatus['success']++;
+                elseif ($active->status_quotation !== null && (int) $active->status_quotation === 0) $quotationStatus['failed']++;
             }
             $row = ['number' => $master->quotation_no, 'description' => $active->quotation_title ?: '—',
                 'url' => route('sebut-harga.edit', [$id, 'draft' => $active->quotation_detail_id])];
@@ -145,7 +163,7 @@ class DashboardData
         $financial = [['Jum. Keseluruhan', $totalCents / 100, 'Invois pelanggan hingga tarikh akhir'],
             ['Jum. Sudah Bayar', $paidCents / 100, 'Bayaran disahkan untuk invois di atas'],
             ['Jum. Baki Belum Bayar', array_sum($agingAmounts) / 100, 'Termasuk bayaran sebahagian']];
-        return compact('metrics', 'actions', 'groups', 'months', 'invoiced', 'received', 'aging', 'financial', 'statuses', 'balances', 'loSummary', 'poSummary', 'quotationStatus', 'documentStats', 'topCustomers', 'topSuppliers')
+        return compact('orderRecords', 'supplierTotals', 'metrics', 'actions', 'groups', 'months', 'invoiced', 'received', 'aging', 'financial', 'statuses', 'balances', 'loSummary', 'poSummary', 'quotationStatus', 'documentStats', 'topCustomers', 'topSuppliers')
             + ['invoiceCount' => $invoices->count(), 'pendingCount' => $pending->count(), 'chartMax' => max(1, ceil(max([...$invoiced, ...$received, 0]) / 5) * 5)];
     }
 }

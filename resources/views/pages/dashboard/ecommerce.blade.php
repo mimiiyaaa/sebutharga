@@ -58,39 +58,20 @@
             </a>
         @endforeach
     </div>
-    <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-800"><h2 class="border-s-4 border-brand-500 ps-3 text-sm font-semibold text-gray-900 dark:border-brand-400 dark:text-white/90">{{ __('Status Outstanding Bayaran Invois Terkini') }}</h2><span class="text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Berdasarkan invois kepada pelanggan') }}</span></div>
-        <div class="grid gap-5 p-5 md:grid-cols-3">
-            @foreach ($financial as [$label, $amount, $hint])
-                <div class="rounded-xl bg-gray-50 p-5 dark:bg-gray-800/50"><p class="text-sm text-gray-600 dark:text-gray-400">{{ __($label) }}</p><p @class(['mt-2 text-2xl font-semibold tabular-nums', 'text-gray-900 dark:text-white/90' => $loop->first, 'text-success-600 dark:text-success-400' => $loop->iteration === 2, 'text-warning-600 dark:text-warning-400' => $loop->last])><span class="text-sm font-medium">RM</span> {{ number_format($amount, 2) }}</p><p class="mt-2 text-theme-xs text-gray-500 dark:text-gray-400">{{ __($hint) }}</p></div>
-            @endforeach
-        </div>
-    </section>
-    @if($pendingCount)
-        <div class="rounded-xl border border-warning-200 bg-warning-50 p-4 text-sm text-warning-700 dark:border-warning-800 dark:bg-warning-500/10 dark:text-warning-400">{{ $pendingCount }} {{ __('baucar perlu semakan. Amaun yang belum disahkan tidak ditolak daripada baki invois.') }} <a class="underline" href="{{ route('baucar-bayaran.index') }}">{{ __('Semak') }}</a></div>
-    @endif
-    <div class="grid grid-cols-1 gap-5">
-        @foreach ([['Ringkasan Jualan LO', 'Jumlah Jualan', 'Bilangan LO', $loSummary, 'lo'], ['Ringkasan Belian PO', 'Jumlah Belian', 'Bilangan PO', $poSummary, 'po']] as [$title, $amountLabel, $countLabel, $summary, $type])
-            <section id="summary-{{ $type }}" class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-800"><h2 class="border-s-4 border-brand-500 ps-3 text-sm font-semibold text-gray-900 dark:border-brand-400 dark:text-white/90">{{ __($title) }}</h2><span class="text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Mengikut tempoh dipilih') }}</span></div>
-                <x-dashboard.section-search :name="$type.'_q'" :anchor="'summary-'.$type" :placeholder="$type === 'lo' ? 'Cari no. LO atau pelanggan' : 'Cari no. PO atau pembekal'" />
-                <div class="grid gap-4 p-5 sm:grid-cols-2">
-                    <div class="rounded-xl bg-gray-50 p-5 dark:bg-gray-800/50"><p class="text-sm text-gray-600 dark:text-gray-400">{{ __($amountLabel) }}</p><p class="mt-2 text-2xl font-semibold tabular-nums text-brand-600 dark:text-brand-400"><span class="text-sm font-medium">RM</span> {{ number_format((float) $summary->amount, 2) }}</p><p class="mt-2 text-theme-xs text-gray-500 dark:text-gray-400">{{ $type === 'lo' ? __('Jumlah nilai semua LO') : __('Jumlah nilai bersih semua PO') }}</p></div>
-                    <div class="rounded-xl bg-gray-50 p-5 dark:bg-gray-800/50"><p class="text-sm text-gray-600 dark:text-gray-400">{{ __($countLabel) }}</p><p class="mt-2 text-2xl font-semibold tabular-nums text-gray-900 dark:text-white/90">{{ number_format((int) $summary->count) }}</p><p class="mt-2 text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Bilangan dokumen dalam tempoh') }}</p></div>
-                </div>
-            </section>
-        @endforeach
-    </div>
     <div class="grid grid-cols-1 overflow-hidden rounded-2xl border border-gray-200 bg-white xl:grid-cols-4 dark:border-gray-800 dark:bg-gray-900">
         <section class="min-w-0 border-b border-gray-200 p-5 xl:border-b-0 xl:border-e dark:border-gray-800">
             <h2 class="text-sm font-semibold text-gray-900 dark:text-white/90">{{ __('Status Invois Pelanggan') }}</h2><p class="mt-1 text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Setakat') }} {{ $end->format('d/m/Y') }}</p>
             <div class="relative mx-auto my-5 h-36 w-36">
                 <svg viewBox="0 0 120 120" class="h-full w-full -rotate-90" role="img" aria-label="{{ __('Status Invois Pelanggan') }}">
                     <circle cx="60" cy="60" r="48" fill="none" stroke-width="13" class="stroke-gray-100 dark:stroke-gray-800" />
-                    @php($offset = 0)
+                    @php
+$offset = 0;
+@endphp
                     @foreach($statuses as $label => $count)
                         @if($count > 0)<circle cx="60" cy="60" r="48" fill="none" stroke-width="13" pathLength="{{ max(1, $invoiceCount) }}" stroke-dasharray="{{ $count }} {{ $invoiceCount - $count }}" stroke-dashoffset="{{ -$offset }}" class="{{ $statusColors[$label] }}"><title>{{ __($label) }}: {{ $count }}</title></circle>@endif
-                        @php($offset += $count)
+                        @php
+$offset += $count;
+@endphp
                     @endforeach
                 </svg>
                 <div class="absolute inset-0 flex flex-col items-center justify-center"><span class="text-2xl font-semibold text-gray-900 dark:text-white/90">{{ $invoiceCount }}</span><span class="text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Invois') }}</span></div>
@@ -106,7 +87,9 @@
         <x-dashboard.section-search name="invoice_q" anchor="invoice-balances" placeholder="Cari no. invois atau pelanggan" :statuses="true" />
         <div class="overflow-x-auto"><table class="w-full text-start text-theme-xs"><thead class="bg-gray-50 text-theme-xs text-gray-500 dark:bg-gray-800/50 dark:text-gray-400"><tr>@foreach (['Invois / Pelanggan', 'Jumlah Invois', 'Sudah Dibayar', 'Baki', 'Umur Invois', 'Status', 'Tindakan'] as $label)<th class="px-4 py-3 text-start font-medium">{{ __($label) }}</th>@endforeach</tr></thead><tbody class="divide-y divide-gray-100 dark:divide-gray-800">
             @forelse ($balances as $row)
-                @php(['number' => $number, 'customer' => $customer, 'total' => $total, 'paid' => $paid, 'balance' => $balance, 'days' => $days, 'status' => $status, 'url' => $url] = $row)
+                @php
+['number' => $number, 'customer' => $customer, 'total' => $total, 'paid' => $paid, 'balance' => $balance, 'days' => $days, 'status' => $status, 'url' => $url] = $row;
+@endphp
                 <tr class="text-gray-700 dark:text-gray-300"><td class="px-4 py-3"><p class="font-medium text-gray-900 dark:text-white/90">{{ $number }}</p><p class="mt-1 text-theme-xs text-gray-500 dark:text-gray-400">{{ __($customer) }}</p></td>@foreach ([$total, $paid, $balance] as $amount)<td class="whitespace-nowrap px-4 py-3 tabular-nums">RM {{ number_format($amount, 2) }}</td>@endforeach<td class="whitespace-nowrap px-4 py-3">{{ $days }} {{ __('hari') }}</td><td class="px-4 py-3"><span class="text-theme-xs font-medium text-brand-600 dark:text-brand-400">{{ __($status) }}</span></td><td class="px-4 py-3"><a href="{{ $url }}" class="document-action">{{ __('Status') }}</a></td></tr>
             @empty
                 <tr><td colspan="7" class="px-5 py-10 text-center text-gray-500 dark:text-gray-400">{{ __('Tiada invois untuk pilihan ini.') }}</td></tr>
@@ -117,17 +100,126 @@
     </section>
     </div>
 
+    <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-800">
+            <h2 class="border-s-4 border-brand-500 ps-3 text-sm font-semibold text-gray-900 dark:text-white/90">{{ __('Ringkasan Bayaran Invois') }}</h2>
+            <span class="text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Setakat') }} {{ $end->format('d/m/Y') }}</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-start text-sm">
+                <thead class="bg-gray-50 text-theme-xs text-gray-500 dark:bg-gray-800/50 dark:text-gray-400">
+                    <tr><th scope="col" class="px-5 py-4 text-start font-medium">{{ __('Kategori Invois') }}</th><th scope="col" class="px-5 py-4 text-end font-medium">{{ __('Jumlah Nilai Invois') }}</th><th scope="col" class="px-5 py-4 text-end font-medium">{{ __('Jumlah Sudah Bayar') }}</th><th scope="col" class="px-5 py-4 text-end font-medium">{{ __('Baki Belum Bayar') }}</th></tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                    @foreach ([['Pembekal', 'Bayaran kepada pembekal', $supplierTotals['total'], $supplierTotals['paid'], $supplierTotals['balance']], ['Pelanggan', 'Bayaran daripada pelanggan', $financial[0][1], $financial[1][1], $financial[2][1]]] as [$party, $hint, $total, $paid, $balance])
+                        <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-800/40">
+                            <th scope="row" class="px-5 py-6 text-start"><span class="font-semibold text-gray-900 dark:text-white/90">{{ __($party) }}</span><span class="mt-1 block text-theme-xs font-normal text-gray-500 dark:text-gray-400">{{ __($hint) }}</span></th>
+                            <td class="whitespace-nowrap px-5 py-6 text-end text-lg font-semibold tabular-nums text-gray-900 dark:text-white/90"><span class="text-theme-xs font-medium">RM</span> {{ number_format($total, 2) }}</td>
+                            <td class="whitespace-nowrap px-5 py-6 text-end text-lg font-semibold tabular-nums text-success-700 dark:text-success-400"><span class="text-theme-xs font-medium">RM</span> {{ number_format($paid, 2) }}</td>
+                            <td class="whitespace-nowrap bg-warning-50/50 px-5 py-6 text-end text-lg font-semibold tabular-nums text-warning-700 dark:bg-warning-500/5 dark:text-warning-400"><span class="text-theme-xs font-medium">RM</span> {{ number_format($balance, 2) }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        <p class="border-t border-gray-100 px-5 py-3 text-theme-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">{{ __('Bayaran disahkan sehingga tarikh akhir, termasuk bayaran sebahagian.') }}</p>
+    </section>
+    <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
+            <h2 class="border-s-4 border-brand-500 ps-3 text-sm font-semibold text-gray-900 dark:text-white/90">{{ __('Ringkasan Jualan LO dan Belian PO') }}</h2>
+            <span class="text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Mengikut tempoh dipilih') }}</span>
+        </div>
+        <div class="grid items-stretch gap-4 p-4 xl:grid-cols-5">
+            <div class="grid gap-4 sm:grid-cols-2 xl:col-span-1 xl:grid-cols-1 xl:grid-rows-2">
+                @foreach ([['Jumlah Jualan', 'LO Pelanggan', $loSummary, 'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300'], ['Jumlah Belian', 'PO Kepada Pembekal', $poSummary, 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400']] as [$label, $hint, $summary, $colors])
+                    <div class="flex flex-col justify-center rounded-xl p-4 {{ $colors }}">
+                        <div class="flex items-center gap-3"><span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/70 dark:bg-gray-900/40"><svg class="h-5 w-5 stroke-current" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 3h9l3 3v15H6V3Zm3 7h6m-6 4h6m-6 4h4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><p class="text-sm font-medium">{{ __($label) }}</p></div>
+                        <p class="mt-3 text-xl font-semibold tabular-nums"><span class="text-theme-xs">RM</span> {{ number_format($summary->amount, 2) }}</p>
+                        <p class="mt-2 text-theme-xs">{{ number_format($summary->count) }} {{ __($hint) }}</p>
+                    </div>
+                @endforeach
+            </div>
+            <div class="min-w-0 xl:col-span-4" x-data="{ activeOrder: 'lo' }" x-init="activeOrder = window.location.hash === '#summary-po' ? 'po' : 'lo'">
+                <div class="flex gap-2 border-b border-gray-100 px-4 pb-3 dark:border-gray-800" role="tablist" aria-label="{{ __('Jenis Dokumen') }}">
+                    @foreach (['lo' => 'LO Pelanggan', 'po' => 'PO Kepada Pembekal'] as $tab => $tabLabel)
+                        <button type="button" id="order-tab-{{ $tab }}" role="tab" aria-controls="summary-{{ $tab }}" :aria-selected="activeOrder === '{{ $tab }}'" @click="activeOrder = '{{ $tab }}'" :class="activeOrder === '{{ $tab }}' ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300' : 'text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800'" class="rounded-lg px-4 py-2 text-sm font-medium transition">{{ __($tabLabel) }}</button>
+                    @endforeach
+                </div>
+                @foreach ([['lo', 'LO Pelanggan', 'Pelanggan', 'Cari no. LO atau pelanggan', $loSummary], ['po', 'PO Kepada Pembekal', 'Pembekal', 'Cari no. PO atau pembekal', $poSummary]] as [$type, $heading, $partyLabel, $placeholder, $summary])
+                    <div id="summary-{{ $type }}" class="min-w-0" role="tabpanel" aria-labelledby="order-tab-{{ $type }}" x-show="activeOrder === '{{ $type }}'" x-cloak>
+                        <div class="flex flex-wrap items-center justify-between gap-2 px-5 py-3"><h3 class="text-sm font-semibold text-gray-900 dark:text-white/90">{{ __($heading) }}</h3><span class="text-sm text-gray-500 dark:text-gray-400">{{ $orderRecords[$type]->count() }} {{ __('rekod') }}</span></div>
+                        <x-dashboard.section-search :name="$type.'_q'" :anchor="'summary-'.$type" :placeholder="$placeholder" :compact="true" />
+                        <div class="max-h-64 overflow-auto custom-scrollbar">
+                            <table class="w-full text-start text-sm">
+                                <thead class="sticky top-0 bg-gray-50 text-sm text-gray-600 dark:bg-gray-800 dark:text-gray-300"><tr><th scope="col" class="px-4 py-3 text-start font-medium">{{ __('No. Dokumen') }}</th><th scope="col" class="px-4 py-3 text-start font-medium">{{ __($partyLabel) }}</th><th scope="col" class="px-4 py-3 text-start font-medium">{{ __('Tarikh') }}</th><th scope="col" class="px-4 py-3 text-end font-medium">{{ __('Jumlah Nilai (RM)') }}</th><th scope="col" class="px-4 py-3 text-end font-medium">{{ __('Tindakan') }}</th></tr></thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                                    @forelse ($orderRecords[$type] as $record)
+                                        <tr class="text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800/40">
+                                            <th scope="row" class="px-4 py-3 text-start font-medium text-gray-900 dark:text-white/90">{{ $record['number'] }}</th>
+                                            <td class="px-4 py-3">{{ $record['party'] }}</td>
+                                            <td class="whitespace-nowrap px-4 py-3">{{ \Carbon\Carbon::parse($record['date'])->format('d/m/Y') }}</td>
+                                            <td class="whitespace-nowrap px-4 py-3 text-end font-semibold tabular-nums">{{ number_format($record['amount'], 2) }}</td>
+                                            <td class="px-4 py-3 text-end"><a href="{{ $record['url'] }}" class="document-action">{{ __('Lihat') }}</a></td>
+                                        </tr>
+                                    @empty
+                                        <tr><td colspan="5" class="px-5 py-8 text-center text-gray-500 dark:text-gray-400">{{ __('Tiada rekod sepadan dengan carian dan tempoh dipilih.') }}</td></tr>
+                                    @endforelse
+                                </tbody>
+                                <tfoot class="border-t border-gray-200 bg-gray-50 font-semibold text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"><tr><th colspan="3" class="px-4 py-3 text-start">{{ __('Jumlah hasil carian') }}</th><td class="whitespace-nowrap px-4 py-3 text-end tabular-nums">{{ number_format($summary->amount, 2) }}</td><td></td></tr></tfoot>
+                            </table>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    </section>
+
+    <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-800"><h2 class="border-s-4 border-brand-500 ps-3 text-sm font-semibold text-gray-900 dark:border-brand-400 dark:text-white/90">{{ __('Status Sebut Harga') }}</h2><span class="text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Ringkasan sebut harga Final') }}</span></div>
+        <div class="grid grid-cols-3 gap-3 px-5 pt-5">
+            @foreach([['Jumlah Sebut Harga', 'total', 'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300'], ['Jumlah Berjaya', 'success', 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400'], ['Tidak Berjaya', 'failed', 'bg-error-50 text-error-700 dark:bg-error-500/10 dark:text-error-400']] as [$label, $key, $colors])
+                <div class="rounded-xl p-3 {{ $colors }}"><p class="text-theme-xs font-medium">{{ __($label) }}</p><p class="mt-2 text-xl font-semibold tabular-nums">{{ number_format($quotationStatus[$key]) }}</p></div>
+            @endforeach
+        </div>
+        @php
+$quotationStatusTotal = $quotationStatus['total'];
+@endphp
+        <div class="grid gap-4 p-5">
+            <div class="relative mx-auto h-32 w-32">
+                <svg viewBox="0 0 120 120" class="h-full w-full -rotate-90" role="img" aria-label="{{ __('Status Sebut Harga') }}">
+                    <circle cx="60" cy="60" r="48" fill="none" stroke-width="13" class="stroke-gray-100 dark:stroke-gray-800" />
+                    @php
+$offset = 0;
+@endphp
+                    @foreach ([['Berjaya', $quotationStatus['success'], 'stroke-success-500'], ['Menunggu', $quotationStatus['total'] - $quotationStatus['success'] - $quotationStatus['failed'], 'stroke-brand-500'], ['Tidak Berjaya', $quotationStatus['failed'], 'stroke-error-500']] as [$label, $count, $color])
+                        @if($count > 0)<circle cx="60" cy="60" r="48" fill="none" stroke-width="13" pathLength="{{ max(1, $quotationStatusTotal) }}" stroke-dasharray="{{ $count }} {{ max(1, $quotationStatusTotal) - $count }}" stroke-dashoffset="{{ -$offset }}" class="{{ $color }}"><title>{{ __($label) }}: {{ $count }}</title></circle>@endif
+                        @php
+$offset += $count;
+@endphp
+                    @endforeach
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center"><span class="text-2xl font-semibold text-gray-900 dark:text-white/90">{{ $quotationStatusTotal }}</span><span class="text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Sebut Harga') }}</span></div>
+            </div>
+            <div class="space-y-4 text-sm">
+                @foreach ([['Berjaya', $quotationStatus['success'], 'stroke-success-500'], ['Menunggu', $quotationStatus['total'] - $quotationStatus['success'] - $quotationStatus['failed'], 'stroke-brand-500'], ['Tidak Berjaya', $quotationStatus['failed'], 'stroke-error-500']] as [$label, $count, $color])
+                    <div class="flex items-center gap-3 text-gray-600 dark:text-gray-400"><svg class="h-3 w-3 {{ $color }}" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4" fill="none" stroke-width="3" /></svg><span class="flex-1">{{ __($label) }}</span><span class="font-semibold text-gray-900 dark:text-white/90">{{ $count }}</span></div>
+                @endforeach
+            </div>
+        </div>
+    </section>
     <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        @foreach ([['Top 5 Pelanggan', 'Pelanggan', 'Bil. Invois', 'Jumlah Jualan', $topCustomers], ['Top 5 Pembekal', 'Pembekal', 'Bil. PO', 'Jumlah Belian', $topSuppliers]] as [$title, $partyLabel, $countLabel, $amountLabel, $records])
-            @php($searchKey = $partyLabel === 'Pelanggan' ? 'customer_q' : 'supplier_q')
+        @foreach ([['Top 5 Pelanggan', 'Pelanggan', 'Bil. LO', 'Jumlah Jualan', $topCustomers], ['Top 5 Pembekal', 'Pembekal', 'Bil. PO', 'Jumlah Belian', $topSuppliers]] as [$title, $partyLabel, $countLabel, $amountLabel, $records])
+            @php
+$searchKey = $partyLabel === 'Pelanggan' ? 'customer_q' : 'supplier_q';
+@endphp
             <section id="ranking-{{ $searchKey }}" class="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
                 <div class="border-b border-gray-100 px-5 py-4 dark:border-gray-800"><h2 class="text-sm font-semibold text-gray-900 dark:text-white/90">{{ __($title) }}</h2><p class="mt-1 text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Mengikut jumlah tertinggi dalam tempoh dipilih') }}</p></div>
                 <x-dashboard.section-search :name="$searchKey" :anchor="'ranking-'.$searchKey" :placeholder="$partyLabel === 'Pelanggan' ? 'Cari nama pelanggan' : 'Cari nama pembekal'" />
-                <div class="overflow-x-auto"><table class="w-full text-start text-theme-xs"><thead class="bg-gray-50 text-theme-xs text-gray-500 dark:bg-gray-800/50 dark:text-gray-400"><tr><th class="px-5 py-3 text-start font-medium">#</th><th class="px-5 py-3 text-start font-medium">{{ __($partyLabel) }}</th><th class="px-5 py-3 text-end font-medium">{{ __($countLabel) }}</th><th class="px-5 py-3 text-end font-medium">{{ __($amountLabel) }}</th></tr></thead><tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                <div class="overflow-x-auto"><table class="w-full text-start text-theme-xs"><thead class="bg-gray-50 text-theme-xs text-gray-500 dark:bg-gray-800/50 dark:text-gray-400"><tr><th class="px-5 py-3 text-start font-medium">#</th><th class="px-5 py-3 text-start font-medium">{{ __($partyLabel) }}</th><th class="px-5 py-3 text-start font-medium">{{ __('Keterangan Ringkas') }}</th><th class="px-5 py-3 text-end font-medium">{{ __($countLabel) }}</th><th class="px-5 py-3 text-end font-medium">{{ __($amountLabel) }}</th></tr></thead><tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                     @forelse ($records as $record)
-                        <tr class="text-gray-700 dark:text-gray-300"><td class="px-5 py-3 tabular-nums">{{ $loop->iteration }}</td><td class="px-5 py-3 font-medium text-gray-900 dark:text-white/90">{{ $record['name'] }}</td><td class="px-5 py-3 text-end tabular-nums">{{ $record['count'] }}</td><td class="px-5 py-3 text-end font-semibold tabular-nums">RM {{ number_format($record['amount'], 2) }}</td></tr>
+                        <tr class="text-gray-700 dark:text-gray-300"><td class="px-5 py-3 tabular-nums">{{ $loop->iteration }}</td><td class="px-5 py-3 font-medium text-gray-900 dark:text-white/90">{{ $record['name'] }}</td><td class="px-5 py-3">{{ \Illuminate\Support\Str::limit($record['description'], 160) }}</td><td class="px-5 py-3 text-end tabular-nums">{{ $record['count'] }}</td><td class="px-5 py-3 text-end font-semibold tabular-nums">RM {{ number_format($record['amount'], 2) }}</td></tr>
                     @empty
-                        <tr><td colspan="4" class="px-5 py-8 text-center text-gray-500 dark:text-gray-400">{{ __('Tiada data untuk tempoh dipilih') }}</td></tr>
+                        <tr><td colspan="5" class="px-5 py-8 text-center text-gray-500 dark:text-gray-400">{{ __('Tiada data untuk tempoh dipilih') }}</td></tr>
                     @endforelse
                 </tbody></table></div>
             </section>
@@ -135,8 +227,11 @@
     </div>
 
 
-    <div class="grid gap-5 xl:grid-cols-2">
-        <section class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+    @if($pendingCount)
+        <div class="rounded-xl border border-warning-200 bg-warning-50 p-4 text-sm text-warning-700 dark:border-warning-800 dark:bg-warning-500/10 dark:text-warning-400">{{ $pendingCount }} {{ __('baucar perlu semakan. Amaun yang belum disahkan tidak ditolak daripada baki invois.') }} <a class="underline" href="{{ route('baucar-bayaran.index') }}">{{ __('Semak') }}</a></div>
+    @endif
+    <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <section class="min-w-0 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
             <h2 class="text-sm font-semibold text-gray-900 dark:text-white/90">{{ __('Tempoh Baki Invois') }}</h2><p class="mt-1 text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Umur dikira daripada tarikh invois, bukan tarikh lewat bayar.') }}</p>
             <div class="mt-6 space-y-5">
                 @foreach ($aging as [$label, $amount, $width])
@@ -144,42 +239,7 @@
                 @endforeach
             </div>
         </section>
-        <section class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-            <h2 class="text-sm font-semibold text-gray-900 dark:text-white/90">{{ __('Perlu Tindakan') }}</h2><p class="mt-1 text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Senarai semakan urusan yang belum lengkap') }}</p>
-            <div class="mt-4 divide-y divide-gray-100 dark:divide-gray-800">
-                @foreach ($actions as [$label, $count, $hint, $group])
-                    <div class="flex items-center gap-4 py-3"><span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-warning-50 font-semibold text-warning-700 dark:bg-warning-500/10 dark:text-warning-400">{{ $count }}</span><div class="min-w-0 flex-1"><h3 class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ __($label) }}</h3><p class="mt-0.5 text-theme-xs text-gray-500 dark:text-gray-400">{{ __($hint) }}</p></div><a href="{{ route($documentRoutes[$group]) }}" class="document-action">{{ __('Lihat') }}</a></div>
-                @endforeach
-            </div>
-        </section>
-    </div>
 
-    <div class="grid gap-5 xl:grid-cols-2">
-    <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-800"><h2 class="border-s-4 border-brand-500 ps-3 text-sm font-semibold text-gray-900 dark:border-brand-400 dark:text-white/90">{{ __('Status Sebut Harga') }}</h2><span class="text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Ringkasan sebut harga Final') }}</span></div>
-        @php($quotationStatusTotal = $quotationStatus['waiting'] + $quotationStatus['success'])
-        <div class="grid gap-4 p-5">
-            <div class="relative mx-auto h-32 w-32">
-                <svg viewBox="0 0 120 120" class="h-full w-full -rotate-90" role="img" aria-label="{{ __('Status Sebut Harga') }}">
-                    <circle cx="60" cy="60" r="48" fill="none" stroke-width="13" class="stroke-gray-100 dark:stroke-gray-800" />
-                    @php($offset = 0)
-                    @foreach ([['Berjaya', $quotationStatus['success'], 'stroke-success-500'], ['Menunggu', $quotationStatus['waiting'], 'stroke-brand-500']] as [$label, $count, $color])
-                        @if($count > 0)<circle cx="60" cy="60" r="48" fill="none" stroke-width="13" pathLength="{{ max(1, $quotationStatusTotal) }}" stroke-dasharray="{{ $count }} {{ max(1, $quotationStatusTotal) - $count }}" stroke-dashoffset="{{ -$offset }}" class="{{ $color }}"><title>{{ __($label) }}: {{ $count }}</title></circle>@endif
-                        @php($offset += $count)
-                    @endforeach
-                </svg>
-                <div class="absolute inset-0 flex flex-col items-center justify-center"><span class="text-2xl font-semibold text-gray-900 dark:text-white/90">{{ $quotationStatusTotal }}</span><span class="text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Sebut Harga') }}</span></div>
-            </div>
-            <div class="space-y-4 text-sm">
-                @foreach ([['Berjaya', $quotationStatus['success'], 'stroke-success-500'], ['Menunggu', $quotationStatus['waiting'], 'stroke-brand-500']] as [$label, $count, $color])
-                    <div class="flex items-center gap-3 text-gray-600 dark:text-gray-400"><svg class="h-3 w-3 {{ $color }}" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4" fill="none" stroke-width="3" /></svg><span class="flex-1">{{ __($label) }}</span><span class="font-semibold text-gray-900 dark:text-white/90">{{ $count }}</span></div>
-                @endforeach
-            </div>
-        </div>
-    </section>
-
-
-    <div class="min-w-0">
         <section class="min-w-0 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
             <h2 class="text-sm font-semibold text-gray-900 dark:text-white/90">{{ __('Trend Invois & Penerimaan') }}</h2>
             <p class="mt-1 text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Perbandingan bulanan · RM ribu') }}</p>
@@ -187,7 +247,9 @@
             <svg viewBox="0 0 620 260" class="mt-4 w-full" role="img" aria-labelledby="trend-chart-title">
                 <title id="trend-chart-title">{{ __('Trend Invois & Penerimaan') }}</title>
                 @foreach (range(0, 5) as $step)
-                    @php($tick = $chartMax * $step / 5)
+                    @php
+$tick = $chartMax * $step / 5;
+@endphp
                     <line x1="40" x2="605" y1="{{ 220 - $tick / $chartMax * 200 }}" y2="{{ 220 - $tick / $chartMax * 200 }}" class="stroke-gray-100 dark:stroke-gray-800" />
                     <text x="30" y="{{ 224 - $tick / $chartMax * 200 }}" text-anchor="end" class="fill-gray-400 text-theme-xs dark:fill-gray-500">{{ number_format($tick, 1) }}</text>
                 @endforeach
@@ -202,7 +264,7 @@
 
     </div>
 
-    </div>
+
 
 
 </div>

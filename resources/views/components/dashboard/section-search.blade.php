@@ -1,4 +1,4 @@
-@props(['name', 'placeholder', 'anchor', 'statuses' => false])
+@props(['name', 'placeholder', 'anchor', 'statuses' => false, 'large' => false, 'compact' => false])
 @php
     $allowed = ['start', 'end', 'lo_q', 'po_q', 'customer_q', 'supplier_q', 'invoice_q', 'status', 'age'];
     $exclude = $statuses ? [$name, 'status', 'age'] : [$name];
@@ -8,12 +8,12 @@
 <form method="GET" action="{{ route('dashboard') }}#{{ $anchor }}" class="flex flex-wrap items-end gap-3 border-b border-gray-100 px-5 py-3 dark:border-gray-800">
     @foreach($retained as $key => $value)<input type="hidden" name="{{ $key }}" value="{{ $value }}">@endforeach
     <div class="min-w-40 flex-1">
-        <label for="dashboard-{{ $name }}" class="mb-2 block text-theme-xs font-medium text-gray-600 dark:text-gray-400">{{ __($placeholder) }}</label>
-        <input id="dashboard-{{ $name }}" name="{{ $name }}" type="search" value="{{ request($name) }}" maxlength="200" placeholder="{{ __($placeholder) }}" class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+        <label for="dashboard-{{ $name }}" class="mb-2 block {{ $large ? 'text-sm' : 'text-theme-xs' }} font-medium text-gray-600 dark:text-gray-400">{{ __($placeholder) }}</label>
+        <input id="dashboard-{{ $name }}" name="{{ $name }}" type="search" value="{{ request($name) }}" maxlength="200" placeholder="{{ __($placeholder) }}" class="{{ $large ? 'h-12 text-base' : 'h-10 text-sm' }} w-full rounded-lg border border-gray-300 bg-white px-3 text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
     </div>
     @if($statuses)
     <div>
-        <label for="dashboard-invoice-status" class="mb-2 block text-theme-xs font-medium text-gray-600 dark:text-gray-400">{{ __('Status') }}</label>
+        <label for="dashboard-invoice-status" class="mb-2 block {{ $large ? 'text-sm' : 'text-theme-xs' }} font-medium text-gray-600 dark:text-gray-400">{{ __('Status') }}</label>
         <select id="dashboard-invoice-status" name="status" class="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
             <option value="">{{ __('Invois berbaki / perlu semakan') }}</option>
             @foreach(['Belum Dibayar','Bayaran Sebahagian','Selesai Dibayar','Perlu Semakan'] as $status)
@@ -25,5 +25,7 @@
     @endif
     <button class="document-action document-action-primary">{{ __('Cari') }}</button>
     <a class="document-action" href="{{ $resetUrl }}">{{ __('Reset') }}</a>
+    @unless($compact)
     <p class="w-full text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Carian ini hanya menapis bahagian ini. Tarikh mengikut penapis Dashboard di atas.') }}</p>
+    @endunless
 </form>
