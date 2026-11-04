@@ -9,6 +9,15 @@ use Illuminate\Validation\ValidationException;
 
 class MonitoringLinksController extends Controller
 {
+    public function invoiceVouchers(int $id)
+    {
+        $invoice = DB::table('supplier_documents')->where('kind', 'invoice')->where('id', $id)->firstOrFail();
+        $vouchers = DB::table('supplier_invoice_payments as p')->join('payment_voucher_documents as v', 'v.id', '=', 'p.payment_voucher_id')
+            ->where('p.supplier_document_id', $id)->where('v.voucher_type', 'supplier')->orderByDesc('v.voucher_date')->orderByDesc('v.id')
+            ->get(['v.id', 'v.voucher_no', 'v.voucher_date', 'v.payment_method', 'v.supplier_payment_status', 'p.amount']);
+        return view('pages.monitoring.invoice-vouchers', compact('invoice', 'vouchers'));
+    }
+
     public function paymentStatus(Request $request, int $id)
     {
         $data = $request->validate(['supplier_payment_status' => 'required|in:paid,unpaid']);

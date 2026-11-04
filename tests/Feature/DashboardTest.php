@@ -189,11 +189,19 @@ test('supplier voucher status controls invoice monitoring and can be reversed', 
     DB::table('payment_voucher_documents')->insert(['id'=>1,'voucher_no'=>'PV-STATUS','voucher_date'=>'2020-01-02','voucher_type'=>'supplier','supplier_id'=>10,'total_amount'=>100]);
     DB::table('supplier_invoice_payments')->insert(['payment_voucher_id'=>1,'supplier_document_id'=>1,'amount'=>100]);
     $this->get(route('monitoring',['tab'=>'supplier']))->assertOk()->assertViewHas('supplierRecords',fn ($r) => $r->first()['balance']===100 && $r->first()['status']==='Belum Dibayar');
+    $totals = fn () => (new DashboardData())->build(CarbonImmutable::parse('2020-01-01'), CarbonImmutable::parse('2020-01-31'))['supplierTotals'];
+    expect($totals())->toEqual(['total'=>100, 'paid'=>0, 'balance'=>100]);
     $this->put(route('monitoring.voucher.status',1),['supplier_payment_status'=>'paid'])->assertRedirect(route('baucar-bayaran.show',1));
     $this->assertDatabaseHas('payment_voucher_documents',['id'=>1,'supplier_payment_status'=>'paid','supplier_status_changed_by'=>42]);
     $this->get(route('monitoring',['tab'=>'supplier']))->assertViewHas('supplierRecords',fn ($r) => $r->first()['balance']===0 && $r->first()['status']==='Selesai Dibayar');
+    expect($totals())->toEqual(['total'=>100, 'paid'=>100, 'balance'=>0]);
+    DB::table('supplier_invoice_payments')->where('payment_voucher_id',1)->update(['amount'=>40]);
+    DB::table('payment_voucher_documents')->where('id',1)->update(['total_amount'=>40]);
+    $this->get(route('monitoring',['tab'=>'supplier']))->assertViewHas('supplierRecords', fn ($rows) => $rows->first()['status'] === 'Bayaran Sebahagian' && $rows->first()['balance'] === 60);
+    expect($totals())->toEqual(['total'=>100, 'paid'=>40, 'balance'=>60]);
     $this->put(route('monitoring.voucher.status',1),['supplier_payment_status'=>'unpaid'])->assertRedirect();
     $this->get(route('monitoring',['tab'=>'supplier']))->assertViewHas('supplierRecords',fn ($r) => $r->first()['paid']===0 && $r->first()['balance']===100);
+    expect($totals())->toEqual(['total'=>100, 'paid'=>0, 'balance'=>100]);
     $this->put(route('monitoring.voucher.status',1),['supplier_payment_status'=>'invalid'])->assertSessionHasErrors('supplier_payment_status');
     DB::table('payment_voucher_documents')->where('id',1)->update(['voucher_type'=>'customer']);
     $this->put(route('monitoring.voucher.status',1),['supplier_payment_status'=>'paid'])->assertNotFound();
@@ -209,7 +217,7 @@ test('supplier monitoring shows voucher existence independently of actual paymen
         DB::table('payment_voucher_documents')->insert(['id'=>$id,'voucher_no'=>'PV-RECORD-'.$id,'voucher_date'=>$date,'voucher_type'=>'supplier','supplier_id'=>10,'total_amount'=>20,'supplier_payment_status'=>$status]);
         DB::table('supplier_invoice_payments')->insert(['payment_voucher_id'=>$id,'supplier_document_id'=>1,'amount'=>20]);
     }
-    $response = $this->get(route('monitoring',['tab'=>'supplier']))->assertOk()->assertSee('Sudah Ada Baucar')->assertSee('Belum Ada Baucar')->assertSee('PV-RECORD-3');
+    $response = $this->get(route('monitoring',['tab'=>'supplier']))->assertOk()->assertSee('Sudah Ada Baucar')->assertSee('Belum Ada Baucar')->assertSee(route('monitoring.invoice.vouchers', 1), false);
     $rows = $response->viewData('supplierRecords');
     expect($rows->firstWhere('id', 1)['linked_vouchers'])->toHaveCount(3)
         ->and($rows->firstWhere('id', 1)['paid'])->toEqual(20)
@@ -227,6 +235,18 @@ test('standalone vouchers are complete records and never settle supplier invoice
     expect($response->viewData('supplierRecords')->first()['paid'])->toEqual(0)
         ->and($response->viewData('supplierRecords')->first()['balance'])->toEqual(100)
         ->and($response->viewData('vouchers')->first()->unallocated)->toEqual(0);
+});
+
+test('monitoring filters voucher types without filtering invoice records', function () {
+    foreach ([1 => 'standalone', 2 => 'invoice'] as $id => $source) {
+        DB::table('payment_voucher_documents')->insert(['id'=>$id,'voucher_no'=>'PV-FILTER-'.$id,'voucher_date'=>'2020-01-02','voucher_type'=>'supplier','total_amount'=>$id * 100,'supplier_payment_status'=>'paid','supplier_details'=>json_encode(['source_type'=>$source])]);
+    }
+    $this->get(route('monitoring',['tab'=>'supplier']))->assertOk()->assertViewHas('vouchers', fn ($rows) => $rows->count() === 2);
+    foreach (['standalone'=>1, 'invoice'=>2] as $source => $id) {
+        $this->get(route('monitoring',['tab'=>'supplier','voucher_source'=>$source]))->assertOk()
+            ->assertViewHas('vouchers', fn ($rows) => $rows->count() === 1 && $rows->first()->id === $id && (float) $rows->sum('total_amount') === (float) ($id * 100));
+    }
+    $this->get(route('monitoring',['tab'=>'supplier','voucher_source'=>'invalid']))->assertSessionHasErrors('voucher_source');
 });
 
 

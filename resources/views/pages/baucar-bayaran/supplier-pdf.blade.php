@@ -43,7 +43,7 @@
         <thead><tr><th width="7%">BIL</th><th width="48%">BUTIRAN PEMBAYARAN / PAYMENT DETAILS</th><th width="20%">NO. INVOIS</th><th width="25%">JUMLAH (RM)</th></tr></thead>
         <tbody>
             @foreach ($items as $item)
-                <tr><td class="center">{{ $loop->iteration }}</td><td>{{ $item->item_description }}<br><small>{{ number_format((float) $item->quantity, 2) }} {{ $item->unit }} × RM {{ number_format((float) $item->unit_price, 2) }}</small></td><td class="center">{{ $item->invoice_no ?? '-' }}</td><td class="right">{{ number_format((float) $item->subtotal, 2) }}</td></tr>
+                <tr><td class="center">{{ $loop->iteration }}</td><td>{{ $item->item_description }}@if((json_decode($voucher->supplier_details ?? '{}', true)['source_type'] ?? '') !== 'standalone')<br><small>{{ number_format((float) $item->quantity, 2) }} {{ $item->unit }} × RM {{ number_format((float) $item->unit_price, 2) }}</small>@endif</td><td class="center">{{ $item->invoice_no ?? '-' }}</td><td class="right">{{ number_format((float) $item->subtotal, 2) }}</td></tr>
             @endforeach
         </tbody>
     </table>

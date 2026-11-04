@@ -29,6 +29,7 @@ Route::get('/pemantauan', [PaymentMonitoringController::class, 'index'])->middle
 Route::middleware('auth')->prefix('pemantauan')->name('monitoring.')->controller(\App\Http\Controllers\MonitoringLinksController::class)->group(function () {
     Route::put('/baucar/{id}/status', 'paymentStatus')->whereNumber('id')->name('voucher.status');
     Route::get('/baucar/{id}', 'voucher')->whereNumber('id')->name('voucher');
+    Route::get('/invois-pembekal/{id}/baucar', 'invoiceVouchers')->whereNumber('id')->name('invoice.vouchers');
     Route::get('/lo/{id}', 'lo')->whereNumber('id')->name('lo');
     Route::put('/lo/{id}', 'saveLo')->whereNumber('id')->name('lo.save');
 });

@@ -1,6 +1,20 @@
-<section class="space-y-3">
+<section id="senarai-baucar" class="space-y-3">
 <h3 class="text-lg font-semibold text-gray-900 dark:text-white/90">{{ __('Senarai Baucar Pembekal') }}</h3>
 <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('Baucar dan status bayaran kepada pembekal sehingga hari ini.') }}</p>
+<form method="GET" action="{{ route('monitoring') }}#senarai-baucar" class="flex flex-wrap items-end gap-3">
+    <input type="hidden" name="tab" value="supplier">
+    @foreach(['q', 'priority', 'from', 'to'] as $filter)
+        @if(request()->filled($filter))<input type="hidden" name="{{ $filter }}" value="{{ request()->query($filter) }}">@endif
+    @endforeach
+    <label for="voucher-source" class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Jenis Baucar') }}
+        <select id="voucher-source" name="voucher_source" class="mt-1 block h-11 w-full min-w-56 rounded-lg border border-gray-200 bg-white px-3 text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+            <option value="">{{ __('Semua Baucar') }}</option>
+            <option value="standalone" @selected(request('voucher_source') === 'standalone')>{{ __('Baucar Standalone') }}</option>
+            <option value="invoice" @selected(request('voucher_source') === 'invoice')>{{ __('Berdasarkan Invois') }}</option>
+        </select>
+    </label>
+    <button type="submit" class="document-action document-action-primary">{{ __('Tapis') }}</button>
+</form>
 <div class="grid gap-4 sm:grid-cols-2">
     <x-dashboard.monitoring-card label="Baucar Dah Bayar" :value="$vouchers->where('supplier_payment_status', 'paid')->count()" :amounts="['Amaun Baucar' => $vouchers->where('supplier_payment_status', 'paid')->sum('total_amount')]" tone="success" />
     <x-dashboard.monitoring-card label="Baucar Belum Bayar" :value="$vouchers->where('supplier_payment_status', 'unpaid')->count()" :amounts="['Amaun Baucar' => $vouchers->where('supplier_payment_status', 'unpaid')->sum('total_amount')]" tone="warning" />

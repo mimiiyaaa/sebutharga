@@ -11,6 +11,7 @@ class PaymentMonitoringController extends Controller
 {
     public function index(Request $request)
     {
+        $request->validate(['voucher_source' => 'nullable|in:standalone,invoice']);
         $request->validate(['q' => 'nullable|string|max:200', 'priority' => 'nullable|string|max:60', 'from' => 'nullable|date_format:Y-m-d', 'to' => 'nullable|date_format:Y-m-d|after_or_equal:from', 'tab' => 'nullable|in:customer,supplier,lo']);
         $now = CarbonImmutable::now('Asia/Kuala_Lumpur');
         $today = $now->startOfDay();
@@ -96,6 +97,11 @@ class PaymentMonitoringController extends Controller
         ];
 
         $additional = (new \App\Services\MonitoringData())->build($today);
+        $additional['vouchers'] = $additional['vouchers']->filter(fn ($voucher) => match ($request->query('voucher_source')) {
+            'standalone' => $voucher->standalone,
+            'invoice' => !$voucher->standalone,
+            default => true,
+        })->values();
         $additional['supplierRecords'] = $additional['supplierRecords']->filter(fn ($r) =>
             ($filters['q'] === '' || str_contains(strtolower($r['number'].' '.$r['party']), strtolower($filters['q'])))
             && ($filters['priority'] === '' || $r['status'] === $filters['priority'])

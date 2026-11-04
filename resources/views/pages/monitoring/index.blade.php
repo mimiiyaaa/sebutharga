@@ -14,6 +14,8 @@
     </nav>
     <form method="GET" action="{{ route('monitoring') }}" class="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
         <input type="hidden" name="tab" value="{{ $tab }}">
+        @if($tab === 'supplier' && request()->filled('voucher_source'))<input type="hidden" name="voucher_source" value="{{ request('voucher_source') }}">@endif
+        @if($tab === 'supplier' && request()->filled('voucher_source'))<input type="hidden" name="voucher_source" value="{{ request('voucher_source') }}">@endif
         <label class="min-w-48 flex-1 text-sm text-gray-700 dark:text-gray-300">{{ __('Carian') }}<input name="q" value="{{ $monitoring['filters']['q'] }}" placeholder="{{ __('No. dokumen atau nama syarikat') }}" class="mt-1 h-11 w-full rounded-lg border border-gray-200 bg-transparent px-3 dark:border-gray-700"></label>
         <label class="text-sm text-gray-700 dark:text-gray-300">{{ __('Status') }}<select name="priority" class="mt-1 block h-11 rounded-lg border border-gray-200 bg-white px-3 dark:border-gray-700 dark:bg-gray-900">
             <option value="">{{ __('Semua status') }}</option>

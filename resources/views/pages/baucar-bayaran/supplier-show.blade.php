@@ -3,7 +3,7 @@
 @section('content')
     <x-common.document-workspace :title="__('Butiran Baucar Bayaran')" :reference="$document->voucher_no">
         <x-slot:referenceActions>
-            <a href="{{ route('baucar-bayaran.supplier') }}" class="inline-flex h-9 items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-theme-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">{{ __('Kembali') }}</a>
+            <x-common.back-link :fallback="route('baucar-bayaran.supplier')" />
         </x-slot:referenceActions>
 
         <div class="flex flex-col gap-6">
@@ -11,7 +11,7 @@
             <section class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
                 <div class="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <h2 class="text-base font-semibold text-gray-900 dark:text-white/90">{{ __('Status Bayaran') }}</h2>
+                        <h2 class="text-base font-semibold text-gray-900 dark:text-white/90">{{ __('Status Bayaran Baucar') }}</h2>
                         <p class="mt-2 font-semibold {{ ($document->supplier_payment_status ?? 'unpaid') === 'paid' ? 'text-success-700 dark:text-success-400' : 'text-warning-700 dark:text-warning-400' }}">{{ __(($document->supplier_payment_status ?? 'unpaid') === 'paid' ? 'Dah Bayar' : 'Belum Bayar') }}</p>
                     </div>
                     <form method="POST" action="{{ route('monitoring.voucher.status', $document->id) }}" class="flex flex-wrap items-center gap-2">
@@ -24,9 +24,21 @@
                     </form>
                 </div>
                 @error('supplier_payment_status')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror
+                @foreach($invoiceReferences as $invoiceReference)
+                    <div class="mt-4 rounded-xl border border-gray-200 p-4 dark:border-gray-700">
+                        <div class="flex flex-wrap justify-between gap-2"><p class="font-semibold text-gray-800 dark:text-white/90">{{ $invoiceReference->document_no }}</p><p class="font-semibold text-brand-600 dark:text-brand-300">{{ __($invoiceReference->payment_status) }}</p></div>
+                        <dl class="mt-3 grid gap-3 sm:grid-cols-3">
+                            @foreach(['Jumlah Invois' => $invoiceReference->total_amount, 'Sudah Dibayar' => $invoiceReference->paid, 'Baki Invois' => $invoiceReference->balance] as $label => $amount)
+                                <div><dt class="text-sm text-gray-500 dark:text-gray-400">{{ __($label) }}</dt><dd class="mt-1 font-semibold text-gray-800 dark:text-white/90">RM {{ number_format($amount, 2) }}</dd></div>
+                            @endforeach
+                        </dl>
+                    </div>
+                @endforeach
                 <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">{{ __('Baucar Dah Bayar mengurangkan baki invois. Baucar Belum Bayar belum dikira sebagai bayaran.') }}</p>
                 <div class="mt-4 flex flex-wrap gap-2">
-                    <a class="document-action" href="{{ route('baucar-bayaran.supplier.edit', $document->id) }}">{{ __('Edit Rekod Bayaran') }}</a>
+                    @foreach($invoiceReferences as $invoiceReference)
+                        <a class="document-action document-action-primary" href="{{ $document->supplier_payment_status === 'unpaid' ? route('baucar-bayaran.supplier.edit', [$document->id, 'mode' => 'payment']) : route('baucar-bayaran.supplier.create', ['invoice_id' => $invoiceReference->id, 'mode' => 'payment']) }}">{{ __('Rekod Bayaran') }}@if($invoiceReferences->count() > 1) · {{ $invoiceReference->document_no }}@endif</a>
+                    @endforeach
                     <a class="document-action" href="{{ route('monitoring', ['tab' => 'supplier']) }}">{{ __('Lihat Pemantauan') }}</a>
                 </div>
             </section>
@@ -43,6 +55,7 @@
                     @foreach ([__('No. Baucar') => $document->voucher_no, __('Tarikh') => \Carbon\Carbon::parse($document->voucher_date)->format('d/m/Y'), __('Pembekal') => $supplierQuotation->supplier_name, __('No. Invois Pembekal') => ($invoiceReferences->pluck('document_no')->implode(', ') ?: ((json_decode($document->supplier_details ?? '{}', true)['source_type'] ?? '') === 'standalone' ? __('Baucar Standalone') : '-')), __('Cara Bayaran') => $document->payment_method, __('Amaun Baucar') => 'RM '.number_format((float) $document->total_amount, 2)] as $label => $value)
                         <div><p class="text-sm text-gray-500 dark:text-gray-400">{{ $label }}</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $value ?: '—' }}</p></div>
                     @endforeach
+                    <div><p class="text-sm text-gray-500 dark:text-gray-400">{{ __('No. Cek') }}</p><p class="mt-2 text-base font-medium text-gray-800 dark:text-white/90">{{ $document->cheque_no ?: '—' }}</p></div>
                     @if ($document->description)<div class="sm:col-span-2 lg:col-span-3"><p class="text-sm text-gray-500 dark:text-gray-400">{{ __('Keterangan') }}</p><p class="mt-2 whitespace-pre-line break-words text-base font-medium text-gray-800 dark:text-white/90">{{ $document->description }}</p></div>@endif
                 </div>
             </section>

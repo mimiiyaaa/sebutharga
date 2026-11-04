@@ -143,22 +143,36 @@ function supplierPaymentPayload($number, $payments): array {
 test('supplier invoice payment saves voucher references details and PDF together in one form', function () {
     supplierPaymentSetup();
     $this->get(route('baucar-bayaran.supplier.create',['invoice_id'=>1]))->assertOk()->assertSee('Invois Yang Dibayar')->assertDontSee('Sebut Harga Dipautkan')->assertViewHas('selectedSupplierId',2);
+    $this->get(route('baucar-bayaran.supplier.create',['invoice_id'=>1]))->assertViewHas('referencesLocked', true)
+        ->assertViewHas('initialPayments', fn ($rows) => count($rows) === 1 && $rows[0]['invoice_id'] === '1')
+        ->assertDontSee('Tambah Invois Lain')->assertDontSee('Pilih invois</option>', false);
     $payload=supplierPaymentPayload('SPV-1',[['invoice_id'=>1,'amount'=>40],['invoice_id'=>2,'amount'=>25]]);
     $this->post(route('baucar-bayaran.supplier.store'),$payload)->assertSessionHasNoErrors()->assertRedirect(route('baucar-bayaran.show',1));
-    $this->assertDatabaseHas('payment_voucher_documents',['id'=>1,'total_amount'=>65,'supplier_quotation_id'=>null,'supplier_payment_status'=>'paid']);
+    $this->assertDatabaseHas('payment_voucher_documents',['id'=>1,'total_amount'=>65,'supplier_quotation_id'=>null,'supplier_payment_status'=>'unpaid']);
+    $this->get(route('baucar-bayaran.supplier.create',['invoice_id'=>1]))->assertDontSee('name="supplier_payment_status"', false);
+    $this->get(route('baucar-bayaran.show',1))->assertDontSee('Edit Rekod Bayaran')->assertSee(route('baucar-bayaran.supplier.edit',[1,'mode'=>'payment']), false);
+    $this->put(route('monitoring.voucher.status',1),['supplier_payment_status'=>'paid'])->assertSessionHasNoErrors();
+    $this->get(route('baucar-bayaran.show',1))->assertViewHas('invoiceReferences', fn ($rows) => $rows->first()->payment_status === 'Bayaran Sebahagian' && (float) $rows->first()->balance === 60.0);
+    $this->get(route('baucar-bayaran.supplier.edit',1))->assertViewHas('invoiceOptions', fn ($rows) => (float) $rows->firstWhere('id', 1)->balance === 60.0 && (float) $rows->firstWhere('id', 1)->available === 100.0);
     $this->assertDatabaseHas('supplier_invoice_payments',['payment_voucher_id'=>1,'supplier_document_id'=>1,'amount'=>40]);
     $this->assertDatabaseHas('supplier_invoice_payments',['payment_voucher_id'=>1,'supplier_document_id'=>2,'amount'=>25]);
     $path=DB::table('payment_voucher_documents')->value('file_path');
     expect(Storage::disk('local')->get($path))->toStartWith('%PDF');
     $this->get(route('baucar-bayaran.show',1))->assertOk()->assertSee('SINV-1')->assertSee('Supplier Address')->assertDontSee('Padankan');
     $this->get(route('baucar-bayaran.supplier'))->assertOk()->assertSee('SINV-1')->assertSee('Supplier');
+    $this->get(route('baucar-bayaran.supplier'))->assertDontSee('No. Cek');
+    $this->get(route('baucar-bayaran.show',1))->assertSee('No. Cek');
     $this->get(route('baucar-bayaran.supplier.edit',1))->assertOk()->assertViewHas('referencesLocked',true)->assertViewHas('initialPayments',fn($p)=>count($p)===2 && $p[0]['amount']===40.0);
+    $this->get(route('baucar-bayaran.supplier.edit',1))->assertViewIs('pages.baucar-bayaran.supplier');
+    $this->get(route('monitoring.invoice.vouchers',1))->assertOk()->assertSee('SPV-1')->assertSee('Lihat PDF')->assertViewHas('vouchers', fn ($rows) => $rows->count() === 1 && (float) $rows->first()->amount === 40.0);
+    $this->get(route('monitoring.invoice.vouchers',999))->assertNotFound();
     $preview=$this->get(route('baucar-bayaran.supplier.preview',1))->assertOk()->viewData('previewHtml');
     expect($preview)->toContain('SINV-1')->toContain('SINV-2')->toContain('Issuer Address')->toContain('[ ] Tunai / Cash')->toContain('[ ] Pindahan Bank')->toContain('[ ] No Cek: ____________');
     $this->get(route('baucar-bayaran.supplier.pdf',1))->assertOk()->assertHeader('Content-Type','application/pdf');
     $this->get(route('monitoring.voucher',1))->assertRedirect(route('baucar-bayaran.supplier.edit',1));
     $payload['payments']=[['invoice_id'=>1,'amount'=>30],['invoice_id'=>2,'amount'=>80]]; $payload['supplier_payment_status']='unpaid'; $payload['issuer_name']='Updated Issuer';
     $this->put(route('baucar-bayaran.supplier.update',1),$payload)->assertSessionHasNoErrors()->assertRedirect(route('baucar-bayaran.show',1));
+    $this->assertDatabaseHas('payment_voucher_documents',['id'=>1,'supplier_payment_status'=>'paid']);
     $this->assertDatabaseCount('supplier_invoice_payments',2); $this->assertDatabaseCount('payment_voucher_supplier_item',2);
     $this->assertDatabaseHas('supplier_invoice_payments',['supplier_document_id'=>2,'amount'=>80]);
     Storage::disk('local')->assertMissing($path);
@@ -202,25 +216,53 @@ test('supplier standalone voucher has a full page choice and saves without any i
     $this->get(route('baucar-bayaran.supplier.form', ['source'=>'standalone']))->assertOk()->assertDontSee('Invois Yang Dibayar');
     $payload = supplierPaymentPayload('PV-STANDALONE', []);
     unset($payload['payments']);
-    $payload += ['source_type'=>'standalone','total_amount'=>75.50,'description'=>'Upah angkut barang'];
+    $payload += ['source_type'=>'standalone','total_amount'=>999,'manual_items'=>[
+        ['description'=>'Upah angkut barang','amount'=>'50.25'],
+        ['description'=>'Kos penghantaran','amount'=>'25.25'],
+    ]];
     $payload['supplier_id'] = null;
     $payload['supplier_name'] = 'Ali';
     $payload['supplier_payment_status'] = 'unpaid';
     $this->post(route('baucar-bayaran.supplier.store'), $payload)->assertSessionHasNoErrors()->assertRedirect(route('baucar-bayaran.show',1));
     $this->assertDatabaseHas('payment_voucher_documents', ['id'=>1,'supplier_id'=>null,'payee_name'=>'Ali','total_amount'=>75.50]);
     $this->assertDatabaseCount('supplier_invoice_payments',0);
+    $this->assertDatabaseCount('payment_voucher_supplier_item',2);
     $this->get(route('baucar-bayaran.supplier'))->assertOk()->assertSee('Tanpa Invois');
     $this->get(route('baucar-bayaran.show',1))->assertOk()->assertSee('Baucar Standalone')->assertSee('Upah angkut barang');
-    $this->get(route('baucar-bayaran.supplier.edit',1))->assertOk()->assertViewHas('standalone',true)->assertDontSee('Invois Yang Dibayar');
-    $this->get(route('baucar-bayaran.supplier.preview',1))->assertOk()->assertViewHas('previewHtml',fn($html)=>str_contains($html,'Upah angkut barang'));
+    $this->get(route('baucar-bayaran.supplier.edit',1))->assertOk()->assertViewHas('standalone',true)->assertViewHas('initialManualItems', fn ($items) => count($items) === 2 && $items[1]['description'] === 'Kos penghantaran')->assertDontSee('Invois Yang Dibayar');
+    $this->get(route('baucar-bayaran.supplier.preview',1))->assertOk()->assertViewHas('previewHtml',fn($html)=>str_contains($html,'Upah angkut barang') && str_contains($html,'Kos penghantaran'));
     $this->put(route('monitoring.voucher.status',1),['supplier_payment_status'=>'paid'])->assertSessionHasNoErrors();
     $this->assertDatabaseHas('payment_voucher_documents',['id'=>1,'supplier_payment_status'=>'paid']);
-    $payload['total_amount']=80;
+    $payload['manual_items']=[['description'=>'Upah terkini','amount'=>80]];
     $this->put(route('baucar-bayaran.supplier.update',1), $payload)->assertSessionHasNoErrors();
     $this->assertDatabaseHas('payment_voucher_documents',['id'=>1,'total_amount'=>80]);
+    $this->assertDatabaseCount('payment_voucher_supplier_item',1);
+    $this->assertDatabaseHas('payment_voucher_supplier_item',['item_description'=>'Upah terkini','subtotal'=>80]);
     $this->assertDatabaseCount('supplier_invoice_payments',0);
-    $payload['total_amount']=0;
-    $this->put(route('baucar-bayaran.supplier.update',1), $payload)->assertSessionHasErrors('total_amount');
-    $payload['total_amount']=80; $payload['payments']=[['invoice_id'=>1,'amount'=>80]];
+    $payload['manual_items'][0]['amount']=0;
+    $this->put(route('baucar-bayaran.supplier.update',1), $payload)->assertSessionHasErrors('manual_items.0.amount');
+    $payload['manual_items'][0]['amount']=80; $payload['payments']=[['invoice_id'=>1,'amount'=>80]];
     $this->put(route('baucar-bayaran.supplier.update',1), $payload)->assertSessionHasErrors('payments');
+});
+
+
+test('record payment confirms partial amount on existing unpaid voucher then accepts remainder', function () {
+    supplierPaymentSetup();
+    $payload = supplierPaymentPayload('PV-PARTIAL', [['invoice_id'=>1,'amount'=>100]]);
+    $this->post(route('baucar-bayaran.supplier.store'), $payload)->assertSessionHasNoErrors();
+    $this->get(route('baucar-bayaran.supplier.create',['invoice_id'=>1,'mode'=>'payment']))
+        ->assertRedirect(route('baucar-bayaran.supplier.edit',[1,'mode'=>'payment']));
+    $this->get(route('baucar-bayaran.supplier.edit',[1,'mode'=>'payment']))->assertOk()->assertSee('Sahkan dan Simpan Bayaran');
+    $payload['record_payment'] = 1;
+    $payload['payments'][0]['amount'] = 40;
+    $this->put(route('baucar-bayaran.supplier.update',1), $payload)->assertSessionHasNoErrors();
+    $this->assertDatabaseCount('payment_voucher_documents',1);
+    $this->assertDatabaseHas('payment_voucher_documents',['id'=>1,'total_amount'=>40,'supplier_payment_status'=>'paid']);
+    $this->get(route('baucar-bayaran.show',1))->assertViewHas('invoiceReferences', fn ($rows) => $rows->first()->payment_status === 'Bayaran Sebahagian' && (float) $rows->first()->balance === 60.0);
+    $this->get(route('baucar-bayaran.supplier.create',['invoice_id'=>1,'mode'=>'payment']))->assertOk()->assertViewHas('recordPayment',true);
+    $payload['voucher_no'] = 'PV-REMAINDER';
+    $payload['payments'][0]['amount'] = 60;
+    $this->post(route('baucar-bayaran.supplier.store'),$payload)->assertSessionHasNoErrors();
+    $this->get(route('baucar-bayaran.show',2))->assertViewHas('invoiceReferences', fn ($rows) => $rows->first()->payment_status === 'Selesai Dibayar' && (float) $rows->first()->balance === 0.0);
+    $this->get(route('baucar-bayaran.supplier.form'))->assertOk()->assertViewHas('invoiceOptions', fn ($rows) => !$rows->contains('id', 1));
 });

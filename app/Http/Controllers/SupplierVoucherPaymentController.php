@@ -16,6 +16,14 @@ class SupplierVoucherPaymentController extends Controller
 {
     public function create(Request $request)
     {
+        if ($request->query('mode') === 'payment' && $request->filled('invoice_id')) {
+            $pendingVoucher = DB::table('supplier_invoice_payments as p')
+                ->join('payment_voucher_documents as v', 'v.id', '=', 'p.payment_voucher_id')
+                ->where('p.supplier_document_id', $request->integer('invoice_id'))
+                ->where('v.voucher_type', 'supplier')->where('v.supplier_payment_status', 'unpaid')
+                ->orderBy('v.id')->value('v.id');
+            if ($pendingVoucher) return redirect()->route('baucar-bayaran.supplier.edit', [$pendingVoucher, 'mode' => 'payment']);
+        }
         if ($request->filled('invoice_id')) return $this->form($request);
         return view('pages.baucar-bayaran.supplier-select-source', ['title' => __('Tambah Baucar Pembekal')]);
     }
@@ -27,15 +35,17 @@ class SupplierVoucherPaymentController extends Controller
         $suppliers = DB::table('customer_supplier')->where('jenis_customer', 2)->orderBy('company_name')->get();
         $invoices = DB::table('supplier_documents')->where('kind', 'invoice')->orderByDesc('document_date')->get();
         $otherPayments = DB::table('supplier_invoice_payments as p')->join('payment_voucher_documents as v', 'v.id', '=', 'p.payment_voucher_id')
-            ->when($id, fn ($q) => $q->where('p.payment_voucher_id', '!=', $id))->get(['p.*', 'v.supplier_payment_status'])->groupBy('supplier_document_id');
+            ->get(['p.*', 'v.supplier_payment_status', 'v.voucher_date'])->groupBy('supplier_document_id');
         foreach ($invoices as $invoice) {
-            $other = $otherPayments->get($invoice->id, collect());
+            $all = $otherPayments->get($invoice->id, collect());
+            $other = $all->filter(fn ($payment) => !$id || (int) $payment->payment_voucher_id !== $id);
             $invoice->available = max(0, InvoicePayments::cents($invoice->total_amount) - $other->sum(fn ($p) => InvoicePayments::cents($p->amount))) / 100;
-            $invoice->paid = $other->where('supplier_payment_status', 'paid')->sum(fn ($p) => InvoicePayments::cents($p->amount)) / 100;
+            $invoice->paid = $all->filter(fn ($p) => $p->supplier_payment_status === 'paid' && $p->voucher_date <= now('Asia/Kuala_Lumpur')->toDateString())->sum(fn ($p) => InvoicePayments::cents($p->amount)) / 100;
+            $invoice->balance = max(0, InvoicePayments::cents($invoice->total_amount) - InvoicePayments::cents($invoice->paid)) / 100;
         }
         $selectedInvoice = $request->filled('invoice_id') ? $invoices->firstWhere('id', $request->integer('invoice_id')) : null;
         if ($request->filled('invoice_id')) abort_unless($selectedInvoice, 404);
-        $selectedSupplierId = $document?->supplier_id ?? old('supplier_id', $selectedInvoice?->supplier_id ?? '');
+        $selectedSupplierId = $document?->supplier_id ?? $selectedInvoice?->supplier_id ?? old('supplier_id', '');
         $supplier = $suppliers->firstWhere('customer_id', $selectedSupplierId);
         $details = SupplierVoucherDetails::values($document, $supplier);
         foreach ($details as $field => $value) $details[$field] = old($field, $value);
@@ -48,15 +58,25 @@ class SupplierVoucherPaymentController extends Controller
         $sourceInvoice = $links->isNotEmpty() ? $invoices->firstWhere('id', $links->first()->supplier_document_id) : $selectedInvoice;
         $details['supplier_name'] = $standalone ? old('supplier_name', $document?->payee_name ?? $supplier?->company_name ?? '') : ($sourceInvoice?->supplier_name ?? $document?->payee_name ?? $supplier?->company_name ?? '');
         if (!$payments) $payments = [['invoice_id' => (string) ($selectedInvoice?->id ?? ''), 'amount' => $document?->total_amount ?? '']];
+        if ($selectedInvoice && !$document && !$standalone) {
+            $payments = [['invoice_id' => (string) $selectedInvoice->id, 'amount' => old('payments.0.amount', '')]];
+        }
         $year = now()->year;
+        $manualItems = $id && $standalone ? DB::table('payment_voucher_supplier_item')->where('payment_voucher_id', $id)->orderBy('id')->get()->map(fn ($item) => ['description' => $item->item_description, 'amount' => $item->subtotal])->all() : [];
+        if (!$manualItems) $manualItems = [['description' => $document?->description ?? '', 'amount' => $document?->total_amount ?? '']];
         $numbers = DB::table('payment_voucher_documents')->where('voucher_no', 'like', "K1R-PV-$year-%")->pluck('voucher_no');
         $next = $numbers->map(fn ($n) => (int) substr($n, strlen("K1R-PV-$year-")))->max() + 1;
-        return view($document && !$standalone ? 'pages.baucar-bayaran.supplier-edit' : 'pages.baucar-bayaran.supplier', [
+        // Keep existing references visible when editing, but offer only outstanding invoices for new selections.
+        $retainedInvoiceIds = $links->pluck('supplier_document_id')->push($selectedInvoice?->id)->filter();
+        $invoices = $invoices->filter(fn ($invoice) => ($invoice->balance > 0 && $invoice->available > 0) || $retainedInvoiceIds->contains($invoice->id));
+        return view('pages.baucar-bayaran.supplier', [
+            'recordPayment' => $request->query('mode') === 'payment',
             'standalone' => $standalone,
-            'title' => __($document ? 'Edit Baucar Kepada Pembekal' : 'Rekod Bayaran Pembekal'),
+            'initialManualItems' => array_values(old('manual_items', $manualItems)),
+            'title' => __($request->query('mode') === 'payment' ? 'Rekod Bayaran Pembekal' : ($document ? 'Edit Baucar Kepada Pembekal' : 'Tambah Baucar Pembekal')),
             'document' => $document, 'suppliers' => $suppliers, 'invoiceOptions' => $invoices->values(),
             'companies' => DB::table('companies')->orderBy('nama_syarikat')->get(), 'details' => $details,
-            'referencesLocked' => $links->isNotEmpty(), 'selectedSupplierId' => $selectedSupplierId, 'initialPayments' => array_values($payments),
+            'referencesLocked' => !$standalone && ($links->isNotEmpty() || $selectedInvoice !== null), 'selectedSupplierId' => $selectedSupplierId, 'initialPayments' => array_values($payments),
             'nextVoucherNo' => $document?->voucher_no ?? "K1R-PV-$year-".str_pad($next, 3, '0', STR_PAD_LEFT),
             'preparedBy' => old('prepared_by', $document?->prepared_by ?? $request->user()->name),
             'preparedRole' => old('prepared_role', $document?->prepared_role ?? config('purchase_order.prepared_role')),
@@ -72,12 +92,16 @@ class SupplierVoucherPaymentController extends Controller
         $standalone = $existing ? (json_decode($existing->supplier_details ?? '{}', true)['source_type'] ?? 'invoice') === 'standalone' : $request->input('source_type', 'invoice') === 'standalone';
         $data = $request->validate([
             'source_type' => ['nullable', Rule::in(['invoice', 'standalone'])],
-            'total_amount' => $standalone ? 'required|numeric|min:0.01|max:9999999999.99|decimal:0,2' : 'nullable',
+            'record_payment' => 'nullable|boolean',
+            'total_amount' => 'nullable',
+            'manual_items' => $standalone ? 'required|array|min:1|max:100' : 'prohibited',
+            'manual_items.*.description' => 'required|string|max:5000',
+            'manual_items.*.amount' => 'required|numeric|min:0.01|max:9999999999.99|decimal:0,2',
             'supplier_id' => [$standalone ? 'nullable' : 'required', 'integer', Rule::exists('customer_supplier', 'customer_id')->where('jenis_customer', 2)],
             'voucher_no' => ['required', 'string', 'max:100', Rule::unique('payment_voucher_documents', 'voucher_no')->ignore($id)],
-            'voucher_date' => 'required|date_format:Y-m-d', 'supplier_payment_status' => 'required|in:paid,unpaid',
+            'voucher_date' => 'required|date_format:Y-m-d',
             'payment_method' => ['required', Rule::in(['Tunai', 'Pindahan Bank', 'Cek', 'Lain-lain'])],
-            'cheque_no' => 'nullable|string|max:100', 'description' => ($standalone ? 'required' : 'nullable').'|string|max:5000',
+            'cheque_no' => 'nullable|string|max:100', 'description' => 'nullable|string|max:5000',
             'payments' => $standalone ? 'prohibited' : 'required|array|min:1|max:100', 'payments.*.invoice_id' => 'required|integer|distinct',
             'payments.*.amount' => 'required|numeric|min:0.01|max:9999999999.99|decimal:0,2',
             'issuer_name' => 'required|string|max:255', 'issuer_address' => 'nullable|string|max:2000',
@@ -88,6 +112,10 @@ class SupplierVoucherPaymentController extends Controller
             'received_by' => 'nullable|string|max:255', 'received_role' => 'nullable|string|max:255',
         ]);
         $data['payments'] = $standalone ? [] : $data['payments'];
+        // Payment status is managed only after saving, through the voucher detail page.
+        $data['supplier_payment_status'] = $request->boolean('record_payment') ? 'paid' : ($existing?->supplier_payment_status ?? 'unpaid');
+        if ($standalone) $data['description'] = null;
+        if ($standalone) $data['description'] = null;
         $data['supplier_id'] = $data['supplier_id'] ?? null;
         $newPath = 'payment-vouchers/supplier/'.Str::uuid().'.pdf';
         $oldPath = null;
@@ -95,6 +123,7 @@ class SupplierVoucherPaymentController extends Controller
             $voucherId = DB::transaction(function () use ($data, $request, $id, $existing, $newPath, $standalone, &$oldPath) {
                 $locked = $id ? DB::table('payment_voucher_documents')->where('id', $id)->where('voucher_type', 'supplier')->lockForUpdate()->firstOrFail() : null;
                 $oldPath = $locked?->file_path;
+                $data['supplier_payment_status'] = $request->boolean('record_payment') ? 'paid' : ($locked?->supplier_payment_status ?? 'unpaid');
                 $oldIds = $id ? DB::table('supplier_invoice_payments')->where('payment_voucher_id', $id)->pluck('supplier_document_id') : collect();
                 if ($locked && !$standalone && (int) $locked->supplier_id !== (int) $data['supplier_id']) {
                     throw ValidationException::withMessages(['supplier_id' => __('Pembekal asal baucar tidak boleh ditukar.')]);
@@ -123,8 +152,12 @@ class SupplierVoucherPaymentController extends Controller
                 }
                 if ($total > 999999999999) throw ValidationException::withMessages(['payments' => __('Jumlah bayaran melebihi had yang dibenarkan.')]);
                 if ($standalone) {
-                    $total = InvoicePayments::cents($data['total_amount']);
-                    $items->push((object) ['item_description' => $data['description'], 'quantity' => 1, 'unit' => 'bayaran', 'unit_price' => $total / 100, 'subtotal' => $total / 100, 'invoice_no' => '-']);
+                    foreach ($data['manual_items'] as $item) {
+                        $amount = InvoicePayments::cents($item['amount']);
+                        $total += $amount;
+                        $items->push((object) ['item_description' => $item['description'], 'quantity' => 1, 'unit' => 'bayaran', 'unit_price' => $amount / 100, 'subtotal' => $amount / 100, 'invoice_no' => '-']);
+                    }
+                    if ($total > 999999999999) throw ValidationException::withMessages(['manual_items' => __('Jumlah bayaran melebihi had yang dibenarkan.')]);
                 } else {
                     // Invoice-linked vouchers retain the source invoice identity.
                     $data['supplier_name'] = $invoices->get($submittedIds[0])->supplier_name;

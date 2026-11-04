@@ -14,16 +14,10 @@
 @if($tab === 'supplier')
 <td class="min-w-48 px-4 py-4">
     <span class="inline-flex rounded-full px-3 py-1 text-xs font-medium {{ $row['linked_vouchers']->isNotEmpty() ? 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400' : 'bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400' }}">{{ __($row['linked_vouchers']->isNotEmpty() ? 'Sudah Ada Baucar' : 'Belum Ada Baucar') }}</span>
-    @foreach($row['linked_vouchers'] as $voucher)
-        <div class="mt-3">
-            <p class="font-medium">{{ $voucher->voucher_no }}</p>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $money($voucher->amount) }} | {{ __($voucher->supplier_payment_status === 'paid' ? 'Sudah Bayar' : 'Belum Bayar') }}</p>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ \Carbon\Carbon::parse($voucher->voucher_date)->format('d/m/Y') }}</p>
-        </div>
-    @endforeach
+
 </td>
 @endif
-<td class="px-4 py-4"><a class="document-action" href="{{ $tab === 'customer' ? $row['url'] : route('invoice.supplier.show', $row['id']) }}">{{ __('Lihat') }}</a>@if($tab === 'supplier' && $row['balance'] > 0)<a class="document-action mt-2" href="{{ route('baucar-bayaran.supplier.create', ['invoice_id' => $row['id']]) }}">{{ __('Rekod Bayaran') }}</a>@endif</td>
+<td class="px-4 py-4"><a class="document-action" href="{{ $tab === 'customer' ? $row['url'] : route('monitoring.invoice.vouchers', $row['id']) }}">{{ __('Lihat') }}</a>@if($tab === 'supplier' && $row['balance'] > 0)<a class="document-action mt-2" href="{{ route('baucar-bayaran.supplier.create', ['invoice_id' => $row['id'], 'mode' => 'payment']) }}">{{ __('Rekod Bayaran') }}</a>@endif</td>
 </tr>
 @empty<tr><td colspan="{{ $tab === 'supplier' ? 8 : 7 }}" class="p-8 text-center">{{ __('Tiada invois untuk pilihan ini.') }}</td></tr>@endforelse
 </tbody></table></div>

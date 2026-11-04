@@ -67,9 +67,19 @@ class PaymentVoucherController extends Controller
     private function supplierInvoiceReferences(?int $id = null)
     {
         if (!\Illuminate\Support\Facades\Schema::hasTable('supplier_invoice_payments')) return collect();
-        return DB::table('supplier_invoice_payments as payment')->join('supplier_documents as invoice', 'invoice.id', '=', 'payment.supplier_document_id')
+        $references = DB::table('supplier_invoice_payments as payment')->join('supplier_documents as invoice', 'invoice.id', '=', 'payment.supplier_document_id')
             ->when($id, fn ($q) => $q->where('payment.payment_voucher_id', $id))->orderBy('invoice.id')
             ->get(['payment.payment_voucher_id', 'payment.amount', 'invoice.id', 'invoice.document_no', 'invoice.total_amount']);
+        $paid = DB::table('supplier_invoice_payments as p')->join('payment_voucher_documents as v', 'v.id', '=', 'p.payment_voucher_id')
+            ->whereIn('p.supplier_document_id', $references->pluck('id'))->where('v.voucher_type', 'supplier')
+            ->where('v.supplier_payment_status', 'paid')->whereDate('v.voucher_date', '<=', now('Asia/Kuala_Lumpur')->toDateString())
+            ->get(['p.supplier_document_id', 'p.amount'])->groupBy('supplier_document_id');
+        return $references->map(function ($invoice) use ($paid) {
+            $invoice->paid = $paid->get($invoice->id, collect())->sum(fn ($p) => \App\Services\InvoicePayments::cents($p->amount)) / 100;
+            $invoice->balance = max(0, \App\Services\InvoicePayments::cents($invoice->total_amount) - \App\Services\InvoicePayments::cents($invoice->paid)) / 100;
+            $invoice->payment_status = $invoice->total_amount === null ? 'Perlu Semakan' : ($invoice->balance == 0 ? 'Selesai Dibayar' : ($invoice->paid > 0 ? 'Bayaran Sebahagian' : 'Belum Dibayar'));
+            return $invoice;
+        });
     }
 
     public function supplier()

@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('content')
 <x-common.document-workspace :title="$title">
-<x-slot:referenceActions><a href="{{ $document ? route('baucar-bayaran.show', $document->id) : route('baucar-bayaran.supplier') }}" class="document-action">{{ __('Kembali') }}</a></x-slot:referenceActions>
+<x-slot:referenceActions><x-common.back-link :fallback="$document ? route('baucar-bayaran.show', $document->id) : route('baucar-bayaran.supplier')" /></x-slot:referenceActions>
 @php
 $inputClass = 'w-full min-h-11 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90';
 $labelClass = 'mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400';
@@ -22,6 +22,8 @@ $labelClass = 'mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400
             money(value) { return new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(Number(value) || 0) }
         }">
         @csrf @if($document) @method('PUT') @endif
+        <input type="hidden" name="record_payment" value="{{ $recordPayment ? 1 : 0 }}">
+        @if($recordPayment)<p class="rounded-xl bg-success-50 p-4 text-sm text-success-700 dark:bg-success-500/10 dark:text-success-400">{{ __('Isi amaun yang telah dibayar. Simpan untuk mengesahkan bayaran dan mengemas kini baki invois.') }}</p>@endif
         @if($errors->any())<div role="alert" class="rounded-xl bg-error-50 p-4 text-error-700 dark:bg-error-500/10 dark:text-error-400"><ul class="list-disc ps-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
         <input type="hidden" name="supplier_id" value="{{ $document->supplier_id }}">
         <input type="hidden" name="supplier_name" :value="details.supplier_name">
@@ -43,18 +45,17 @@ $labelClass = 'mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400
                             <p class="text-sm font-medium text-gray-700 dark:text-gray-300" x-text="invoice(row).supplier_name || details.supplier_name"></p>
                             <dl class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                                 <div class="flex justify-between gap-3"><dt>{{ __('Jumlah Invois') }}</dt><dd class="tabular-nums" x-text="money(invoice(row).total_amount)"></dd></div>
-                                <div class="flex justify-between gap-3"><dt>{{ __('Bayaran Terdahulu') }}</dt><dd class="tabular-nums" x-text="money(invoice(row).paid)"></dd></div>
-                                <div class="flex justify-between gap-3 border-t border-brand-100 pt-2 text-gray-900 dark:border-brand-500/20 dark:text-white/90"><dt>{{ __('Baki Untuk Bayaran Ini') }}</dt><dd class="font-semibold tabular-nums" x-text="money(invoice(row).available)"></dd></div>
+                                <div class="flex justify-between gap-3"><dt>{{ __('Sudah Dibayar') }}</dt><dd class="tabular-nums" x-text="money(invoice(row).paid)"></dd></div>
+                                <div class="flex justify-between gap-3 border-t border-brand-100 pt-2 text-gray-900 dark:border-brand-500/20 dark:text-white/90"><dt>{{ __('Baki Invois') }}</dt><dd class="font-semibold tabular-nums" x-text="money(invoice(row).balance)"></dd></div>
                             </dl>
                             <label class="{{ $labelClass }}">{{ __('Amaun Bayaran (RM)') }}<input type="number" :name="'payments['+index+'][amount]'" min="0.01" step="0.01" :max="invoice(row).available" x-model.number="row.amount" required class="{{ $inputClass }}"></label>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('Isi amaun yang dibayar kali ini. Bayaran sebahagian dibenarkan.') }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('Had Amaun Baucar Ini') }}: <span x-text="money(invoice(row).available)"></span></p>
                         </div>
                     </template>
                 </div>
                 <div class="space-y-5">
-                    <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="grid gap-4">
                         <label class="{{ $labelClass }}">{{ __('Tarikh Bayaran') }}<input name="voucher_date" type="date" value="{{ old('voucher_date',$document->voucher_date) }}" required class="{{ $inputClass }}"></label>
-                        <label class="{{ $labelClass }}">{{ __('Status Bayaran') }}<select name="supplier_payment_status" class="{{ $inputClass }}">@foreach(['unpaid'=>'Belum Bayar','paid'=>'Dah Bayar'] as $value=>$label)<option value="{{ $value }}" @selected(old('supplier_payment_status',$document->supplier_payment_status) === $value)>{{ __($label) }}</option>@endforeach</select></label>
                     </div>
                     <label class="{{ $labelClass }}">{{ __('Cara Bayaran') }}<select name="payment_method" x-model="paymentMethod" required class="{{ $inputClass }}">@foreach(['Pindahan Bank','Tunai','Cek','Lain-lain'] as $method)<option value="{{ $method }}">{{ __($method) }}</option>@endforeach</select></label>
                     <label x-cloak x-show="paymentMethod === 'Cek'" class="{{ $labelClass }}">{{ __('No. Cek') }}<input name="cheque_no" value="{{ $chequeNo }}" maxlength="100" class="{{ $inputClass }}"></label>
@@ -79,7 +80,7 @@ $labelClass = 'mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400
         </div></div>
             </div>
         </details>
-        <div class="flex justify-end gap-3"><a class="document-action" href="{{ route('baucar-bayaran.show',$document->id) }}">{{ __('Batal') }}</a><button type="submit" class="document-action document-action-primary">{{ __('Simpan Bayaran') }}</button></div>
+        <div class="flex justify-end gap-3"><a class="document-action" href="{{ route('baucar-bayaran.show',$document->id) }}">{{ __('Batal') }}</a><button type="submit" class="document-action document-action-primary">{{ __($recordPayment ? 'Sahkan dan Simpan Bayaran' : 'Simpan Perubahan') }}</button></div>
     </form>
 </x-common.document-workspace>
 @endsection
