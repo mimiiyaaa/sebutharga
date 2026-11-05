@@ -127,7 +127,7 @@
                 <input id="po_date" name="po_date" type="date" value="{{ old('po_date', $order?->po_date ?? now()->format('Y-m-d')) }}" required class="{{ $inputClass }}">
             </div>
             <div>
-                <label for="lo_inden_id" class="{{ $labelClass }}">{{ __('LO / Inden (pilihan)') }}</label>
+                <label for="lo_inden_id" class="{{ $labelClass }}">{{ __('LO Pelanggan') }}</label>
                 <select id="lo_inden_id" disabled class="{{ $inputClass }}">
                     <option>{{ __('Pilihan LO / Inden belum tersedia') }}</option>
                 </select>
@@ -230,7 +230,7 @@
                         <div class="col-span-1 px-1 text-center tabular-nums" x-text="index + 1"></div>
                         <div class="col-span-4 px-1"><textarea rows="4" x-model="item.description" aria-label="{{ __('Keterangan / Description') }}" placeholder="{{ __('Nama item / perkhidmatan') }}" class="{{ $inputClass }} w-full max-w-full"></textarea></div>
                         <div class="col-span-2 px-1"><input type="number" min="1" step="1" required x-model.number="item.quantity" aria-label="{{ __('Kuantiti') }}" class="{{ $inputClass }} w-full text-center"></div>
-                        <div class="col-span-1 px-1"><input required x-model="item.unit" aria-label="{{ __('Unit') }}" placeholder="{{ __('Unit') }}" class="{{ $inputClass }} w-full text-center"></div>
+                        <div class="col-span-1 px-1"><x-form.unit-select :input-class="$inputClass" :named="false" /></div>
                         <div class="col-span-2 px-1"><input type="number" min="0" step="0.01" required x-model.number="item.price" aria-label="{{ __('Harga Seunit (RM)') }}" class="{{ $inputClass }} w-full price-input text-end"></div>
                         <div class="col-span-1 whitespace-nowrap px-1" x-text="money(subtotal(item))"></div>
                         <div class="col-span-1 px-1 text-center"><button type="button" title="{{ __('Buang') }}" aria-label="{{ __('Buang') }}" @click="items.splice(index, 1)" :disabled="items.length === 1" class="document-action document-action-delete disabled:cursor-not-allowed disabled:opacity-40"><x-svg.item-trash /></button></div>

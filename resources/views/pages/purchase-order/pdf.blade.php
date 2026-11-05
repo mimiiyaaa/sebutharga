@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>{{ $order->po_no }}</title>
     <style>
-        @page { margin: 40pt 42pt; }
+        @page { margin: 40pt 42pt 72pt; }
         body { font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #000; line-height: 1.3; }
         table { width: 100%; border-collapse: collapse; }
         td, th { vertical-align: top; }
@@ -77,7 +77,7 @@
     </table>
     <table class="totals"><tr><td class="right">JUMLAH KASAR:</td><td width="18%" class="right">{{ number_format($order->gross_amount,2) }}</td></tr><tr><td class="right">DISKAUN PUKAL ({{ (float)$order->discount_percent }}%):</td><td class="right">{{ number_format($order->discount_amount,2) }}</td></tr><tr><td class="right">SST ({{ (float)$order->sst_percent }}%):</td><td class="right">{{ number_format($order->sst_amount,2) }}</td></tr><tr><td class="right">JUMLAH BERSIH:</td><td class="right net">{{ number_format($order->net_amount,2) }}</td></tr></table>
     <div class="terms"><h3>TERMA &amp; SYARAT PEMBELIAN (TERMS &amp; CONDITIONS):</h3><div class="lines">{{ trim(preg_replace('/^\s*\d+\.\s*$/m', '', (string) $order->terms_conditions)) }}</div></div>
-        <table class="signatures"><tr><td><strong>Disediakan Oleh:</strong><div class="signature">
+        <table class="signatures" data-pdf-signature="72"><tr><td><strong>Disediakan Oleh:</strong><div class="signature">
             @if($order->prepared_by){{ $order->prepared_by }}<br>@endif
             @if(!empty($document['prepared_role'])){{ $document['prepared_role'] }}@endif
         </div></td><td><strong>Diluluskan Oleh:</strong><div class="signature">

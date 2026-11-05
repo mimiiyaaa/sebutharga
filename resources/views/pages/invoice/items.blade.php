@@ -24,7 +24,7 @@
                         <td class="p-3 text-center tabular-nums" x-text="index + 1"></td>
                         <td class="min-w-60 p-3"><textarea rows="3" required maxlength="2000" x-model="item.description" :name="`items[${index}][description]`" aria-label="{{ __('Keterangan / Description') }}" placeholder="{{ __('Nama item / perkhidmatan') }}" class="{{ $inputClass }}"></textarea></td>
                         <td class="min-w-32 p-3"><input type="number" min="0.01" step="0.01" required max="1000000" x-model.number="item.quantity" :name="`items[${index}][quantity]`" aria-label="{{ __('Kuantiti') }}" class="{{ $inputClass }} text-center"></td>
-                        <td class="min-w-32 p-3"><input required maxlength="50" x-model="item.unit" :name="`items[${index}][unit]`" aria-label="{{ __('Unit') }}" class="{{ $inputClass }} text-center"></td>
+                        <td class="min-w-32 p-3"><x-form.unit-select :input-class="$inputClass" /></td>
                         @if ($invoice)
                             <td class="min-w-40 p-3"><input type="number" min="0" step="0.01" required max="1000000" x-model.number="item.price" :name="`items[${index}][price]`" aria-label="{{ __('Harga Seunit (RM)') }}" class="{{ $inputClass }} price-input text-end"></td>
                             <td class="whitespace-nowrap p-3 pt-6 text-end tabular-nums" x-text="money(subtotal(item))"></td>

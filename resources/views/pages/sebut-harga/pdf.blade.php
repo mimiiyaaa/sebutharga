@@ -22,7 +22,7 @@
 <meta charset="utf-8">
 <title>{{ $quotation->quotation_no }}</title>
 <style>
-@page { margin: 25pt; }
+@page { margin: 25pt 25pt 72pt; }
 * { box-sizing: border-box; }
 body { margin: 0; color: #000; background: #fff; font-family: Helvetica, Arial, sans-serif; font-size: 10pt; line-height: 1.3; }
 table { width: 100%; border-collapse: collapse; }
@@ -91,7 +91,7 @@ table { width: 100%; border-collapse: collapse; }
 @if (!empty($quotation->phone_no))<div>No. Tel: {{ $quotation->phone_no }}</div>@endif
 @if (!empty($quotation->email))<div>E-mel: {{ $quotation->email }}</div>@endif
 </div>
-@if (!empty($quotation->quotation_title))<div class="quotation-title">{{ $quotation->quotation_title }}</div>@endif
+@if (!empty($quotation->quotation_title))<div class="quotation-title">{{ mb_strtoupper($quotation->quotation_title, 'UTF-8') }}</div>@endif
 <table class="items">
 <thead><tr><th class="bil">BIL</th><th class="description">KETERANGAN / DESCRIPTION</th><th class="quantity">KUANTITI</th><th class="unit">UNIT</th><th class="price">HARGA<br>SEUNIT<br>(RM)</th><th class="amount">JUMLAH<br>(RM)</th></tr></thead>
 <tbody>
@@ -105,7 +105,7 @@ table { width: 100%; border-collapse: collapse; }
 2. Tempoh penghantaran: 14 - 30 hari selepas penerimaan Pesanan Belian (PO) rasmi.
 3. Sila tandatangan di bawah untuk pengesahan persetujuan sebutharga ini." }}</div>
 </div>
-<table class="signatures"><tr><td>Disediakan oleh,</td><td class="signature-right">Diterima / Disahkan oleh,</td></tr>
+<table class="signatures" data-pdf-signature="72"><tr><td>Disediakan oleh,</td><td class="signature-right">Diterima / Disahkan oleh,</td></tr>
 <tr><td class="signature-space"></td><td></td></tr>
 <tr><td><div class="signature-block">@if ($detail->disediakan_oleh){{ $detail->disediakan_oleh }}<br>@endif @if (property_exists($detail, 'disediakan_role') && $detail->disediakan_role){{ $detail->disediakan_role }}<br>@endif @if (property_exists($detail, 'disediakan_company_name') && $detail->disediakan_company_name){{ $detail->disediakan_company_name }}<br>@endif</div></td>
 <td class="signature-right"><div class="signature-block">Tandatangan &amp; Cop<br>Tarikh</div></td></tr></table>

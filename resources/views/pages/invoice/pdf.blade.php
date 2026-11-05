@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><title>{{ $invoice->invoice_no }}</title>
 <style>
-@page { margin: 54pt 42pt; }
+@page { margin: 54pt 42pt 72pt; }
 body { font-family: Helvetica, Arial, sans-serif; color: #000; font-size: 10pt; line-height: 1.4; }
 table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 td, th { vertical-align: top; overflow-wrap: break-word; }
@@ -36,7 +36,7 @@ thead { display: table-header-group; }
 </tbody></table>
 <table class="total"><tr><td class="right">{{ __('JUMLAH BESAR (RM):') }}</td><td class="right amount">{{ number_format($invoice->total_amount, 2) }}</td></tr></table>
 <div class="payment"><strong>{{ __('ARAHAN PEMBAYARAN / PAYMENT INSTRUCTIONS:') }}</strong><div class="lines">{{ $document['payment_instructions'] }}</div><div>{{ __('Nama Bank:') }} {{ $document['bank_name'] }}</div><div>{{ __('Nama Akaun:') }} {{ $document['account_name'] }}</div><div>{{ __('No. Akaun:') }} {{ $document['account_no'] }}</div></div>
-<div class="signature">{{ __('Disediakan oleh,') }}<div class="signature-line"></div>@if(!empty($document['prepared_by']))<div>{{ $document['prepared_by'] }}</div>@endif<strong>{{ $document['prepared_role'] }}<br>{{ $document['signature_company'] ?? $document['issuer_name'] }}</strong></div>
+<div class="signature" data-pdf-signature="72">{{ __('Disediakan oleh,') }}<div class="signature-line"></div>@if(!empty($document['prepared_by']))<div>{{ $document['prepared_by'] }}</div>@endif<strong>{{ $document['prepared_role'] }}<br>{{ $document['signature_company'] ?? $document['issuer_name'] }}</strong></div>
 </body></html>
 
 

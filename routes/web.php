@@ -177,8 +177,9 @@ Route::get('/purchase-order/{id}/pdf', function ($id) {
     abort_unless($order,404);
     $items = DB::table('purchase_order_item')->where('purchase_order_id',$id)->orderBy('po_item_id')->get();
     $document = json_decode($order->document_data ?? '[]', true) ?: [];
-    return \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.purchase-order.pdf', compact('order','items','document'))
-        ->setPaper('a4')->setOption('isRemoteEnabled', false)->stream($order->po_no.'.pdf');
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.purchase-order.pdf', compact('order','items','document'))
+        ->setPaper('a4')->setOption('isRemoteEnabled', false);
+    return request()->boolean('download') ? $pdf->download($order->po_no.'.pdf') : $pdf->stream($order->po_no.'.pdf');
 })->middleware('auth')->name('purchase-order.pdf');
 
 Route::get('/purchase-order/{id}/edit', [\App\Http\Controllers\PurchaseOrderController::class, 'edit'])->whereNumber('id')->middleware('auth')->name('purchase-order.edit');
@@ -488,8 +489,9 @@ Route::get('/sebut-harga/{id}/pdf', function ($id) {
         $quotation->$field = $detail->$field ?? $quotation->$field;
     }
     $items = DB::table('sebutharga_item')->where('quotation_detail_id', $detail->quotation_detail_id)->get();
-    return \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.sebut-harga.pdf', compact('quotation', 'detail', 'items', 'company'))
-        ->setPaper('a4')->setOption('isRemoteEnabled', false)->stream($quotation->quotation_no . '.pdf');
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.sebut-harga.pdf', compact('quotation', 'detail', 'items', 'company'))
+        ->setPaper('a4')->setOption('isRemoteEnabled', false);
+    return request()->boolean('download') ? $pdf->download($quotation->quotation_no.'.pdf') : $pdf->stream($quotation->quotation_no.'.pdf');
 })->middleware('auth')->name('sebut-harga.pdf');
 
 Route::post('/sebut-harga', function (\Illuminate\Http\Request $request) {

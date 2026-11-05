@@ -19,7 +19,7 @@
                 @if(in_array(strtolower(pathinfo($quotation->file_path, PATHINFO_EXTENSION)), ['jpg','jpeg','png']))
                     <img src="{{ asset('storage/'.$quotation->file_path) }}" alt="{{ __('Dokumen Pembekal') }}" class="max-h-[640px] w-full object-contain">
                 @else
-                    <iframe src="{{ asset('storage/'.$quotation->file_path) }}" title="{{ __('Dokumen Pembekal') }}" class="h-[640px] w-full rounded-xl border border-gray-200 dark:border-gray-700"></iframe>
+                    <x-common.pdf-viewer :number="$quotation->quotation_no_supplier" :pdf-url="asset('storage/'.$quotation->file_path)" :download-url="route('sebut-harga-pembekal.download', $quotation->supplier_quotation_id)" :label="__('Dokumen Pembekal')" />
                 @endif
             @else
                 <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('Tiada dokumen dimuat naik.') }}</p>

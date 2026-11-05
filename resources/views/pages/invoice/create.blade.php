@@ -51,7 +51,7 @@
                         <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('Pelanggan dan alamat akan mengikut LO yang dipilih. Item sedia ada dikekalkan.') }}</p>
                     </div>
                 @else
-                <x-supplier-document.field name="lo_reference" :label="__('No. Rujukan LO (pilihan)')" maxlength="100" :value="$values['lo_reference'] ?? ''" />
+                <x-supplier-document.field name="lo_reference" :label="__('No. Rujukan LO Pelanggan')" maxlength="100" :value="$values['lo_reference'] ?? ''" />
                 @endif
                 <p class="text-sm leading-6 text-gray-500 dark:text-gray-400">{{ __('Invois dijana dalam format A4 dengan kepala surat, butiran bil, item, arahan pembayaran dan tandatangan.') }}</p>
             </x-common.document-card>

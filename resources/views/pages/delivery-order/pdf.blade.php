@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><title>{{ $order->do_no }}</title>
 <style>
-@page { margin: 54pt 42pt; }
+@page { margin: 54pt 42pt 72pt; }
 body { font-family: Helvetica, Arial, sans-serif; color: #000; font-size: 10pt; line-height: 1.4; }
 table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 td, th { vertical-align: top; overflow-wrap: break-word; }
@@ -56,5 +56,5 @@ thead { display: table-header-group; }
 @foreach($items as $item)<tr><td class="center">{{ $loop->iteration }}</td><td class="lines">{{ $item->item_description }}</td><td class="center">{{ rtrim(rtrim(number_format($item->quantity, 2, '.', ''), '0'), '.') }}</td><td class="center">{{ $item->unit }}</td><td class="center">{{ $item->remarks === '/' ? '/' : '' }}</td></tr>@endforeach
 </tbody></table>
 <div class="notes lines">{{ $document['notes'] }}</div>
-<table class="signatures"><tr><td>{{ __('Dihantar oleh,') }}</td><td class="right">{{ __('Diterima dalam keadaan baik oleh,') }}</td></tr><tr><td><div class="signature-space"></div><div class="signature-line">@if(!empty($document['delivered_by']))<div>{{ $document['delivered_by'] }}</div>@endif<strong>{{ $document['signature_company'] ?? $document['issuer_name'] }}</strong></div></td><td class="right"><div class="signature-space"></div><div class="signature-line receiver">@if(!empty($document['recipient_name']))<div>{{ $document['recipient_name'] }}</div>@endif<strong>{{ __('Nama & Cop Pelanggan') }}</strong><div class="date">{{ __('Tarikh:') }} {{ !empty($document['received_date']) ? \Carbon\Carbon::parse($document['received_date'])->format('d/m/Y') : '........................' }}</div></div></td></tr></table>
+<table class="signatures" data-pdf-signature="72"><tr><td>{{ __('Dihantar oleh,') }}</td><td class="right">{{ __('Diterima dalam keadaan baik oleh,') }}</td></tr><tr><td><div class="signature-space"></div><div class="signature-line">@if(!empty($document['delivered_by']))<div>{{ $document['delivered_by'] }}</div>@endif<strong>{{ $document['signature_company'] ?? $document['issuer_name'] }}</strong></div></td><td class="right"><div class="signature-space"></div><div class="signature-line receiver">@if(!empty($document['recipient_name']))<div>{{ $document['recipient_name'] }}</div>@endif<strong>{{ __('Nama & Cop Pelanggan') }}</strong><div class="date">{{ __('Tarikh:') }} {{ !empty($document['received_date']) ? \Carbon\Carbon::parse($document['received_date'])->format('d/m/Y') : '........................' }}</div></div></td></tr></table>
 </body></html>

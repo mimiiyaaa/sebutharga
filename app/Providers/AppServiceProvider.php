@@ -19,6 +19,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        $this->app->resolving('dompdf.wrapper', function ($pdf) {
+            $pdf->setCallbacks([[
+                'event' => 'begin_frame',
+                'f' => [\App\Services\PdfSignatureLayout::class, 'alignToBottom'],
+            ]]);
+        });
     }
 }

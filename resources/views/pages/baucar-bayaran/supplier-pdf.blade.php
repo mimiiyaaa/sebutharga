@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>{{ $voucher->voucher_no }}</title>
     <style>
-        @page { margin: 34pt 40pt; }
+        @page { margin: 34pt 40pt 72pt; }
         body { font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #111; line-height: 1.35; }
         table { width: 100%; border-collapse: collapse; }
         .header td { vertical-align: top; padding-bottom: 12pt; }
@@ -49,6 +49,6 @@
     </table>
     <table class="totals"><tr><td class="right">JUMLAH DIBAYAR (RM):</td><td width="25%" class="right grand">{{ number_format((float) $voucher->total_amount, 2) }}</td></tr></table>
     @if ($voucher->description)<div class="notes"><strong>Keterangan:</strong><br>{{ $voucher->description }}</div>@endif
-    <table class="signatures"><tr><td><strong>Disediakan Oleh:</strong><div class="signature">@if($preparedBy){{ $preparedBy }}<br>@endif{{ $preparedRole }}</div></td><td><strong>Diterima Oleh:</strong><div class="signature">@if($receivedBy){{ $receivedBy }}<br>@endif{{ $receivedRole }}</div></td></tr></table>
+    <table class="signatures" data-pdf-signature="72"><tr><td><strong>Disediakan Oleh:</strong><div class="signature">@if($preparedBy){{ $preparedBy }}<br>@endif{{ $preparedRole }}</div></td><td><strong>Diterima Oleh:</strong><div class="signature">@if($receivedBy){{ $receivedBy }}<br>@endif{{ $receivedRole }}</div></td></tr></table>
 </body>
 </html>

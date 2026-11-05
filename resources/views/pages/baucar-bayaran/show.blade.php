@@ -74,7 +74,7 @@
             <x-common.document-card :title="__('Fail Baucar Bayaran')" class="lg:order-1">
             <p class="mb-4 break-all text-sm text-gray-700 dark:text-gray-300">{{ $document->file_name }}</p>
             @if ($document->file_mime === 'application/pdf')
-                <iframe src="{{ route('baucar-bayaran.file', $document->id) }}" title="{{ __('Baucar Bayaran') }}" class="h-[720px] w-full rounded-xl border border-gray-200 dark:border-gray-700"></iframe>
+                <x-common.pdf-viewer :number="$document->voucher_no" :pdf-url="route('baucar-bayaran.file', $document->id)" :download-url="route('baucar-bayaran.file', [$document->id, 'download' => 1])" :label="__('Baucar Bayaran')" />
             @else
                 <img src="{{ route('baucar-bayaran.file', $document->id) }}" alt="{{ __('Baucar Bayaran') }}" class="max-h-[720px] w-full rounded-xl border border-gray-200 object-contain dark:border-gray-700">
             @endif

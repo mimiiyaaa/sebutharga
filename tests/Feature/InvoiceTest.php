@@ -65,7 +65,7 @@ test('invoice creation saves snapshot and items with server calculated total', f
     $this->assertDatabaseCount('invoice_item',3);
     DB::table('customer_supplier')->where('customer_id',1)->update(['company_name'=>'Changed']);
     $this->get(route('invoice.customer'))->assertOk()->assertSee('Jabatan Teknologi');
-    $this->get(route('invoice.customer.preview',1))->assertOk()->assertSee('Cetak PDF')->assertSee('srcdoc=', false)->assertSee('target="_blank"', false);
+    $this->get(route('invoice.customer.preview',1))->assertOk()->assertSee('Cetak')->assertSee(route('invoice.customer.pdf',1), false)->assertDontSee('srcdoc=', false)->assertDontSee('target="_blank"', false);
     $pdf = $this->get(route('invoice.customer.pdf',1))->assertOk()->assertHeader('content-type','application/pdf');
     expect($pdf->getContent())->toStartWith('%PDF-');
     if (getenv('INVOICE_VISUAL_CHECK')) file_put_contents(storage_path('app/invoice-sample-check.pdf'),$pdf->getContent());
@@ -142,7 +142,7 @@ test('invoice supports detail edit update and delete without replacing the recor
     $this->assertDatabaseCount('invoice_item', 1);
     $this->assertDatabaseHas('invoice_master', ['invoice_id' => 1, 'total_amount' => 251, 'updated_by' => 42]);
     $this->get(route('invoice.customer.show', 1))->assertOk()->assertSee('Pelanggan Dikemas Kini')->assertSee('Item baharu');
-    $this->get(route('invoice.customer.preview', 1))->assertOk()->assertSee('Item baharu');
+    $this->get(route('invoice.customer.preview', 1))->assertOk()->assertSee(route('invoice.customer.pdf',1), false);
     $this->delete(route('invoice.customer.delete', 1))->assertRedirect(route('invoice.customer'));
     $this->assertDatabaseCount('invoice_master', 0);
     $this->assertDatabaseCount('invoice_item', 0);

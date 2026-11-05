@@ -20,7 +20,7 @@
                         <td class="p-3 text-center tabular-nums" x-text="index + 1"></td>
                         <td class="min-w-60 p-3"><textarea rows="3" required maxlength="2000" x-model="item.description" :name="`items[${index}][description]`" aria-label="{{ __('Keterangan Barang') }}" placeholder="{{ __('Nama item / perkhidmatan') }}" class="{{ $inputClass }}"></textarea></td>
                         <td class="min-w-32 p-3"><input type="number" min="0.01" step="0.01" required max="1000000" x-model.number="item.quantity" :name="`items[${index}][quantity]`" aria-label="{{ __('Kuantiti') }}" class="{{ $inputClass }} text-center"></td>
-                        <td class="min-w-32 p-3"><input required maxlength="50" x-model="item.unit" :name="`items[${index}][unit]`" aria-label="{{ __('Unit') }}" class="{{ $inputClass }} text-center"></td>
+                        <td class="min-w-32 p-3"><x-form.unit-select :input-class="$inputClass" /></td>
                         <td class="p-3 text-center">
                             <input type="hidden" :name="`items[${index}][checked]`" :value="item.checked ? 1 : 0">
                             <input type="checkbox" x-model="item.checked" :aria-label="@js(__('Semakan item')) + ' ' + (index + 1)" class="h-5 w-5 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-900">

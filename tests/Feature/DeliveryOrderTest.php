@@ -69,7 +69,7 @@ test('delivery order saves snapshot items and renders downloadable pdf', functio
     $this->assertDatabaseHas('delivery_order_master',['do_no'=>'K1R-DO-2026-001','created_by'=>42]);
     DB::table('customer_supplier')->where('customer_id',1)->update(['company_name'=>'Changed']);
     $this->get(route('delivery-order.customer'))->assertOk()->assertSee('Jabatan Teknologi');
-    $this->get(route('delivery-order.customer.preview',1))->assertOk()->assertSee('Cetak PDF')->assertSee('srcdoc=', false)->assertSee('target="_blank"', false);
+    $this->get(route('delivery-order.customer.preview',1))->assertOk()->assertSee('Cetak')->assertSee(route('delivery-order.customer.pdf',1), false)->assertDontSee('srcdoc=', false)->assertDontSee('target="_blank"', false);
     $pdf=$this->get(route('delivery-order.customer.pdf',1))->assertOk()->assertHeader('content-type','application/pdf');
     expect($pdf->getContent())->toStartWith('%PDF-');
     $this->get(route('delivery-order.customer.pdf',['id'=>1,'download'=>1]))->assertDownload('K1R-DO-2026-001.pdf');
@@ -124,7 +124,7 @@ test('delivery-order supports detail edit update and delete without replacing th
     $this->assertDatabaseCount('delivery_order_item', 1);
     $this->assertDatabaseHas('delivery_order_item', ['delivery_order_id' => 1, 'remarks' => '/']);
     $this->get(route('delivery-order.customer.show', 1))->assertOk()->assertSee('Pelanggan Dikemas Kini')->assertSee('Item baharu');
-    $this->get(route('delivery-order.customer.preview', 1))->assertOk()->assertSee('Item baharu');
+    $this->get(route('delivery-order.customer.preview', 1))->assertOk()->assertSee(route('delivery-order.customer.pdf',1), false);
     $this->delete(route('delivery-order.customer.delete', 1))->assertRedirect(route('delivery-order.customer'));
     $this->assertDatabaseCount('delivery_order_master', 0);
     $this->assertDatabaseCount('delivery_order_item', 0);

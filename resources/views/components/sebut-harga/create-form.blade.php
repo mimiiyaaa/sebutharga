@@ -232,7 +232,7 @@
                         <div class="col-span-1 px-1 text-center tabular-nums" x-text="index + 1"></div>
                         <div class="col-span-4 px-1"><textarea :name="`items[${index}][description]`" x-model="item.description" rows="4" required class="{{ $inputClass }} w-full max-w-full" placeholder="Nama item / perkhidmatan"></textarea></div>
                         <div class="col-span-2 px-1"><input :name="`items[${index}][quantity]`" type="number" min="1" step="1" x-model.number="item.quantity" required class="{{ $inputClass }} w-full text-center"></div>
-                        <div class="col-span-1 px-1"><input :name="`items[${index}][unit]`" x-model="item.unit" required class="{{ $inputClass }} w-full text-center" placeholder="Unit"></div>
+                        <div class="col-span-1 px-1"><x-form.unit-select :input-class="$inputClass" /></div>
                         <div class="col-span-2 px-1"><input :name="`items[${index}][price]`" type="number" min="0" step="0.01" x-model.number="item.price" required class="{{ $inputClass }} w-full price-input text-end"></div>
                         <div class="col-span-1 whitespace-nowrap px-1" x-text="money(subtotal(item))"></div>
                         <div class="col-span-1 px-1"><button type="button" title="{{ __('Buang') }}" aria-label="{{ __('Buang') }}" @click="items.splice(index, 1)" :disabled="items.length === 1" class="document-action document-action-delete disabled:cursor-not-allowed disabled:opacity-40"><x-svg.item-trash /></button></div>
