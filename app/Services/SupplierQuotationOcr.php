@@ -36,7 +36,7 @@ class SupplierQuotationOcr
                 config('ocr.pdftoppm_binary'),
                 '-f', '1',
                 '-l', (string) config('ocr.max_pdf_pages'),
-                '-r', (string) config('ocr.pdf_dpi'),
+                '-r', (string) max(300, (int) config('ocr.pdf_dpi')),
                 '-png',
                 $pdfPath,
                 $prefix,
@@ -60,19 +60,31 @@ class SupplierQuotationOcr
     private function extractImage(string $imagePath): string
     {
         $languages = (string) config('ocr.languages');
-        $command = [config('ocr.tesseract_binary')];
-        if ($tessdataDirectory = config('ocr.tessdata_dir')) {
-            $command[] = '--tessdata-dir';
-            $command[] = $tessdataDirectory;
-        }
-        $command = [...$command, $imagePath, 'stdout', '-l', $languages, '--psm', '6'];
-        $text = $this->run($command, 45);
+        $candidates = collect([6, 4, 11])->map(function (int $pageSegmentationMode) use ($imagePath, $languages) {
+            $command = [config('ocr.tesseract_binary')];
+            if ($tessdataDirectory = config('ocr.tessdata_dir')) {
+                $command[] = '--tessdata-dir';
+                $command[] = $tessdataDirectory;
+            }
+            return $this->run([...$command, $imagePath, 'stdout', '-l', $languages, '--psm', (string) $pageSegmentationMode], 45, false);
+        })->filter(fn (string $text) => $this->hasUsableText($text));
+
+        $text = $candidates->sortByDesc(fn (string $candidate) => $this->ocrTableScore($candidate))->first() ?? '';
 
         if ($this->hasUsableText($text)) {
             return $text;
         }
 
         throw new RuntimeException('OCR tidak dapat mengenal pasti teks pada dokumen ini. Sila gunakan imej yang jelas dan tidak kabur.');
+    }
+
+    private function ocrTableScore(string $text): int
+    {
+        $headers = preg_match_all('/\b(?:BIL|KETERANGAN|DESCRIPTION|KUANTITI|QUANTITY|UNIT|HARGA|JUMLAH)\b/i', $text) ?: 0;
+        $rows = preg_match_all('/(?:^|\n)\s*\d+\s+.+?\s+\d+(?:[,.]\d+)?\s+[A-Za-z][A-Za-z.\/-]*\s+(?:RM\s*)?[\d,]+\.\d{2}\s+(?:RM\s*)?[\d,]+\.\d{2}/im', $text) ?: 0;
+        $totals = preg_match_all('/(?:JUMLAH BESAR|GRAND TOTAL|TOTAL)/i', $text) ?: 0;
+        $numbers = preg_match_all('/\d[\d,.]*/', $text) ?: 0;
+        return ($rows * 100) + ($headers * 10) + ($totals * 5) + $numbers;
     }
 
     private function run(array $command, int $timeout, bool $required = true): string
