@@ -71,7 +71,7 @@
             <x-supplier-document.field name="payment_instructions" :label="__('Arahan Pembayaran')" type="textarea" :value="$values['payment_instructions'] ?? __('Sila lakukan pembayaran ke akaun bank korporat kami seperti tertera di bawah:')" required maxlength="3000" />
             <div class="grid gap-5 md:grid-cols-3">
                 <x-supplier-document.field name="bank_name" :label="__('Nama Bank')" x-model="bank.name" required :value="$values['bank_name'] ?? ''" />
-                <x-supplier-document.field name="account_name" :label="__('Nama Akaun')" x-model="bank.account" required :value="$values['account_name'] ?? config('purchase_order.issuer_name')" />
+                <x-supplier-document.field name="account_name" :label="__('Nama Pemegang Akaun')" x-model="bank.account" required :value="$values['account_name'] ?? config('purchase_order.issuer_name')" />
                 <x-supplier-document.field name="account_no" :label="__('No. Akaun')" x-model="bank.number" required :value="$values['account_no'] ?? ''" />
             </div>
         </x-common.document-card>

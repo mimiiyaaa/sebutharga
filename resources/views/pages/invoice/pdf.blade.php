@@ -35,7 +35,7 @@ thead { display: table-header-group; }
 @foreach($items as $item)<tr><td class="center">{{ $loop->iteration }}</td><td class="lines">{{ $item->item_description }}</td><td class="center">{{ rtrim(rtrim(number_format($item->quantity, 2, '.', ''), '0'), '.') }}</td><td class="center">{{ $item->unit }}</td><td class="right">{{ number_format($item->unit_price, 2) }}</td><td class="right">{{ number_format($item->subtotal, 2) }}</td></tr>@endforeach
 </tbody></table>
 <table class="total"><tr><td class="right">{{ __('JUMLAH BESAR (RM):') }}</td><td class="right amount">{{ number_format($invoice->total_amount, 2) }}</td></tr></table>
-<div class="payment"><strong>{{ __('ARAHAN PEMBAYARAN / PAYMENT INSTRUCTIONS:') }}</strong><div class="lines">{{ $document['payment_instructions'] }}</div><div>{{ __('Nama Bank:') }} {{ $document['bank_name'] }}</div><div>{{ __('Nama Akaun:') }} {{ $document['account_name'] }}</div><div>{{ __('No. Akaun:') }} {{ $document['account_no'] }}</div></div>
+<div class="payment"><strong>{{ __('ARAHAN PEMBAYARAN / PAYMENT INSTRUCTIONS:') }}</strong><div class="lines">{{ $document['payment_instructions'] }}</div><div>{{ __('Nama Bank:') }} {{ $document['bank_name'] }}</div><div>{{ __('Nama Pemegang Akaun:') }} {{ $document['account_name'] }}</div><div>{{ __('No. Akaun:') }} {{ $document['account_no'] }}</div></div>
 <div class="signature" data-pdf-signature="72">{{ __('Disediakan oleh,') }}<div class="signature-line"></div>@if(!empty($document['prepared_by']))<div>{{ $document['prepared_by'] }}</div>@endif<strong>{{ $document['prepared_role'] }}<br>{{ $document['signature_company'] ?? $document['issuer_name'] }}</strong></div>
 </body></html>
 

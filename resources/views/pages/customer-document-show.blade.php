@@ -12,7 +12,7 @@
         __('Maklumat Pelanggan') => ['customer_name' => __('Pelanggan / Syarikat'), 'customer_address' => __('Alamat Pelanggan')],
     ];
     $footerSections = $isInvoice ? [
-        __('Arahan Pembayaran') => ['payment_instructions' => __('Arahan Pembayaran'), 'bank_name' => __('Nama Bank'), 'account_name' => __('Nama Akaun'), 'account_no' => __('No. Akaun')],
+        __('Arahan Pembayaran') => ['payment_instructions' => __('Arahan Pembayaran'), 'bank_name' => __('Nama Bank'), 'account_name' => __('Nama Pemegang Akaun'), 'account_no' => __('No. Akaun')],
         __('Disediakan oleh,') => ['prepared_by' => __('Nama Penyedia (pilihan)'), 'prepared_role' => __('Jawatan / Unit'), 'signature_company' => __('Nama Syarikat')],
     ] : [
         __('Nota Penghantaran') => ['notes' => __('Nota'), 'delivered_by' => __('Nama Penghantar (pilihan)'), 'signature_company' => __('Nama Syarikat')],
