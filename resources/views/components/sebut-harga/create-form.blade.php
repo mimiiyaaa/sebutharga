@@ -10,6 +10,7 @@
     'updateDraft' => false,
     'copyAsNewQuotation' => false,
     'jawatanOptions' => collect(),
+    'preparedByOptions' => collect(),
 ])
 
 @php
@@ -40,6 +41,11 @@
         ->sort()
         ->values();
     $confirmationPreparedBy = old('disediakan_oleh', $updateDraft ? ($draft->disediakan_oleh ?? auth()->user()?->name ?? '') : (auth()->user()?->name ?? ''));
+    $preparedByOptions = collect($preparedByOptions)
+        ->filter(fn ($user) => filled($user->name ?? null))
+        ->unique('name')
+        ->sortBy('name')
+        ->values();
     $confirmationRole = old('disediakan_role', $document['disediakan_role'] ?? ($draft->disediakan_role ?? auth()->user()?->jawatan ?? $defaultJawatan));
     $defaultQuotationDate = $copyAsNewQuotation ? now()->format('Y-m-d') : ($isEditing ? $quotation->quotation_date : now()->format('Y-m-d'));
     $usesExistingQuotationNumber = $isEditing && ! $copyAsNewQuotation;
@@ -54,6 +60,7 @@
             'price' => $item->unit_price,
         ])->values()
         : collect([['id' => 1, 'description' => '', 'quantity' => 1, 'unit' => '', 'price' => 0]]);
+    $initialTotal = $initialItems->sum(fn ($item) => max(0, (float) ($item['quantity'] ?? 0)) * max(0, (float) ($item['price'] ?? 0)));
 @endphp
 
 <form method="POST" action="{{ $formAction }}" class="font-outfit space-y-6" x-data="{
@@ -231,11 +238,11 @@
                     <div class="col-span-12 grid grid-cols-12 items-center border-b border-gray-100 py-3 dark:border-gray-800">
                         <div class="col-span-1 px-1 text-center tabular-nums" x-text="index + 1"></div>
                         <div class="col-span-4 px-1"><textarea :name="`items[${index}][description]`" x-model="item.description" rows="4" required class="{{ $inputClass }} w-full max-w-full" placeholder="Nama item / perkhidmatan"></textarea></div>
-                        <div class="col-span-2 px-1"><input :name="`items[${index}][quantity]`" type="number" min="1" step="1" x-model.number="item.quantity" required class="{{ $inputClass }} w-full text-center"></div>
+                        <div class="col-span-2 px-1"><input :name="`items[${index}][quantity]`" type="number" min="1" step="1" x-model.number="item.quantity" @input="$dispatch('quotation-items-updated')" required class="{{ $inputClass }} w-full text-center"></div>
                         <div class="col-span-1 px-1"><x-form.unit-select :input-class="$inputClass" /></div>
-                        <div class="col-span-2 px-1"><input :name="`items[${index}][price]`" type="number" min="0" step="0.01" x-model.number="item.price" required class="{{ $inputClass }} w-full price-input text-end"></div>
+                        <div class="col-span-2 px-1"><input :name="`items[${index}][price]`" type="number" min="0" step="0.01" x-model.number="item.price" @input="$dispatch('quotation-items-updated')" required class="{{ $inputClass }} w-full price-input text-end"></div>
                         <div class="col-span-1 whitespace-nowrap px-1" x-text="money(subtotal(item))"></div>
-                        <div class="col-span-1 px-1"><button type="button" title="{{ __('Buang') }}" aria-label="{{ __('Buang') }}" @click="items.splice(index, 1)" :disabled="items.length === 1" class="document-action document-action-delete disabled:cursor-not-allowed disabled:opacity-40"><x-svg.item-trash /></button></div>
+                        <div class="col-span-1 px-1"><button type="button" title="{{ __('Buang') }}" aria-label="{{ __('Buang') }}" @click="items.splice(index, 1); $dispatch('quotation-items-updated')" :disabled="items.length === 1" class="document-action document-action-delete disabled:cursor-not-allowed disabled:opacity-40"><x-svg.item-trash /></button></div>
                     </div>
                 </template>
             </div>
@@ -254,6 +261,7 @@
         $periodValues = collect($periods)->mapWithKeys(fn ($value, $key) => [$key => old($key, $value)]);
         $savedTerms = trim(old('additional_terms', $document['additional_terms'] ?? ''));
         $defaultTerms = [
+            'Jumlah sebut harga: RM' . number_format($initialTotal, 2) . '.',
             "Tempoh sah sebutharga adalah selama {$periodValues['validity_days']} hari dari tarikh sebutharga dikeluarkan.",
             "Tempoh penghantaran: {$periodValues['delivery_min_days']} - {$periodValues['delivery_max_days']} hari selepas penerimaan Pesanan Belian (PO) rasmi.",
             'Sila tandatangan di bawah untuk pengesahan persetujuan sebutharga ini.',
@@ -261,13 +269,14 @@
         $savedLines = collect(preg_split('/\R/u', $savedTerms ?: ''))
             ->map(fn ($line) => preg_replace('/^\s*\d+\.\s*/', '', trim($line)))
             ->filter(fn ($line) => trim($line) !== '')
+            ->reject(fn ($line) => str_starts_with(strtolower($line), 'harga dalam ringgit malaysia') || str_starts_with(strtolower($line), 'jumlah sebut harga:'))
             ->values();
         $termLines = preg_match('/^\s*1\.\s*/', $savedTerms) && $savedLines->isNotEmpty()
-            ? $savedLines
+            ? $savedLines->prepend($defaultTerms[0])
             : collect($defaultTerms)->merge($savedLines);
         $termsText = $termLines->map(fn ($line, $index) => ($index + 1) . '. ' . $line)->implode("\n") . "\n" . ($termLines->count() + 1) . '. ';
     @endphp
-    <x-common.document-card :title="__('Terma dan Syarat')" x-data="{ periods: {{ Illuminate\Support\Js::from($periodValues) }}, termsText: {{ Illuminate\Support\Js::from($termsText) }}, termsDirty: false, buildTerms() { const lines = this.termsText.split(/\r?\n/); const extras = lines.slice(3).map(line => line.replace(/^\s*\d+\.\s*/, '').trim()).filter(Boolean); return `1. Tempoh sah sebutharga adalah selama ${this.periods.validity_days || '—'} hari dari tarikh sebutharga dikeluarkan.\n2. Tempoh penghantaran: ${this.periods.delivery_min_days || '—'} - ${this.periods.delivery_max_days || '—'} hari selepas penerimaan Pesanan Belian (PO) rasmi.\n3. Sila tandatangan di bawah untuk pengesahan persetujuan sebutharga ini.` + extras.map((line, index) => `\n${index + 4}. ${line}`).join('') + `\n${extras.length + 4}. `; }, syncTerms() { this.termsText = this.buildTerms(); }, insertNextTerm(event) { const field = event.target; const before = field.value.slice(0, field.selectionStart); const after = field.value.slice(field.selectionEnd); const nextNumber = before.split(/\r?\n/).length + 1; const insertion = `\n${nextNumber}. `; field.value = before + insertion + after; field.dispatchEvent(new Event('input', { bubbles: true })); requestAnimationFrame(() => { const cursor = before.length + insertion.length; field.setSelectionRange(cursor, cursor); }); } }">
+    <x-common.document-card :title="__('Terma dan Syarat')" @quotation-items-updated.window="syncTerms()" x-data="{ periods: {{ Illuminate\Support\Js::from($periodValues) }}, termsText: {{ Illuminate\Support\Js::from($termsText) }}, termsDirty: false, buildTerms() { const lines = this.termsText.split(/\r?\n/); const extras = lines.slice(4).map(line => line.replace(/^\s*\d+\.\s*/, '').trim()).filter(Boolean); return `1. Jumlah sebut harga: RM${this.money(this.gross).replace('RM', '').trim()}.\n2. Tempoh sah sebutharga adalah selama ${this.periods.validity_days || '—'} hari dari tarikh sebutharga dikeluarkan.\n3. Tempoh penghantaran: ${this.periods.delivery_min_days || '—'} - ${this.periods.delivery_max_days || '—'} hari selepas penerimaan Pesanan Belian (PO) rasmi.\n4. Sila tandatangan di bawah untuk pengesahan persetujuan sebutharga ini.` + extras.map((line, index) => `\n${index + 5}. ${line}`).join('') + `\n${extras.length + 5}. `; }, syncTerms() { this.termsText = this.buildTerms(); }, insertNextTerm(event) { const field = event.target; const before = field.value.slice(0, field.selectionStart); const after = field.value.slice(field.selectionEnd); const nextNumber = before.split(/\r?\n/).length + 1; const insertion = `\n${nextNumber}. `; field.value = before + insertion + after; field.dispatchEvent(new Event('input', { bubbles: true })); requestAnimationFrame(() => { const cursor = before.length + insertion.length; field.setSelectionRange(cursor, cursor); }); } }">
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
             @foreach (['validity_days' => 'Tempoh Sah (Hari)', 'delivery_min_days' => 'Penghantaran Minimum (Hari)', 'delivery_max_days' => 'Penghantaran Maksimum (Hari)'] as $field => $label)
                 <div>
@@ -289,7 +298,14 @@
                 <div class="space-y-5">
                     <div>
                         <label for="disediakan_oleh_confirmation" class="{{ $labelClass }}">{{ __('Disediakan Oleh') }}</label>
-                        <input id="disediakan_oleh_confirmation" name="disediakan_oleh" value="{{ $confirmationPreparedBy }}" class="{{ $inputClass }}">
+                        <select id="disediakan_oleh_confirmation" name="disediakan_oleh" class="{{ $inputClass }}">
+                            @if ($confirmationPreparedBy && ! $preparedByOptions->contains(fn ($user) => $user->name === $confirmationPreparedBy))
+                                <option value="{{ $confirmationPreparedBy }}" selected>{{ $confirmationPreparedBy }}</option>
+                            @endif
+                            @foreach ($preparedByOptions as $user)
+                                <option value="{{ $user->name }}" @selected($confirmationPreparedBy === $user->name)>{{ $user->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     <div>
                         <label for="disediakan_role_confirmation" class="{{ $labelClass }}">{{ __('Jawatan') }}</label>

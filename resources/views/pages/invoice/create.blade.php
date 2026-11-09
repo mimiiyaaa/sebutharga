@@ -8,11 +8,12 @@
         companies: @js($companies), customers: @js($customers), localOrders: @js($localOrders ?? []),
         customerId: @js((string) old('customer_id', $values['customer_id'] ?? '')),
         issuer: @js(['name'=>old('issuer_name', $values['issuer_name'] ?? config('purchase_order.issuer_name')), 'address'=>old('issuer_address', $values['issuer_address'] ?? config('purchase_order.issuer_address')), 'phone'=>old('issuer_phone', $values['issuer_phone'] ?? config('purchase_order.issuer_phone')), 'email'=>old('issuer_email', $values['issuer_email'] ?? config('purchase_order.issuer_email'))]),
+        bank: @js(['name'=>old('bank_name', $values['bank_name'] ?? ''), 'account'=>old('account_name', $values['account_name'] ?? config('purchase_order.issuer_name')), 'number'=>old('account_no', $values['account_no'] ?? '')]),
         customer: @js(['name'=>old('customer_name', $values['customer_name'] ?? ''), 'address'=>old('customer_address', $values['customer_address'] ?? '')]),
         signatureCompany: @js(old('signature_company', $values['signature_company'] ?? null)),
         items: @js(collect(old('items', $initialItems ?? [['description'=>'', 'quantity'=>1, 'unit'=>'Unit', 'price'=>0]]))->values()->map(fn($item,$index)=>array_merge($item,['id'=>$index+1]))),
         nextId: {{ count(old('items', $initialItems ?? [1])) + 1 }},
-        selectCompany(id) { const c = this.companies.find(c => String(c.company_id) === id); if(c) this.issuer = {name:c.nama_syarikat, address:c.alamat_syarikat || '', phone:c.no_telefon || '', email:c.emel || ''}; },
+        selectCompany(id) { const c = this.companies.find(c => String(c.company_id) === id); if(c) { this.issuer = {name:c.nama_syarikat, address:c.alamat_syarikat || '', phone:c.no_telefon || '', email:c.emel || ''}; this.bank = {name:c.nama_bank || '', account:c.nama_akaun || c.nama_syarikat || '', number:c.no_akaun || ''}; } },
         selectCustomer(id) { const c = this.customers.find(c => String(c.customer_id) === id); if(c) this.customer = {name:c.company_name || c.customer_name, address:c.address || ''}; },
         selectLo(id) { const lo = this.localOrders.find(lo => String(lo.lo_inden_id) === String(id)); if (lo) { this.customerId = String(lo.customer_id); this.selectCustomer(this.customerId); } },
         addItem() { this.items.push({id:this.nextId++, description:'', quantity:1, unit:'Unit', price:0}); },
@@ -69,9 +70,9 @@
         <x-common.document-card :title="__('ARAHAN PEMBAYARAN / PAYMENT INSTRUCTIONS:')">
             <x-supplier-document.field name="payment_instructions" :label="__('Arahan Pembayaran')" type="textarea" :value="$values['payment_instructions'] ?? __('Sila lakukan pembayaran ke akaun bank korporat kami seperti tertera di bawah:')" required maxlength="3000" />
             <div class="grid gap-5 md:grid-cols-3">
-                <x-supplier-document.field name="bank_name" :label="__('Nama Bank')" required :value="$values['bank_name'] ?? ''" />
-                <x-supplier-document.field name="account_name" :label="__('Nama Akaun')" :value="$values['account_name'] ?? config('purchase_order.issuer_name')" required />
-                <x-supplier-document.field name="account_no" :label="__('No. Akaun')" required :value="$values['account_no'] ?? ''" />
+                <x-supplier-document.field name="bank_name" :label="__('Nama Bank')" x-model="bank.name" required :value="$values['bank_name'] ?? ''" />
+                <x-supplier-document.field name="account_name" :label="__('Nama Akaun')" x-model="bank.account" required :value="$values['account_name'] ?? config('purchase_order.issuer_name')" />
+                <x-supplier-document.field name="account_no" :label="__('No. Akaun')" x-model="bank.number" required :value="$values['account_no'] ?? ''" />
             </div>
         </x-common.document-card>
         <x-common.document-card :title="__('Disediakan oleh,')">

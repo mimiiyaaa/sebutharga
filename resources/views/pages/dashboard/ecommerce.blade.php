@@ -129,7 +129,7 @@ $offset += $count;
             <h2 class="border-s-4 border-brand-500 ps-3 text-sm font-semibold text-gray-900 dark:text-white/90">{{ __('Ringkasan Jualan LO dan Belian PO') }}</h2>
             <span class="text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Mengikut tempoh dipilih') }}</span>
         </div>
-        <div class="grid items-stretch gap-4 p-4 xl:grid-cols-5">
+        <div class="grid w-full items-stretch gap-4 p-4 xl:grid-cols-[230px_minmax(0,1fr)]">
             <div class="grid gap-4 sm:grid-cols-2 xl:col-span-1 xl:grid-cols-1 xl:grid-rows-2">
                 @foreach ([['Jumlah Jualan', 'LO Pelanggan', $loSummary, 'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300'], ['Jumlah Belian', 'PO Kepada Pembekal', $poSummary, 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400']] as [$label, $hint, $summary, $colors])
                     <div class="flex flex-col justify-center rounded-xl p-4 {{ $colors }}">
@@ -139,7 +139,7 @@ $offset += $count;
                     </div>
                 @endforeach
             </div>
-            <div class="min-w-0 xl:col-span-4" x-data="{ activeOrder: 'lo' }" x-init="activeOrder = window.location.hash === '#summary-po' ? 'po' : 'lo'">
+            <div class="min-w-0 w-full" x-data="{ activeOrder: 'lo' }" x-init="activeOrder = window.location.hash === '#summary-po' ? 'po' : 'lo'">
                 <div class="flex gap-2 border-b border-gray-100 px-4 pb-3 dark:border-gray-800" role="tablist" aria-label="{{ __('Jenis Dokumen') }}">
                     @foreach (['lo' => 'LO Pelanggan', 'po' => 'PO Kepada Pembekal'] as $tab => $tabLabel)
                         <button type="button" id="order-tab-{{ $tab }}" role="tab" aria-controls="summary-{{ $tab }}" :aria-selected="activeOrder === '{{ $tab }}'" @click="activeOrder = '{{ $tab }}'" :class="activeOrder === '{{ $tab }}' ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300' : 'text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800'" class="rounded-lg px-4 py-2 text-sm font-medium transition">{{ __($tabLabel) }}</button>

@@ -54,6 +54,16 @@
                         <textarea id="alamat_syarikat" name="alamat_syarikat" rows="4" placeholder="Contoh: No. 12, Jalan ..." class="mt-1.5 w-full rounded-xl border border-gray-200 bg-gray-50/70 px-4 py-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800/60 dark:text-white/90 dark:focus:bg-gray-900">{{ old('alamat_syarikat', $company?->alamat_syarikat) }}</textarea>
                         @error('alamat_syarikat')<p class="mt-1.5 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror
                     </div>
+
+                    <div class="md:col-span-2"><div class="border-t border-gray-100 pt-1 dark:border-gray-800"></div><h3 class="mt-3 text-sm font-semibold text-gray-800 dark:text-white/90">{{ __('Maklumat Akaun Bank') }}</h3><p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('Maklumat ini akan diisi secara automatik pada invois apabila syarikat dipilih.') }}</p></div>
+
+                    @foreach (['nama_bank' => 'Nama Bank', 'nama_akaun' => 'Nama Akaun', 'no_akaun' => 'No. Akaun'] as $field => $label)
+                        <div>
+                            <label for="{{ $field }}" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __($label) }}</label>
+                            <input id="{{ $field }}" name="{{ $field }}" type="text" value="{{ old($field, $company?->$field) }}" class="min-h-11 w-full rounded-xl border border-gray-200 bg-gray-50/70 px-4 py-2.5 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800/60 dark:text-white/90 dark:focus:bg-gray-900">
+                            @error($field)<p class="mt-1.5 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror
+                        </div>
+                    @endforeach
                 </div>
             </x-common.document-card>
 

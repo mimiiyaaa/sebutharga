@@ -146,7 +146,11 @@ class SupplierQuotationController extends Controller
         preg_match('/\bNo\.?\s*:\s*([A-Z0-9][A-Z0-9\-\/]+)/i', $joined, $quotationMatch);
         preg_match('/\bTarikh\s*:\s*([^\n]+)/i', $joined, $dateMatch);
 
-        $tableIndex = $lines->search(fn ($line) => preg_match('/^BIL\b/i', $line));
+        $tableIndex = $lines->search(fn ($line) => preg_match('/\bBIL\b/i', $line)
+            && preg_match('/(?:KETERANGAN|DESCRIPTION|KUANTITI|QUANTITY)/i', $line));
+        if ($tableIndex === false) {
+            $tableIndex = $lines->search(fn ($line) => preg_match('/^BIL\b/i', $line));
+        }
         $firstLine = $lines->first() ?: '';
         preg_match('/^(.+?)\s+SEBUTHARGA\b/i', $firstLine, $issuerMatch);
         $supplierName = trim($issuerMatch[1] ?? '');
@@ -158,7 +162,8 @@ class SupplierQuotationController extends Controller
             $recipientEnd = $tableIndex === false ? 6 : max(0, $tableIndex - $toIndex - 1);
             $recipientLines = $lines->slice($toIndex + 1, $recipientEnd)->values();
             $personInCharge = $recipientLines->first();
-            $titleCandidates = $recipientLines->skip(2)->filter(fn ($line) => ! preg_match('/^(No\.?\s*Tel|E-mel|\d|[A-Za-z]+,)/i', $line));
+            $titleCandidates = $recipientLines->skip(2)->filter(fn ($line) => ! preg_match('/^(No\.?\s*Tel|E-mel|\d|[A-Za-z]+,)/i', $line)
+                && ! preg_match('/\b(?:BIL|KETERANGAN|DESCRIPTION|KUANTITI|QUANTITY|UNIT|SEUNIT|HARGA|JUMLAH|RM)\b/i', $line));
             $quotationTitle = $titleCandidates->last() ?: null;
         }
 
@@ -267,7 +272,19 @@ class SupplierQuotationController extends Controller
             return null;
         }
 
-        foreach (['d/m/Y', 'd-m-Y', 'Y-m-d', 'd.m.Y'] as $format) {
+        $value = trim(preg_replace('/\s+/u', ' ', $value));
+        $months = [
+            'Januari' => 'January', 'Februari' => 'February', 'Mac' => 'March',
+            'April' => 'April', 'Mei' => 'May', 'Jun' => 'June', 'Julai' => 'July',
+            'Ogos' => 'August', 'September' => 'September', 'Oktober' => 'October',
+            'November' => 'November', 'Disember' => 'December',
+        ];
+        $value = str_ireplace(array_keys($months), array_values($months), $value);
+        if (preg_match('/(\d{1,2}\s+[A-Za-z]+\s+\d{4})/', $value, $match)) {
+            $value = $match[1];
+        }
+
+        foreach (['d/m/Y', 'd-m-Y', 'Y-m-d', 'd.m.Y', 'j F Y'] as $format) {
             try {
                 return Carbon::createFromFormat($format, trim($value))->format('Y-m-d');
             } catch (\Throwable) {

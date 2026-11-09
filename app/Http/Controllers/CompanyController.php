@@ -31,6 +31,9 @@ class CompanyController extends Controller
             'emel' => 'nullable|email|max:255',
             'person_in_charge' => 'nullable|max:255',
             'alamat_syarikat' => 'nullable|max:10000',
+            'nama_bank' => 'nullable|max:255',
+            'nama_akaun' => 'nullable|max:255',
+            'no_akaun' => 'nullable|max:100',
             'logo' => 'nullable|file|mimes:jpg,jpeg,png,svg|max:2048',
         ]);
 

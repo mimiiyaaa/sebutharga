@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'poppler' => [
+    'pdftoppm' => base_path(
+        '../data/tools/poppler-26.09.0/Library/bin/pdftoppm.exe'
+    ),
+],
+
 ];

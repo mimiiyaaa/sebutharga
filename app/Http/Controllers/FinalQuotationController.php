@@ -174,10 +174,31 @@ class FinalQuotationController extends Controller
             'sent_by' => ['required', 'string', 'max:255'],
             'sent_date' => ['required', 'date_format:m/d/Y'],
             'sent_time' => ['required', 'date_format:h:i A'],
+            'sent_via' => ['required', 'in:E-mel,WhatsApp'],
+            'recipient_name' => ['required', 'string', 'max:255'],
+            'recipient_company_name' => ['nullable', 'string', 'max:255'],
+            'recipient_phone' => ['required', 'string', 'max:50'],
         ]);
         $sentAt = Carbon::createFromFormat('m/d/Y h:i A', $data['sent_date'].' '.$data['sent_time']);
+        $draft = DB::table('sebutharga_detail')
+            ->where('quotation_id', $id)
+            ->where('quotation_detail_id', $draftId)
+            ->first();
+        abort_unless($draft && strtolower(trim((string) $draft->status_draft)) === 'final', 404);
+        $document = json_decode($draft->document_data ?? '{}', true) ?: [];
+        $document = array_merge($document, [
+            'sent_via' => $data['sent_via'],
+            'recipient_name' => $data['recipient_name'],
+            'recipient_company_name' => $data['recipient_company_name'] ?? null,
+            'recipient_phone' => $data['recipient_phone'],
+        ]);
 
-        $this->updateDecisionState($id, $draftId, ['sent_at' => $sentAt, 'sent_by' => $data['sent_by'], 'status_quotation' => null], null);
+        $this->updateDecisionState($id, $draftId, [
+            'sent_at' => $sentAt,
+            'sent_by' => $data['sent_by'],
+            'status_quotation' => null,
+            'document_data' => json_encode($document, JSON_UNESCAPED_UNICODE),
+        ], null);
 
         return redirect()->route('sebut-harga.edit', [$id, 'draft' => $draftId, 'from' => 'final'])
             ->with('success', 'Sebut harga telah dihantar dan kini menunggu LO.');

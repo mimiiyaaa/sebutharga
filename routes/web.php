@@ -298,13 +298,11 @@ Route::get('/sebut-harga', function () {
         });
     })->values();
 
-    // Keep ordinary Draf records and the original finalized draft visible here.
-    // Revisions created from a Final start at final_no 2 and belong only on the
-    // dedicated Final page.
+    // Keep only active Draf records here. Final versions belong on the
+    // dedicated Final page and must no longer appear in the Draf list.
     $quotations = $quotations->map(function ($quotation) {
         $draftVersions = collect($quotation['versions'])
-            ->filter(fn ($version) => $version['status'] === 'Draf'
-                || ($version['status'] === 'Final' && (int) ($version['finalNo'] ?? 0) === 1))
+            ->filter(fn ($version) => $version['status'] === 'Draf')
             ->values();
 
         if ($draftVersions->isEmpty()) {
@@ -421,6 +419,7 @@ Route::get('/sebut-harga/create', function () {
         ->unique()
         ->sort()
         ->values();
+    $preparedByOptions = DB::table('users')->orderBy('name')->get(['name', 'jawatan']);
     $companies = DB::table('companies')->orderBy('nama_syarikat')->get();
     $supplierQuotations = DB::table('pembekal_quotation_master')
         ->orderByDesc('supplier_quotation_id')
@@ -461,6 +460,7 @@ Route::get('/sebut-harga/create', function () {
         'sourceQuotation' => $sourceQuotation,
         'sourceDraft' => $sourceDraft,
         'jawatanOptions' => $jawatanOptions,
+        'preparedByOptions' => $preparedByOptions,
     ]);
 })->middleware('auth')->name('sebut-harga.create');
 
@@ -790,6 +790,7 @@ Route::get('/sebut-harga/{id}/edit', function ($id) {
         ->unique()
         ->sort()
         ->values();
+    $preparedByOptions = DB::table('users')->orderBy('name')->get(['name', 'jawatan']);
     $companies = DB::table('companies')->orderBy('nama_syarikat')->get();
     $supplierQuotations = DB::table('pembekal_quotation_master')
         ->orderByDesc('supplier_quotation_id')
@@ -826,6 +827,7 @@ Route::get('/sebut-harga/{id}/edit', function ($id) {
         'createdBy' => $createdBy,
         'nextDraftNo' => $nextDraftNo,
         'jawatanOptions' => $jawatanOptions,
+        'preparedByOptions' => $preparedByOptions,
         'linkedLo' => $linkedLo,
     ]);
 })->middleware('auth')->name('sebut-harga.edit');
@@ -1117,4 +1119,20 @@ Route::middleware('auth')->prefix('delivery-order/pembekal')->name('delivery-ord
     Route::get('/{id}', 'show')->whereNumber('id')->name('show');
     Route::get('/{id}/file', 'file')->whereNumber('id')->name('file');
     Route::delete('/{id}', 'destroy')->whereNumber('id')->name('delete');
+});
+
+Route::get('/check-ocr-server', function (\Illuminate\Http\Request $request) {
+    abort_unless(
+        hash_equals(
+            (string) config('app.ocr_check_token'),
+            (string) $request->header('X-OCR-Check-Token')
+        ) && !empty(config('app.ocr_check_token')),
+        403
+    );
+
+    $path = base_path('../data/tools/poppler-26.09.0/Library/bin/pdftoppm.exe');
+
+    return response()->json([
+        'exists' => is_file($path),
+    ]);
 });

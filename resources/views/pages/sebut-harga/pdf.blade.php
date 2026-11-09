@@ -15,6 +15,35 @@
             $companyLogo = 'data:' . (mime_content_type($logoPath) ?: 'image/png') . ';base64,' . base64_encode(file_get_contents($logoPath));
         }
     }
+    $recipientAddress = trim((string) ($quotation->address ?? ''));
+    if ($recipientAddress !== '' && ! preg_match('/\R/u', $recipientAddress)) {
+        $addressParts = preg_split('/\s*,\s*/u', $recipientAddress, -1, PREG_SPLIT_NO_EMPTY);
+        $postalIndex = collect($addressParts)->search(fn ($part) => preg_match('/^\d{5}\b/u', trim($part)));
+        if ($postalIndex !== false) {
+            $beforePostal = array_slice($addressParts, 0, $postalIndex);
+            $afterPostal = array_slice($addressParts, $postalIndex);
+            $addressLines = [];
+            if (count($beforePostal) >= 2) {
+                $addressLines[] = implode(', ', array_slice($beforePostal, 0, 2));
+                foreach (array_slice($beforePostal, 2) as $part) $addressLines[] = $part;
+            } else {
+                $addressLines = $beforePostal;
+            }
+            if (count($afterPostal) >= 2) {
+                $addressLines[] = implode(', ', array_slice($afterPostal, 0, 2));
+                foreach (array_slice($afterPostal, 2) as $part) $addressLines[] = $part;
+            } else {
+                $addressLines = array_merge($addressLines, $afterPostal);
+            }
+            $recipientAddress = collect($addressLines)
+                ->map(fn ($line, $index) => $index < count($addressLines) - 1 ? $line . ',' : $line)
+                ->implode("\n");
+        } else {
+            $recipientAddress = collect(array_chunk($addressParts ?: [$recipientAddress], 2))
+                ->map(fn ($line) => implode(', ', $line))
+                ->implode("\n");
+        }
+    }
 @endphp
 <!doctype html>
 <html lang="ms">
@@ -87,7 +116,7 @@ table { width: 100%; border-collapse: collapse; }
 <div class="rule"></div>
 <div class="recipient"><strong>Kepada:</strong><br>
 <span>{{ $quotation->customer_name ?: $quotation->company_name }}</span>@if ($quotation->customer_name && $quotation->company_name && $quotation->customer_name !== $quotation->company_name)<br><span>{{ $quotation->company_name }}</span>@endif
-<div class="address">{{ $quotation->address ?? '' }}</div>
+<div class="address">{{ $recipientAddress }}</div>
 @if (!empty($quotation->phone_no))<div>No. Tel: {{ $quotation->phone_no }}</div>@endif
 @if (!empty($quotation->email))<div>E-mel: {{ $quotation->email }}</div>@endif
 </div>
@@ -101,9 +130,10 @@ table { width: 100%; border-collapse: collapse; }
 </tbody></table>
 <table class="total"><tr><td>JUMLAH BESAR (RM):</td><td class="total-value">{{ number_format((float) $detail->jumlah_total, 2) }}</td></tr></table>
 <div class="terms"><strong>TERMA DAN SYARAT / TERMS &amp; CONDITIONS:</strong>
-<div class="terms-copy">{{ $detail->terma_syarat ?: "1. Tempoh sah sebutharga adalah 30 hari dari tarikh sebutharga dikeluarkan.
-2. Tempoh penghantaran: 14 - 30 hari selepas penerimaan Pesanan Belian (PO) rasmi.
-3. Sila tandatangan di bawah untuk pengesahan persetujuan sebutharga ini." }}</div>
+<div class="terms-copy">{{ $detail->terma_syarat ?: "1. Jumlah sebut harga: RM" . number_format((float) $detail->jumlah_total, 2) . ".
+2. Tempoh sah sebutharga adalah 30 hari dari tarikh sebutharga dikeluarkan.
+3. Tempoh penghantaran: 14 - 30 hari selepas penerimaan Pesanan Belian (PO) rasmi.
+4. Sila tandatangan di bawah untuk pengesahan persetujuan sebutharga ini." }}</div>
 </div>
 <table class="signatures" data-pdf-signature="72"><tr><td>Disediakan oleh,</td><td class="signature-right">Diterima / Disahkan oleh,</td></tr>
 <tr><td class="signature-space"></td><td></td></tr>

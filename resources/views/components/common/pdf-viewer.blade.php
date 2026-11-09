@@ -16,5 +16,5 @@
     </div>
     <p class="border-b border-gray-200 px-5 py-3 text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">{{ __('Semak dan cetak dokumen di sini. Halaman sistem kekal terbuka selepas cetakan.') }}</p>
     <p x-cloak x-show="printHelp" role="status" class="bg-warning-50 px-5 py-3 text-sm text-warning-700 dark:bg-warning-500/10 dark:text-warning-400">{{ __('Gunakan ikon cetak pada bar alat PDF di bawah jika pelayar menyekat butang Cetak.') }}</p>
-    <iframe x-ref="pdf" @load="ready = true" title="{{ __('Pratonton PDF') }} — {{ $number }}" src="{{ $pdfUrl }}#view=FitH" class="block h-[75vh] min-h-[560px] w-full border-0 bg-gray-100 dark:bg-gray-800"></iframe>
+    <iframe x-ref="pdf" @load="ready = true" title="{{ __('Pratonton PDF') }} — {{ $number }}" src="{{ $pdfUrl }}#zoom=60" class="block h-[75vh] min-h-[560px] w-full border-0 bg-gray-100 dark:bg-gray-800"></iframe>
 </section>
