@@ -35,6 +35,10 @@ class InvoiceController extends Controller
 
         $sourceDefaults = [];
         $sourceType = $request->query('source_type');
+        // Preserve existing links that pass the selected LO directly.
+        if (!$sourceType && $request->filled('lo_inden_id')) {
+            $sourceDefaults = \App\Services\CustomerDocumentLo::defaults($request);
+        }
         $sourceId = $request->integer('source_id');
         if ($sourceType === 'lo' && $sourceId) {
             $request->merge(['lo_inden_id' => $sourceId]);

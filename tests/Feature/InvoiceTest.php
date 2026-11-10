@@ -21,6 +21,9 @@ beforeEach(function () {
     });
     (require database_path('migrations/2026_10_11_160650_create_invoice_and_delivery_order_tables.php'))->up();
     (require database_path('migrations/2026_10_12_000000_add_invoice_document_data.php'))->up();
+    (require database_path('migrations/2026_10_12_010000_add_delivery_order_document_data.php'))->up();
+    (require database_path('migrations/2026_09_10_081900_create_purchase_order_master_table.php'))->up();
+    (require database_path('migrations/2026_09_22_100000_add_sst_to_purchase_order_master.php'))->up();
     Schema::table('invoice_master', fn (Blueprint $table) => $table->string('invoice_title')->nullable());
     foreach (['2026_10_18_120000_create_payment_voucher_documents_table.php', '2026_10_18_130000_add_payment_method_to_payment_voucher_documents_table.php', '2026_10_22_110000_create_payment_voucher_invoice_table.php', '2026_10_22_120000_rename_payment_voucher_invoice_link.php', '2026_10_26_100000_add_payment_allocations.php', '2026_10_28_120000_add_supplier_type_to_payment_voucher_documents_table.php', '2026_10_28_140000_link_supplier_payment_vouchers_to_quotations.php', '2026_10_29_160000_add_signature_fields_to_payment_voucher_documents_table.php', '2026_10_29_170000_create_payment_voucher_supplier_items_table.php', '2026_10_29_180000_add_cheque_number_to_payment_voucher_documents_table.php'] as $migration) {
         (require database_path('migrations/'.$migration))->up();
@@ -104,8 +107,8 @@ test('customer invoice keeps the original table and intermediate create page', f
         ->assertSee('filters.search', false)
         ->assertSee('href="'.route('invoice.customer.create').'"', false)
         ->assertDontSee('action="'.route('invoice.customer.form').'"', false);
-    $this->get(route('invoice.customer.create'))->assertOk()->assertViewIs('pages.customer-document-start')
-        ->assertSee('action="'.route('invoice.customer.form').'"', false);
+    $this->get(route('invoice.customer.create'))->assertOk()->assertViewIs('pages.invoice.select-source')
+        ->assertSee(route('invoice.customer.form', ['source_type'=>'lo', 'source_id'=>1]));
     $this->get(route('invoice.customer.form'))->assertOk()
         ->assertSee('href="'.route('invoice.customer.create').'"', false);
 });
@@ -198,7 +201,7 @@ test('invoice saves and displays LO reference independently from historical PO r
 
 
 test('invoice starts from selected LO and validates customer relationship', function () {
-    $this->get(route('invoice.customer.create'))->assertOk()->assertSee('LO-SELECT-001')->assertSee('name="lo_inden_id"', false);
+    $this->get(route('invoice.customer.create'))->assertOk()->assertSee('LO-SELECT-001')->assertSee(route('invoice.customer.form', ['source_type'=>'lo', 'source_id'=>1]));
     $this->get(route('invoice.customer.form', ['lo_inden_id'=>1]))->assertOk()->assertViewHas('values', fn($values) => $values['lo_reference'] === 'LO-SELECT-001' && $values['customer_id'] === 1);
     $this->get(route('invoice.customer.form', ['lo_inden_id'=>999]))->assertSessionHasErrors('lo_inden_id');
     $data=$this->invoiceData; $data['lo_inden_id']=1; $data['lo_reference']='FORGED';

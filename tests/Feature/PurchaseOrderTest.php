@@ -44,13 +44,14 @@ beforeEach(function () {
         'items_json' => json_encode([['description' => 'Komputer', 'quantity' => 2, 'unit' => 'Unit', 'price' => 100]])];
 });
 
-test('new purchase orders validate missing supplier quotation without a server error', function () {
+test('standalone purchase orders can be created without a supplier quotation', function () {
     $data = $this->poData;
     unset($data['supplier_quotation_id']);
-    $this->post(route('purchase-order.store'), $data)->assertSessionHasErrors('supplier_quotation_id');
+    $this->post(route('purchase-order.store'), $data)->assertSessionHasNoErrors()->assertRedirect(route('purchase-order.index'));
     $data['supplier_quotation_id'] = null;
-    $this->post(route('purchase-order.store'), $data)->assertSessionHasErrors('supplier_quotation_id');
-    $this->assertDatabaseCount('purchase_order_master', 0);
+    $this->post(route('purchase-order.store'), $data)->assertSessionHasNoErrors()->assertRedirect(route('purchase-order.index'));
+    $this->assertDatabaseCount('purchase_order_master', 2);
+    expect(DB::table('purchase_order_master')->whereNull('supplier_quotation_id')->count())->toBe(2);
 });
 
 test('supplier quotation purchase orders can be selected created and updated', function () {
