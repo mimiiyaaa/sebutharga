@@ -220,6 +220,8 @@ Route::get('/sebut-harga', function () {
         ->orderByDesc('quotation.quotation_id')
         ->get();
 
+        //dd($quotations);
+
     $drafts = DB::table('sebutharga_detail')
         ->whereIn('quotation_id', $quotations->pluck('quotation_id'))
         ->orderByDesc('quotation_date')
@@ -1136,3 +1138,7 @@ Route::get('/check-ocr-server', function (\Illuminate\Http\Request $request) {
         'exists' => is_file($path),
     ]);
 });
+Route::post('/profile/signature', [
+    \App\Http\Controllers\ProfileController::class,
+    'updateSignature',
+])->middleware('auth')->name('profile.signature.update');

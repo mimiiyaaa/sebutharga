@@ -60,6 +60,8 @@ class SupplierQuotationController extends Controller
             return response()->json(['message' => $exception->getMessage()], 422);
         }
 
+    
+
         $parsed = $this->parsePdfText($extracted['text']);
         $supplier = $parsed['supplier_name']
             ? DB::table('customer_supplier')
@@ -223,7 +225,9 @@ class SupplierQuotationController extends Controller
                     ];
                     $lastItemNumber = (int) $match[1];
                     $deferredPricing = null;
-                } elseif (preg_match('/^(\d+)\s+(.+)$/', $line, $match) && ! str_starts_with(trim($match[2]), '(')) {
+                } elseif (preg_match('/^(\d+)\s+(.+)$/', $line, $match)
+                    && ! str_starts_with(trim($match[2]), '(')
+                    && (int) $match[1] === count($items) + 1) {
                     $items[] = [
                         'item_number' => (int) $match[1],
                         'description' => trim($match[2]),
@@ -233,11 +237,21 @@ class SupplierQuotationController extends Controller
                     ];
                     $pendingDescription = trim($match[2]);
                     $lastItemNumber = (int) $match[1];
+                } elseif ($items && preg_match('/^(\d+)\s+(.+)$/', $line, $match)) {
+                    // PDF text extraction can split a description such as
+                    // "16GB RAM..." onto a new line. Do not treat that
+                    // leading number as a new item unless it is the next
+                    // sequential item number.
+                    $lastIndex = array_key_last($items);
+                    $items[$lastIndex]['description'] = trim($items[$lastIndex]['description'] . ' ' . $match[2]);
+                    $pendingDescription = $items[$lastIndex]['description'];
                 } elseif (preg_match('/^(\d+)\s+(\(.+)$/', $line, $match) && $items && $lastItemNumber === (int) $match[1]) {
                     $lastIndex = array_key_last($items);
                     $items[$lastIndex]['description'] = trim($items[$lastIndex]['description'] . ' ' . $match[2]);
                     $pendingDescription = $items[$lastIndex]['description'];
-                } elseif ($items && (str_starts_with($line, '(') || str_ends_with($line, ')')) && ! preg_match('/^[\d,\.\s]+$/', $line)) {
+                } elseif ($items && (str_starts_with($line, '(') ||
+str_ends_with($line, ')') ||
+preg_match('/\)\s*\(RM\)\s*:/i', $line)) && ! preg_match('/^[\d,\.\s]+$/', $line)) {
                     $lastIndex = array_key_last($items);
                     $continuation = preg_replace('/\s+[\d,]+\.\d{2}$/', '', $line);
                     $description = trim($items[$lastIndex]['description'] . ' ' . $continuation);
@@ -256,6 +270,8 @@ class SupplierQuotationController extends Controller
 
         $items = collect($items)->map(fn ($item) => collect($item)->except('item_number')->all())->values()->all();
 
+        
+
         return [
             'quotation_no' => $quotationMatch[1] ?? null,
             'quotation_date' => $dateMatch[1] ?? null,
@@ -263,7 +279,7 @@ class SupplierQuotationController extends Controller
             'person_in_charge' => $personInCharge,
             'supplier_name' => $supplierName,
             'items' => $items,
-        ];
+        ]; 
     }
 
     private function normaliseDate(?string $value): ?string

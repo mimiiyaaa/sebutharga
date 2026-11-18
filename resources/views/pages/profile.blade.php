@@ -18,6 +18,8 @@
                 My Profile
             </h3>
 
+    
+
             <!-- Info -->
             <div class="mb-6 rounded-2xl border border-gray-200 p-5 lg:p-6 dark:border-gray-800">
                 <div class="flex flex-col gap-5 sm:flex-row xl:gap-10">
@@ -342,7 +344,13 @@
                     Update your details to keep your profile up-to-date.
                 </p>
             </div>
-            <form class="flex flex-col">
+            <form
+    class="flex flex-col"
+    action="{{ route('profile.signature.update') }}"
+    method="POST"
+    enctype="multipart/form-data"
+>
+    @csrf
                 <div class="custom-scrollbar h-[450px] overflow-y-auto px-2">
                     <div>
                         <h4 class="mb-6 text-lg font-medium text-gray-800 dark:text-white/90">
@@ -419,6 +427,36 @@
                                 <input type="text" value="Team Manager"
                                     class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent bg-none px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                             </div>
+                            <div class="col-span-2">
+    <label for="signature" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+        Tandatangan Untuk PDF
+    </label>
+
+    <div
+    id="signature-preview-container"
+    class="mb-3 {{ auth()->user()->signature_path ? '' : 'hidden' }}"
+>
+    <img
+        id="signature-preview"
+        src="{{ auth()->user()->signature_path ? \Illuminate\Support\Facades\Storage::url(auth()->user()->signature_path) : '' }}"
+        alt="Tandatangan"
+        class="h-20 w-40 rounded-lg border border-gray-200 object-contain dark:border-gray-700"
+    >
+</div>
+
+    <input
+        type="file"
+        id="signature"
+        name="signature"
+        accept="image/png,image/jpeg"
+        onchange="previewSignature(event)"
+        class="block h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+    >
+
+    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+        PNG atau JPG sahaja, maksimum 2MB.
+    </p>
+</div>
                         </div>
                     </div>
                     <div>
@@ -466,7 +504,7 @@
                         class="flex w-full justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:w-auto dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                         Close
                     </button>
-                    <button type="button"
+                    <button type="submit"
                         class="bg-brand-500 hover:bg-brand-600 flex w-full justify-center rounded-lg px-4 py-2.5 text-sm font-medium text-white sm:w-auto">
                         Save Changes
                     </button>
@@ -552,4 +590,24 @@
     </div>
     <!-- END MODAL: Profile Address -->
     </div>
+    <script>
+    function previewSignature(event) {
+        const file = event.target.files[0];
+
+        if (!file) {
+            return;
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = function (event) {
+            document.getElementById('signature-preview').src = event.target.result;
+            document
+                .getElementById('signature-preview-container')
+                .classList.remove('hidden');
+        };
+
+        reader.readAsDataURL(file);
+    }
+</script>
 @endsection

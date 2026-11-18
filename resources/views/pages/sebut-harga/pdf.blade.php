@@ -15,6 +15,24 @@
             $companyLogo = 'data:' . (mime_content_type($logoPath) ?: 'image/png') . ';base64,' . base64_encode(file_get_contents($logoPath));
         }
     }
+
+    $signatureImage = null;
+
+    if (!empty($detail->disediakan_oleh)) {
+        $signaturePath = \Illuminate\Support\Facades\DB::table('users')
+            ->where('name', $detail->disediakan_oleh)
+            ->value('signature_path');
+
+        if ($signaturePath) {
+            $signatureFile = \Illuminate\Support\Facades\Storage::disk('public')->path($signaturePath);
+
+            if (is_file($signatureFile)) {
+                $signatureImage = 'data:' . (mime_content_type($signatureFile) ?: 'image/png')
+                    . ';base64,' . base64_encode(file_get_contents($signatureFile));
+            }
+        }
+    }
+    
     $recipientAddress = trim((string) ($quotation->address ?? ''));
     if ($recipientAddress !== '' && ! preg_match('/\R/u', $recipientAddress)) {
         $addressParts = preg_split('/\s*,\s*/u', $recipientAddress, -1, PREG_SPLIT_NO_EMPTY);
@@ -85,6 +103,13 @@ table { width: 100%; border-collapse: collapse; }
 .signatures td { width: 50%; vertical-align: top; }
 .signature-right { text-align: right; }
 .signature-space { height: 55pt; }
+.signature-image {
+    display: block;
+    max-width: 130pt;
+    max-height: 45pt;
+    object-fit: contain;
+    margin-bottom: 5pt;
+}
 .signature-block { display: inline-block; min-width: 110pt; border-top: 1pt dotted #777; padding-top: 3pt; font-weight: bold; }
 .signature-right .signature-block { text-align: center; }
 @media screen { body { padding: 33px; } }
@@ -136,7 +161,14 @@ table { width: 100%; border-collapse: collapse; }
 4. Sila tandatangan di bawah untuk pengesahan persetujuan sebutharga ini." }}</div>
 </div>
 <table class="signatures" data-pdf-signature="72"><tr><td>Disediakan oleh,</td><td class="signature-right">Diterima / Disahkan oleh,</td></tr>
-<tr><td class="signature-space"></td><td></td></tr>
+<tr>
+    <td class="signature-space">
+        @if ($signatureImage)
+            <img class="signature-image" src="{{ $signatureImage }}" alt="Tandatangan">
+        @endif
+    </td>
+    <td></td>
+</tr>
 <tr><td><div class="signature-block">@if ($detail->disediakan_oleh){{ $detail->disediakan_oleh }}<br>@endif @if (property_exists($detail, 'disediakan_role') && $detail->disediakan_role){{ $detail->disediakan_role }}<br>@endif @if (property_exists($detail, 'disediakan_company_name') && $detail->disediakan_company_name){{ $detail->disediakan_company_name }}<br>@endif</div></td>
 <td class="signature-right"><div class="signature-block">Tandatangan &amp; Cop<br>Tarikh</div></td></tr></table>
 </body></html>

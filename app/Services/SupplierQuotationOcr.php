@@ -19,7 +19,13 @@ class SupplierQuotationOcr
                 return ['text' => $text, 'method' => 'teks PDF'];
             }
 
-            return ['text' => $this->extractPdfPages($file->getPathname()), 'method' => 'OCR PDF scan'];
+            $text = $this->extractPdfPages($file->getPathname());
+
+\Log::debug('OCR PDF scan result', [
+    'text' => $text,
+]);
+
+return ['text' => $text, 'method' => 'OCR PDF scan'];
         }
 
         return ['text' => $this->extractImage($file->getPathname()), 'method' => 'OCR imej'];
