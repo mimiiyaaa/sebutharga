@@ -68,6 +68,18 @@ class SupplierQuotationController extends Controller
                 ->first(['customer_id'])
             : null;
 
+
+            logger()->info('PDF: teks asal', [
+                'method' => $extracted['method'],
+                'text' => $extracted['text'],
+            ]);
+
+            $parsed = $this->parsePdfText($extracted['text']);
+
+            logger()->info('PDF: hasil parse', [
+                'items' => $parsed['items'] ?? [],
+            ]);
+
         return response()->json([
             'data' => [
                 'supplier_id' => $supplier?->customer_id,
@@ -146,11 +158,22 @@ class SupplierQuotationController extends Controller
         preg_match('/\bNo\.?\s*:\s*([A-Z0-9][A-Z0-9\-\/]+)/i', $joined, $quotationMatch);
         preg_match('/\bTarikh\s*:\s*([^\n]+)/i', $joined, $dateMatch);
 
-        $tableIndex = $lines->search(fn ($line) => preg_match('/\bBIL\b/i', $line)
+        /*$tableIndex = $lines->search(fn ($line) => preg_match('/\bBIL\b/i', $line)
             && preg_match('/(?:KETERANGAN|DESCRIPTION|KUANTITI|QUANTITY)/i', $line));
         if ($tableIndex === false) {
             $tableIndex = $lines->search(fn ($line) => preg_match('/^BIL\b/i', $line));
-        }
+        }*/
+        /*$tableIndex = $lines->search(function ($line) {
+            return preg_match('/^(?:BIL|BL)\b/iu', $line)
+                || preg_match('/KETERANGAN\s*\/\s*DESCRIPTION/iu', $line);
+        });*/
+        $tableIndex = $lines->search(function ($line) {
+            return preg_match('/^(?:BIL|BL)\b/iu', $line)
+                || preg_match(
+                    '/\b(?:KETERANGAN|DESCRIPTION|BUTIRAN|PRODUCT\s+CODE)\b/iu',
+                    $line
+                );
+        });
         $firstLine = $lines->first() ?: '';
         preg_match('/^(.+?)\s+SEBUTHARGA\b/i', $firstLine, $issuerMatch);
         $supplierName = trim($issuerMatch[1] ?? '');
@@ -167,7 +190,7 @@ class SupplierQuotationController extends Controller
             $quotationTitle = $titleCandidates->last() ?: null;
         }
 
-        $items = [];
+        /*$items = [];
         if ($tableIndex !== false) {
             $pendingDescription = null;
             $lastItemNumber = null;
@@ -254,7 +277,98 @@ class SupplierQuotationController extends Controller
             }
         }
 
-        $items = collect($items)->map(fn ($item) => collect($item)->except('item_number')->all())->values()->all();
+        $items = collect($items)->map(fn ($item) => collect($item)->except('item_number')->all())->values()->all();*/
+        $items = [];
+
+        if ($tableIndex !== false) {
+            $pendingDescription = [];
+            $lastItemIndex = null;
+
+            // Kolum harga dibaca dari hujung baris:
+            // kuantiti | unit | harga seunit | jumlah
+            /*$pricingPattern = '/^(.*?)\s+'
+                . '(\d+(?:\.\d+)?)\s+'
+                . '(\S+)\s+'
+                . '([\d,]+\.\d{2})\s+'
+                . '([\d,]+\.\d{2})$/u';
+            */
+
+            $pricingPattern = '/^(.*?)\s+'
+                . '(\d+(?:\.\d+)?)\s+'
+                . '(\S+)\s+'
+                . '([\d,]+\.\d{2})\s+'
+                . '([\d,]+\.\d{2})$/u';
+
+            foreach ($lines->slice($tableIndex + 1) as $line) {
+                // Tamat jadual.
+                if (preg_match(
+                    '/^(?:JUMLAH\s+BESAR|GRAND\s+TOTAL|TERMA|TERMS|Disediakan|Diterima)/iu',
+                    $line
+                )) {
+                    break;
+                }
+
+                // Abaikan baki tajuk kolum.
+                if (preg_match(
+                    '/^(?:BIL|KETERANGAN|DESCRIPTION|KUANTITI|QUANTITY|UNIT|SEUNIT|HARGA|JUMLAH|\(?RM\)?)$/iu',
+                    $line
+                )) {
+                    continue;
+                }
+
+                if (preg_match($pricingPattern, $line, $match)) {
+                    $descriptionPart = trim($match[1]);
+
+                    // Buang nombor BIL di hadapan description.
+                    // Contoh: "2 (Termasuk Konfigurasi ..."
+                    // atau hanya "1".
+                    $descriptionPart = preg_replace(
+                        '/^\d+[.)]?(?:\s+|$)/u',
+                        '',
+                        $descriptionPart
+                    );
+
+                    $descriptionParts = $pendingDescription;
+
+                    if ($descriptionPart !== '') {
+                        $descriptionParts[] = $descriptionPart;
+                    }
+
+                    $items[] = [
+                        'description' => trim(implode(' ', $descriptionParts)),
+                        'quantity' => (float) $match[2],
+                        'unit' => $match[3],
+                        'price' => (float) str_replace(',', '', $match[4]),
+                    ];
+
+                    $lastItemIndex = array_key_last($items);
+                    $pendingDescription = [];
+
+                    continue;
+                }
+
+                // Description yang mempunyai kurungan belum ditutup
+                // dianggap bersambung pada baris selepas harga.
+                if ($lastItemIndex !== null) {
+                    $description = $items[$lastItemIndex]['description'];
+
+                    $hasOpenParenthesis =
+                        substr_count($description, '(')
+                        > substr_count($description, ')');
+
+                    if ($hasOpenParenthesis) {
+                        $items[$lastItemIndex]['description'] = trim(
+                            $description . ' ' . $line
+                        );
+
+                        continue;
+                    }
+                }
+
+                // Simpan description sebelum baris kuantiti/harga.
+                $pendingDescription[] = $line;
+            }
+        }
 
         return [
             'quotation_no' => $quotationMatch[1] ?? null,

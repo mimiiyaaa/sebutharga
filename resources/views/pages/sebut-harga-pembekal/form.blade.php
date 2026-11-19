@@ -61,6 +61,10 @@
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.message || 'PDF tidak dapat dibaca.');
                 const data = result.data || {};
+
+                console.log('Response penuh:', result);
+                console.table(data.items);
+
                 if (data.supplier_id) this.supplierId = String(data.supplier_id);
                 this.supplierName = result.supplier_name || '';
                 this.showSupplierRegistration = false;
