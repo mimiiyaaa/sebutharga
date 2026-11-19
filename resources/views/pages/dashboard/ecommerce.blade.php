@@ -43,18 +43,19 @@
             ['border-blue-light-200 bg-blue-light-50 dark:border-blue-light-900 dark:bg-blue-light-500/10', 'bg-blue-light-600 text-white', 'text-blue-light-700 dark:text-blue-light-400', 'M3 3h2l3 12h10l3-8H6m3 13h1m6 0h1'],
             ['border-success-200 bg-success-50 dark:border-success-900 dark:bg-success-500/10', 'bg-success-600 text-white', 'text-success-700 dark:text-success-400', 'M3 7h18v14H3V7Zm2-4h14v4H5V3Zm4 9h6m-6 4h6'],
             ['border-warning-200 bg-warning-50 dark:border-warning-900 dark:bg-warning-500/10', 'bg-warning-500 text-white', 'text-warning-700 dark:text-warning-400', 'M4 4h16v16H4V4Zm4 4h8m-8 4h8m-8 4h5'],
-            ['border-brand-200 bg-brand-50 dark:border-brand-900 dark:bg-brand-500/10', 'bg-brand-500 text-white', 'text-brand-700 dark:text-brand-300', 'M4 5h16v14H4V5Zm4-3h8v3H8V2Zm0 7h8m-8 4h8'],
-            ['border-success-200 bg-success-50 dark:border-success-900 dark:bg-success-500/10', 'bg-success-600 text-white', 'text-success-700 dark:text-success-400', 'M4 4h16v16H4V4Zm4 4h8m-8 4h8m-8 4h5'],
+            ['border-theme-purple-500/25 bg-theme-purple-500/10 dark:border-theme-purple-500/40 dark:bg-theme-purple-500/15', 'bg-theme-purple-500 text-white', 'text-gray-800 dark:text-white/90', 'M4 5h16v14H4V5Zm4-3h8v3H8V2Zm0 7h8m-8 4h8'],
+            ['border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-500/10', 'bg-orange-600 text-white', 'text-orange-700 dark:text-orange-400', 'M4 4h16v16H4V4Zm4 4h8m-8 4h8m-8 4h5'],
+            ['border-error-200 bg-error-50 dark:border-error-900 dark:bg-error-500/10', 'bg-error-600 text-white', 'text-error-700 dark:text-error-400', 'M4 4h16v16H4V4Zm4 4h8m-8 4h8m-8 4h5'],
         ];
     @endphp
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
         @foreach ($documentStats as $stat)
             @php
                 [$surface, $icon, $ink, $path] = $documentMetricThemes[$loop->index];
             @endphp
-            <a href="{{ $stat['url'] }}" class="block rounded-2xl border p-4 shadow-theme-xs transition hover:shadow-theme-md focus-visible:outline-2 focus-visible:outline-brand-500 {{ $surface }}">
-                <div class="flex items-center justify-between gap-2"><span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-theme-xs {{ $icon }}"><svg class="h-5 w-5 stroke-current" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="{{ $path }}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" /></svg></span><span class="rounded-full bg-white/70 px-2 py-1 text-theme-xs font-semibold dark:bg-gray-900/40 {{ $ink }}">{{ __('Statistik') }}</span></div>
-                <div class="mt-3 flex items-baseline justify-between gap-2"><h2 class="text-theme-sm leading-5 font-semibold {{ $ink }}">{{ __($stat['label']) }}</h2><p class="shrink-0 text-2xl font-semibold tabular-nums text-gray-900 dark:text-white/90">{{ $stat['value'] }}</p></div>
+            <a href="{{ $stat['url'] }}" class="min-w-0 rounded-2xl border p-3 shadow-theme-xs transition hover:shadow-theme-md focus-visible:outline-2 focus-visible:outline-brand-500 {{ $surface }}">
+                <div class="flex items-center justify-between gap-2"><span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-theme-xs {{ $icon }}"><svg class="h-5 w-5 stroke-current" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="{{ $path }}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" /></svg></span><p class="shrink-0 text-2xl font-semibold tabular-nums text-gray-900 dark:text-white/90">{{ $stat['value'] }}</p></div>
+                <h2 class="mt-3 text-theme-sm leading-5 font-semibold {{ $ink }}">{{ __($stat['label']) }}</h2>
             </a>
         @endforeach
     </div>
@@ -176,8 +177,11 @@ $offset += $count;
 
     <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-800"><h2 class="border-s-4 border-brand-500 ps-3 text-sm font-semibold text-gray-900 dark:border-brand-400 dark:text-white/90">{{ __('Status Sebut Harga') }}</h2><span class="text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Ringkasan sebut harga Final') }}</span></div>
-        <div class="grid grid-cols-3 gap-3 px-5 pt-5">
-            @foreach([['Jumlah Sebut Harga', 'total', 'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300'], ['Jumlah Berjaya', 'success', 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400'], ['Tidak Berjaya', 'failed', 'bg-error-50 text-error-700 dark:bg-error-500/10 dark:text-error-400']] as [$label, $key, $colors])
+        @php
+            $quotationStatus['waiting'] = $quotationStatus['total'] - $quotationStatus['success'] - $quotationStatus['failed'];
+        @endphp
+        <div class="grid grid-cols-1 gap-3 px-5 pt-5 sm:grid-cols-2 lg:grid-cols-4">
+            @foreach([['Jumlah Sebut Harga', 'total', 'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300'], ['Jumlah Berjaya', 'success', 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400'], ['Jumlah Menunggu', 'waiting', 'bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400'], ['Tidak Berjaya', 'failed', 'bg-error-50 text-error-700 dark:bg-error-500/10 dark:text-error-400']] as [$label, $key, $colors])
                 <div class="rounded-xl p-3 {{ $colors }}"><p class="text-theme-xs font-medium">{{ __($label) }}</p><p class="mt-2 text-xl font-semibold tabular-nums">{{ number_format($quotationStatus[$key]) }}</p></div>
             @endforeach
         </div>
@@ -191,7 +195,7 @@ $quotationStatusTotal = $quotationStatus['total'];
                     @php
 $offset = 0;
 @endphp
-                    @foreach ([['Berjaya', $quotationStatus['success'], 'stroke-success-500'], ['Menunggu', $quotationStatus['total'] - $quotationStatus['success'] - $quotationStatus['failed'], 'stroke-brand-500'], ['Tidak Berjaya', $quotationStatus['failed'], 'stroke-error-500']] as [$label, $count, $color])
+                    @foreach ([['Berjaya', $quotationStatus['success'], 'stroke-success-500'], ['Menunggu', $quotationStatus['waiting'], 'stroke-brand-500'], ['Tidak Berjaya', $quotationStatus['failed'], 'stroke-error-500']] as [$label, $count, $color])
                         @if($count > 0)<circle cx="60" cy="60" r="48" fill="none" stroke-width="13" pathLength="{{ max(1, $quotationStatusTotal) }}" stroke-dasharray="{{ $count }} {{ max(1, $quotationStatusTotal) - $count }}" stroke-dashoffset="{{ -$offset }}" class="{{ $color }}"><title>{{ __($label) }}: {{ $count }}</title></circle>@endif
                         @php
 $offset += $count;
@@ -201,7 +205,7 @@ $offset += $count;
                 <div class="absolute inset-0 flex flex-col items-center justify-center"><span class="text-2xl font-semibold text-gray-900 dark:text-white/90">{{ $quotationStatusTotal }}</span><span class="text-theme-xs text-gray-500 dark:text-gray-400">{{ __('Sebut Harga') }}</span></div>
             </div>
             <div class="space-y-4 text-sm">
-                @foreach ([['Berjaya', $quotationStatus['success'], 'stroke-success-500'], ['Menunggu', $quotationStatus['total'] - $quotationStatus['success'] - $quotationStatus['failed'], 'stroke-brand-500'], ['Tidak Berjaya', $quotationStatus['failed'], 'stroke-error-500']] as [$label, $count, $color])
+                @foreach ([['Berjaya', $quotationStatus['success'], 'stroke-success-500'], ['Menunggu', $quotationStatus['waiting'], 'stroke-brand-500'], ['Tidak Berjaya', $quotationStatus['failed'], 'stroke-error-500']] as [$label, $count, $color])
                     <div class="flex items-center gap-3 text-gray-600 dark:text-gray-400"><svg class="h-3 w-3 {{ $color }}" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4" fill="none" stroke-width="3" /></svg><span class="flex-1">{{ __($label) }}</span><span class="font-semibold text-gray-900 dark:text-white/90">{{ $count }}</span></div>
                 @endforeach
             </div>

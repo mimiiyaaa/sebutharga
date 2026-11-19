@@ -1,4 +1,13 @@
 {
+  "Jumlah Baucar Daripada Pelanggan": "Jumlah Baucar Daripada Pelanggan",
+  "Jumlah Baucar Kepada Pembekal": "Jumlah Baucar Kepada Pembekal",
+  "Jumlah Sebut Harga Pembekal": "Jumlah Sebut Harga Pembekal",
+  "Jumlah LO Pelanggan": "Jumlah LO Pelanggan",
+  "Jumlah PO Pembekal": "Jumlah PO Pembekal",
+  "Jumlah DO Pembekal": "Jumlah DO Pembekal",
+  "Jumlah INV Pembekal": "Jumlah INV Pembekal",
+  "Jumlah Baucar Bayaran Pembekal": "Jumlah Baucar Bayaran Pembekal",
+
   "Tiada rekod sepadan dengan carian dan tempoh dipilih.": "Tiada rekod sepadan dengan carian dan tempoh dipilih.",
   "Jumlah hasil carian": "Jumlah hasil carian",
   "Ringkasan Jualan LO dan Belian PO": "Ringkasan Jualan LO dan Belian PO",
@@ -24,6 +33,7 @@
   "Kepada Pelanggan": "Kepada Pelanggan",
   "Statistik Status Sebut Harga": "Statistik Status Sebut Harga",
   "Jumlah Berjaya": "Jumlah Berjaya",
+  "Jumlah Menunggu": "Jumlah Menunggu",
   "Keterangan Ringkas": "Keterangan Ringkas",
   "Berdasarkan nilai LO pelanggan": "Berdasarkan nilai LO pelanggan",
   "Berdasarkan nilai PO kepada pembekal": "Berdasarkan nilai PO kepada pembekal",

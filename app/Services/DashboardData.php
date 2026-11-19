@@ -73,7 +73,8 @@ class DashboardData
             ['label' => 'Jumlah PO', 'value' => DB::table('purchase_order_master')->whereBetween('po_date', [$start->toDateString(), $cutoff])->count(), 'url' => route('purchase-order.index')],
             ['label' => 'Jumlah DO', 'value' => DB::table('delivery_order_master')->whereBetween('do_date', [$start->toDateString(), $cutoff])->count(), 'url' => route('delivery-order.customer')],
             ['label' => 'Jumlah INV', 'value' => DB::table('invoice_master')->whereBetween('invoice_date', [$start->toDateString(), $cutoff])->count(), 'url' => route('invoice.customer')],
-            ['label' => 'Jumlah Baucar Bayaran', 'value' => DB::table('payment_voucher_documents')->whereBetween('voucher_date', [$start->toDateString(), $cutoff])->count(), 'url' => route('baucar-bayaran.index')],
+            ['label' => 'Jumlah Baucar Kepada Pembekal', 'value' => DB::table('payment_voucher_documents')->where('voucher_type', 'supplier')->whereBetween('voucher_date', [$start->toDateString(), $cutoff])->count(), 'url' => route('baucar-bayaran.supplier')],
+            ['label' => 'Jumlah Baucar Daripada Pelanggan', 'value' => DB::table('payment_voucher_documents')->where('voucher_type', 'customer')->whereBetween('voucher_date', [$start->toDateString(), $cutoff])->count(), 'url' => route('baucar-bayaran.index')],
         ];
         $titles = DB::table('sebutharga_detail')->pluck('quotation_title', 'quotation_detail_id');
         $poItems = DB::table('purchase_order_item')->orderBy('purchase_order_id')->get()->groupBy('purchase_order_id');
