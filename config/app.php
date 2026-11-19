@@ -123,4 +123,6 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'ocr_check_token' => env('OCR_CHECK_TOKEN'),
+
 ];

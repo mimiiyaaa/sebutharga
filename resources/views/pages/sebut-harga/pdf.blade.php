@@ -8,6 +8,42 @@
     foreach (['disediakan_role', 'disediakan_company_name', 'diterima_role'] as $field) {
         if (array_key_exists($field, $document)) $detail->$field = $document[$field];
     }
+    $companyLogo = null;
+    if (isset($company) && $company?->logo_path) {
+        $logoPath = \Illuminate\Support\Facades\Storage::disk('public')->path($company->logo_path);
+        if (is_file($logoPath)) {
+            $companyLogo = 'data:' . (mime_content_type($logoPath) ?: 'image/png') . ';base64,' . base64_encode(file_get_contents($logoPath));
+        }
+    }
+    $recipientAddress = trim((string) ($quotation->address ?? ''));
+    if ($recipientAddress !== '' && ! preg_match('/\R/u', $recipientAddress)) {
+        $addressParts = preg_split('/\s*,\s*/u', $recipientAddress, -1, PREG_SPLIT_NO_EMPTY);
+        $postalIndex = collect($addressParts)->search(fn ($part) => preg_match('/^\d{5}\b/u', trim($part)));
+        if ($postalIndex !== false) {
+            $beforePostal = array_slice($addressParts, 0, $postalIndex);
+            $afterPostal = array_slice($addressParts, $postalIndex);
+            $addressLines = [];
+            if (count($beforePostal) >= 2) {
+                $addressLines[] = implode(', ', array_slice($beforePostal, 0, 2));
+                foreach (array_slice($beforePostal, 2) as $part) $addressLines[] = $part;
+            } else {
+                $addressLines = $beforePostal;
+            }
+            if (count($afterPostal) >= 2) {
+                $addressLines[] = implode(', ', array_slice($afterPostal, 0, 2));
+                foreach (array_slice($afterPostal, 2) as $part) $addressLines[] = $part;
+            } else {
+                $addressLines = array_merge($addressLines, $afterPostal);
+            }
+            $recipientAddress = collect($addressLines)
+                ->map(fn ($line, $index) => $index < count($addressLines) - 1 ? $line . ',' : $line)
+                ->implode("\n");
+        } else {
+            $recipientAddress = collect(array_chunk($addressParts ?: [$recipientAddress], 2))
+                ->map(fn ($line) => implode(', ', $line))
+                ->implode("\n");
+        }
+    }
 @endphp
 <!doctype html>
 <html lang="ms">
@@ -15,12 +51,15 @@
 <meta charset="utf-8">
 <title>{{ $quotation->quotation_no }}</title>
 <style>
-@page { margin: 25pt; }
+@page { margin: 25pt 25pt 72pt; }
 * { box-sizing: border-box; }
 body { margin: 0; color: #000; background: #fff; font-family: Helvetica, Arial, sans-serif; font-size: 10pt; line-height: 1.3; }
 table { width: 100%; border-collapse: collapse; }
 .header td { vertical-align: top; padding: 0 0 15pt; }
 .company { font-size: 16pt; font-weight: bold; color: #800000; }
+.company-block { width: auto; }
+.company-block td { padding: 0; vertical-align: top; }
+.company-logo { max-width: 42pt; max-height: 38pt; object-fit: contain; margin-right: 8pt; }
 .document-title { font-size: 14pt; font-weight: bold; color: #800000; }
 .contact { font-size: 9pt; }
 .document-meta { width: 32%; text-align: right; }
@@ -54,20 +93,21 @@ table { width: 100%; border-collapse: collapse; }
 <body>
 <table class="header"><tr>
 <td>
+<table class="company-block"><tr>
+@if ($companyLogo)<td><img class="company-logo" src="{{ $companyLogo }}" alt="Logo Syarikat"></td>@endif
+<td>
 <div class="company">{{ (array_key_exists('issuer_name', $document) ? $document['issuer_name'] : config('purchase_order.issuer_name')) }}</div>
 <div class="contact address">{{ (array_key_exists('issuer_address', $document) ? $document['issuer_address'] : ($quotation->alamat_syarikat ?? config('purchase_order.issuer_address'))) }}</div>
 @php
     $issuerPhone = array_key_exists('issuer_phone', $document) ? $document['issuer_phone'] : config('purchase_order.issuer_phone');
     $issuerEmail = array_key_exists('issuer_email', $document) ? $document['issuer_email'] : config('purchase_order.issuer_email');
-    $issuerPersonInCharge = $document['issuer_person_in_charge'] ?? null;
 @endphp
 <div class="contact">
-    @if ($issuerPersonInCharge)U/P: {{ $issuerPersonInCharge }}@endif
-    @if ($issuerPersonInCharge && ($issuerPhone || $issuerEmail)) | @endif
     @if ($issuerPhone)No. Tel: {{ $issuerPhone }}@endif
     @if ($issuerPhone && $issuerEmail) | @endif
     @if ($issuerEmail)E-mel: {{ $issuerEmail }}@endif
 </div>
+</td></tr></table>
 </td>
 <td class="document-meta"><div class="document-title">SEBUTHARGA</div>
 <strong>No: {{ $quotation->quotation_no }}</strong>
@@ -76,11 +116,11 @@ table { width: 100%; border-collapse: collapse; }
 <div class="rule"></div>
 <div class="recipient"><strong>Kepada:</strong><br>
 <span>{{ $quotation->customer_name ?: $quotation->company_name }}</span>@if ($quotation->customer_name && $quotation->company_name && $quotation->customer_name !== $quotation->company_name)<br><span>{{ $quotation->company_name }}</span>@endif
-<div class="address">{{ $quotation->address ?? '' }}</div>
+<div class="address">{{ $recipientAddress }}</div>
 @if (!empty($quotation->phone_no))<div>No. Tel: {{ $quotation->phone_no }}</div>@endif
 @if (!empty($quotation->email))<div>E-mel: {{ $quotation->email }}</div>@endif
 </div>
-@if (!empty($quotation->quotation_title))<div class="quotation-title">{{ $quotation->quotation_title }}</div>@endif
+@if (!empty($quotation->quotation_title))<div class="quotation-title">{{ mb_strtoupper($quotation->quotation_title, 'UTF-8') }}</div>@endif
 <table class="items">
 <thead><tr><th class="bil">BIL</th><th class="description">KETERANGAN / DESCRIPTION</th><th class="quantity">KUANTITI</th><th class="unit">UNIT</th><th class="price">HARGA<br>SEUNIT<br>(RM)</th><th class="amount">JUMLAH<br>(RM)</th></tr></thead>
 <tbody>
@@ -90,12 +130,13 @@ table { width: 100%; border-collapse: collapse; }
 </tbody></table>
 <table class="total"><tr><td>JUMLAH BESAR (RM):</td><td class="total-value">{{ number_format((float) $detail->jumlah_total, 2) }}</td></tr></table>
 <div class="terms"><strong>TERMA DAN SYARAT / TERMS &amp; CONDITIONS:</strong>
-<div class="terms-copy">{{ $detail->terma_syarat ?: "1. Tempoh sah sebutharga adalah 30 hari dari tarikh sebutharga dikeluarkan.
-2. Tempoh penghantaran: 14 - 30 hari selepas penerimaan Pesanan Belian (PO) rasmi.
-3. Sila tandatangan di bawah untuk pengesahan persetujuan sebutharga ini." }}</div>
+<div class="terms-copy">{{ $detail->terma_syarat ?: "1. Jumlah sebut harga: RM" . number_format((float) $detail->jumlah_total, 2) . ".
+2. Tempoh sah sebutharga adalah 30 hari dari tarikh sebutharga dikeluarkan.
+3. Tempoh penghantaran: 14 - 30 hari selepas penerimaan Pesanan Belian (PO) rasmi.
+4. Sila tandatangan di bawah untuk pengesahan persetujuan sebutharga ini." }}</div>
 </div>
-<table class="signatures"><tr><td>Disediakan oleh,</td><td class="signature-right">Diterima / Disahkan oleh,</td></tr>
+<table class="signatures" data-pdf-signature="72"><tr><td>Disediakan oleh,</td><td class="signature-right">Diterima / Disahkan oleh,</td></tr>
 <tr><td class="signature-space"></td><td></td></tr>
-<tr><td><div class="signature-block">@if ($detail->disediakan_oleh){{ $detail->disediakan_oleh }}<br>@endif @if (property_exists($detail, 'disediakan_company_name') && $detail->disediakan_company_name){{ $detail->disediakan_company_name }}<br>@elseif (property_exists($detail, 'disediakan_role') && $detail->disediakan_role){{ $detail->disediakan_role }}<br>@endif</div></td>
+<tr><td><div class="signature-block">@if ($detail->disediakan_oleh){{ $detail->disediakan_oleh }}<br>@endif @if (property_exists($detail, 'disediakan_role') && $detail->disediakan_role){{ $detail->disediakan_role }}<br>@endif @if (property_exists($detail, 'disediakan_company_name') && $detail->disediakan_company_name){{ $detail->disediakan_company_name }}<br>@endif</div></td>
 <td class="signature-right"><div class="signature-block">Tandatangan &amp; Cop<br>Tarikh</div></td></tr></table>
 </body></html>

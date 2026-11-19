@@ -1,25 +1,18 @@
 @extends('layouts.app')
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Sebut Harga" />
+    <x-common.page-breadcrumb pageTitle="Senarai Sebut Harga Draf" />
 
     <div class="space-y-6" x-data="{
         addQuotationOpen: false,
     }" @keydown.escape.window="addQuotationOpen = false">
-        <x-common.component-card title="Senarai Sebut Harga">
-            <x-slot:header>
-                <button type="button" @click="addQuotationOpen = true" class="inline-flex h-11 items-center rounded-lg bg-brand-500 px-4 text-sm font-medium text-white transition hover:bg-brand-600">
-                    + {{ __('Tambah Sebut Harga') }}
-                </button>
-            </x-slot:header>
-            <x-tables.basic-tables.sebutharga-table :quotations="$quotations" />
-        </x-common.component-card>
+        <x-tables.basic-tables.sebutharga-table :quotations="$quotations" />
 
         <div x-cloak x-show="addQuotationOpen" x-transition.opacity class="fixed inset-0 z-999999 flex items-center justify-center overflow-y-auto bg-gray-900/50 p-4 sm:p-8" @click.self="addQuotationOpen = false">
             <section x-show="addQuotationOpen" x-transition class="w-full max-w-2xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-xl dark:border-gray-700 dark:bg-gray-900" role="dialog" aria-modal="true" aria-labelledby="add-quotation-title">
                 <div class="flex items-start justify-between gap-4 border-b border-gray-100 px-5 py-4 dark:border-gray-800 sm:px-6">
                     <div>
-                        <h2 id="add-quotation-title" class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ __('Tambah Sebut Harga') }}</h2>
+                        <h2 id="add-quotation-title" class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ __('Tambah Sebut Harga Draf') }}</h2>
                         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('Pilih cara untuk mula.') }}</p>
                     </div>
                     <button type="button" @click="addQuotationOpen = false" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-xl text-gray-500 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800" aria-label="{{ __('Tutup') }}">&times;</button>

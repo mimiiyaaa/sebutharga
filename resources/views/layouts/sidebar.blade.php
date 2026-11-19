@@ -7,7 +7,7 @@
 @endphp
 
 <aside id="sidebar"
-    class="fixed flex flex-col mt-0 top-0 px-5 start-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-999999 ltr:border-r rtl:border-l border-gray-200 w-[90px] [.sidebar-expanded_&]:min-w-[290px]"
+    class="fixed flex flex-col mt-0 top-0 px-5 start-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-999999 ltr:border-r rtl:border-l border-gray-200 w-[5.625rem] [.sidebar-expanded_&]:min-w-[18.125rem]"
     x-data="{
         openSubmenus: {},
         init() {
@@ -56,13 +56,12 @@
     @mouseenter="if (!$store.sidebar.isExpanded) $store.sidebar.setHovered(true)"
     @mouseleave="$store.sidebar.setHovered(false)">
     <!-- Logo Section -->
-    <div class="pt-8 pb-7 flex items-center gap-2" :class="(!$store.sidebar.isExpanded && !$store.sidebar.isHovered && !$store.sidebar.isMobileOpen) ? 'justify-center' : 'justify-between'">
+    <div class="pt-8 pb-7 flex items-center justify-center gap-2">
         <a href="/">
             <div class="hidden [.sidebar-expanded_&]:block">
-                <img class="h-auto w-[160px] max-w-full object-contain dark:brightness-0 dark:invert"
-                    src="/images/logo/k1r-resources-dark.png" alt="K1R Resources" width="2052" height="766" />
+                <x-common.brand-logo :transparent="true" class="h-24 w-24" />
             </div>
-            <img class="block [.sidebar-expanded_&]:hidden" src="/images/logo/logo-icon.svg" alt="Logo" width="32" height="32" />
+            <x-common.brand-logo :transparent="true" class="block h-9 w-9 [.sidebar-expanded_&]:hidden" />
         </a>
     </div>
 

@@ -26,7 +26,7 @@
     getStatusClass(status) {
         const classes = {
             'Sudah Difinalisekan': 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400',
-            'Belum Difinalisekan': 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-400',
+            'Belum Difinalisekan': 'bg-peach-200 text-peach-700 dark:bg-peach-500/25 dark:text-peach-300',
         };
         return classes[status] || '';
     }
@@ -51,11 +51,12 @@
                 <button type="button" @click="resetFilters()" class="inline-flex h-11 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
                     See all
                 </button>
+                <button type="button" @click="addQuotationOpen = true" class="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-brand-500 px-4 text-theme-sm font-medium text-white transition hover:bg-brand-600">{{ __('+ Tambah Sebut Harga Draf') }}</button>
             </div>
         </div>
 
         <!-- Table -->
-        <div class="max-w-full overflow-x-auto">
+        <div class="max-w-full overflow-x-auto px-6">
             <table class="w-full text-theme-sm leading-6 text-gray-700 dark:text-gray-300">
                 <thead class="px-6 py-3.5 border-t border-gray-100 border-y bg-gray-50 dark:border-white/[0.05] dark:bg-gray-900">
                     <tr>
@@ -63,8 +64,7 @@
                         <th class="px-6 py-3 font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400 text-start">Pelanggan</th>
                         <th class="px-6 py-3 font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400 text-start">Tajuk</th>
                         <th class="px-6 py-3 font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400 text-start">{{ __('Draf') }}</th>
-                        <th class="px-6 py-3 font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400 text-start">Status</th>
-                        <th class="px-6 py-3 font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400 text-start">Tarikh</th>
+                        <th class="px-6 py-3 text-end font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">Jumlah (RM)</th>
                         <th class="px-6 py-3 text-center font-semibold text-gray-500 sm:px-6 text-theme-sm dark:text-gray-400">Tindakan</th>
                     </tr>
                 </thead>
@@ -73,42 +73,28 @@
                         <tr class="border-b border-gray-100 dark:border-white/[0.05] hover:bg-gray-50 dark:hover:bg-white/[0.03]">
                             <td class="px-4 sm:px-6 py-3.5">
                                 <div>
-                                    <div>
-                                        <span class="block whitespace-nowrap font-medium text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.quotationNo"></span>
-                                    </div>
+                                    <div><span class="block whitespace-nowrap font-medium text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.quotationNo"></span><span class="mt-1 block text-theme-xs text-gray-500 dark:text-gray-400" x-text="row.closeDate || '—'"></span></div>
                                 </div>
                             </td>
                             <td class="px-4 sm:px-6 py-3.5">
-                                <div class="flex items-center gap-3">
-                                    <div class="flex items-center justify-center shrink-0 w-9 h-9 rounded-full font-medium text-sm"
-                                        :class="[row.avatarBg, row.avatarColor]">
-                                        <span x-text="row.initials"></span>
-                                    </div>
-                                    <div>
-                                        <span class="block font-medium text-theme-sm text-gray-800 dark:text-white/90" x-text="row.customerName"></span>
-                                        <span class="text-gray-500 text-theme-xs dark:text-gray-400" x-text="row.customerEmail"></span>
-                                    </div>
+                                <div>
+                                    <span class="block font-medium text-theme-sm text-gray-800 dark:text-white/90" x-text="row.customerName"></span>
+                                    <span class="text-gray-500 text-theme-xs dark:text-gray-400" x-text="row.customerEmail"></span>
                                 </div>
                             </td>
                             <td class="px-4 sm:px-6 py-3.5">
                                 <p class="text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.product"></p>
+                                <p class="mt-1 text-theme-xs text-gray-500 dark:text-gray-400" x-text="'Sumber: ' + (selectedDraft(row).source || '—')"></p>
                             </td>
                             <td class="px-4 sm:px-6 py-3.5">
                                 <select x-model="row.version" x-effect="$nextTick(() => { $el.value = String(row.version); })" aria-label="{{ __('Draf') }}" class="h-10 min-w-40 rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                                    @change="const version = row.versions.find(item => String(item.id) === String($event.target.value)); if (version) { row.version = version.id; row.product = version.title; row.closeDate = version.date; row.status = version.status; row.decision = version.decision; }">
+                                    @change="const version = row.versions.find(item => String(item.id) === String($event.target.value)); if (version) { row.version = version.id; row.product = version.title; row.closeDate = version.date; row.amount = version.amount; row.status = version.status; row.decision = version.decision; }">
                                     <template x-for="version in row.versions" :key="version.id">
                                         <option :value="version.id" x-text="version.name" ></option>
                                     </template>
                                 </select>
                             </td>
-                            <td class="px-4 sm:px-6 py-3.5">
-                                <span class="text-theme-xs inline-block rounded-full px-2 py-0.5 font-medium"
-                                    :class="getStatusClass(selectedDraft(row).decision)"
-                                    x-text="selectedDraft(row).decision"></span>
-                            </td>
-                            <td class="px-4 sm:px-6 py-3.5">
-                                <p class="whitespace-nowrap text-gray-700 text-theme-sm dark:text-gray-400" x-text="row.closeDate"></p>
-                            </td>
+                            <td class="px-4 py-3.5 text-end tabular-nums sm:px-6" x-text="Number(row.amount || selectedDraft(row).amount || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"></td>
                             <td class="px-4 py-3.5 text-center sm:px-6">
                                 <div class="flex items-center justify-center gap-2">
                                     <a :href="'{{ url('/sebut-harga') }}/' + row.id + '/edit?draft=' + row.version" class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">{{ __('Lihat') }}</a>
@@ -122,7 +108,7 @@
                         </tr>
                     </template>
                     <template x-if="filteredRows.length === 0">
-                        <tr><td colspan="7" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">Tiada sebut harga sepadan dengan filter.</td></tr>
+                        <tr><td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">Tiada sebut harga sepadan dengan filter.</td></tr>
                     </template>
                 </tbody>
             </table>

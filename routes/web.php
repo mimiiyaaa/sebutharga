@@ -9,22 +9,86 @@ use Illuminate\Support\Facades\Schema;
 // Locale Switch Route
 Route::get('/locale/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\GlobalSearchController;
+use App\Http\Controllers\PaymentMonitoringController;
+
+
 
 // dashboard pages
 Route::get('/', function () {
     return redirect()->route('login');
 });
 
-Route::get('/dashboard', function () {
-    return view('pages.dashboard.ecommerce', [
-        'title' => 'Dashboard'
-    ]);
-})->middleware('auth')->name('dashboard');
+// Temporary deployment smoke test.
+Route::get('/hello-test', function () {
+    return 'Hello from Laravel';
+});
+
+Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
+Route::get('/pemantauan', [PaymentMonitoringController::class, 'index'])->middleware('auth')->name('monitoring');
+Route::middleware('auth')->prefix('pemantauan')->name('monitoring.')->controller(\App\Http\Controllers\MonitoringLinksController::class)->group(function () {
+    Route::put('/baucar/{id}/status', 'paymentStatus')->whereNumber('id')->name('voucher.status');
+    Route::get('/baucar/{id}', 'voucher')->whereNumber('id')->name('voucher');
+    Route::get('/invois-pembekal/{id}/baucar', 'invoiceVouchers')->whereNumber('id')->name('invoice.vouchers');
+    Route::get('/lo/{id}', 'lo')->whereNumber('id')->name('lo');
+    Route::put('/lo/{id}', 'saveLo')->whereNumber('id')->name('lo.save');
+});
+
+Route::get('/carian', [GlobalSearchController::class, 'index'])
+    ->middleware('auth')->name('carian');
+Route::get('/carian-global', [GlobalSearchController::class, 'index'])
+    ->middleware('auth');
+
+Route::middleware('auth')->prefix('baucar-bayaran')->name('baucar-bayaran.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\PaymentVoucherController::class, 'index'])->name('index');
+    Route::get('/tambah', [\App\Http\Controllers\PaymentVoucherController::class, 'create'])->name('create');
+    Route::get('/tambah/form', [\App\Http\Controllers\PaymentVoucherController::class, 'form'])->name('form');
+    Route::get('/pembekal', [\App\Http\Controllers\PaymentVoucherController::class, 'supplier'])->name('supplier');
+    Route::get('/pembekal/tambah', [\App\Http\Controllers\SupplierVoucherPaymentController::class, 'create'])->name('supplier.create');
+    Route::get('/pembekal/tambah/form', [\App\Http\Controllers\SupplierVoucherPaymentController::class, 'form'])->name('supplier.form');
+    Route::post('/pembekal', [\App\Http\Controllers\SupplierVoucherPaymentController::class, 'save'])->name('supplier.store');
+    Route::get('/pembekal/{id}/edit', [\App\Http\Controllers\SupplierVoucherPaymentController::class, 'form'])->whereNumber('id')->name('supplier.edit');
+    Route::get('/pembekal/{id}/preview', [\App\Http\Controllers\PaymentVoucherController::class, 'supplierPreview'])->whereNumber('id')->name('supplier.preview');
+    Route::get('/pembekal/{id}/pdf', [\App\Http\Controllers\PaymentVoucherController::class, 'supplierPdf'])->whereNumber('id')->name('supplier.pdf');
+    Route::put('/pembekal/{id}', [\App\Http\Controllers\SupplierVoucherPaymentController::class, 'save'])->whereNumber('id')->name('supplier.update');
+    Route::post('/', [\App\Http\Controllers\PaymentVoucherController::class, 'store'])->name('store');
+    Route::post('/{id}/rekod-bayaran', [\App\Http\Controllers\PaymentVoucherController::class, 'reconcile'])->whereNumber('id')->name('reconcile');
+    Route::get('/{id}/fail', [\App\Http\Controllers\PaymentVoucherController::class, 'file'])->whereNumber('id')->name('file');
+    Route::get('/{id}', [\App\Http\Controllers\PaymentVoucherController::class, 'show'])->whereNumber('id')->name('show');
+    Route::delete('/{id}', [\App\Http\Controllers\PaymentVoucherController::class, 'destroy'])->whereNumber('id')->name('delete');
+});
 
 // calender pages
 Route::get('/calendar', function () {
     return view('pages.calender', ['title' => 'Calendar']);
 })->name('calendar');
+
+Route::get('/delivery-order/tambah', function () {
+    return redirect()->route('delivery-order.supplier.create');
+})->middleware('auth')->name('delivery-order.create');
+
+Route::get('/delivery-order/pembekal/tambah', [\App\Http\Controllers\SupplierDocumentController::class, 'create'])->middleware('auth')->name('delivery-order.supplier.create');
+
+Route::get('/delivery-order/pelanggan/tambah', function () {
+    return view('pages.customer-document-start', [
+        'localOrders' => \App\Services\CustomerDocumentLo::options(),
+        'title' => 'Tambah DO Kepada Pelanggan',
+        'backRoute' => 'delivery-order.customer',
+        'documentType' => 'Delivery Order (DO)',
+        'createRoute' => 'delivery-order.customer.form',
+        'createButtonLabel' => 'Cipta Delivery Order (DO)',
+    ]);
+})->middleware('auth')->name('delivery-order.customer.create');
+
+Route::get('/delivery-order/pelanggan/cipta', [\App\Http\Controllers\DeliveryOrderController::class, 'create'])->middleware('auth')->name('delivery-order.customer.form');
+
+Route::get('/delivery-order', function () {
+    return redirect()->route('delivery-order.supplier');
+})->middleware('auth')->name('delivery-order');
+
+Route::get('/delivery-order/pembekal', [\App\Http\Controllers\SupplierDocumentController::class, 'index'])->middleware('auth')->name('delivery-order.supplier');
+
+Route::get('/delivery-order/pelanggan', [\App\Http\Controllers\DeliveryOrderController::class, 'index'])->middleware('auth')->name('delivery-order.customer');
 
 // profile pages
 Route::get('/profile', function () {
@@ -104,33 +168,37 @@ Route::get('/purchase-order/create/form', [\App\Http\Controllers\PurchaseOrderCo
 Route::post('/purchase-order', [\App\Http\Controllers\PurchaseOrderController::class, 'store'])
     ->middleware('auth')->name('purchase-order.store');
 Route::get('/purchase-order', function () {
-    $orders = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier', 'supplier.customer_id', '=', 'po.customer_id')->leftJoin('sebutharga_master as quotation', 'quotation.quotation_id', '=', 'po.quotation_id')->orderByDesc('po.purchase_order_id')->get(['po.purchase_order_id','po.po_no','po.quotation_detail_id','quotation.quotation_no as quotation_reference_no','po.po_date','po.net_amount','po.status_po','supplier.company_name']);
+    $orders = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier', 'supplier.customer_id', '=', 'po.customer_id')->leftJoin('sebutharga_master as quotation', 'quotation.quotation_id', '=', 'po.quotation_id')->leftJoin('pembekal_quotation_master as supplierQuotation', 'supplierQuotation.supplier_quotation_id', '=', 'po.supplier_quotation_id')->orderByDesc('po.purchase_order_id')->get(['po.purchase_order_id','po.po_no','po.quotation_detail_id',DB::raw('COALESCE(quotation.quotation_no, supplierQuotation.quotation_no_supplier) as quotation_reference_no'),'po.po_date','po.net_amount','po.status_po','supplier.company_name']);
     return view('pages.purchase-order.index', ['title' => 'Pesanan Belian (PO)', 'orders' => $orders]);
 })->middleware('auth')->name('purchase-order.index');
 
 Route::get('/purchase-order/{id}/pdf', function ($id) {
-    $order = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier','supplier.customer_id','=','po.customer_id')->leftJoin('sebutharga_master as quotation','quotation.quotation_id','=','po.quotation_id')->where('po.purchase_order_id',$id)->select('po.*','quotation.quotation_no as quotation_reference_no','supplier.company_name','supplier.address as supplier_address','supplier.phone_no as supplier_phone')->first();
+    $order = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier','supplier.customer_id','=','po.customer_id')->leftJoin('sebutharga_master as quotation','quotation.quotation_id','=','po.quotation_id')->leftJoin('pembekal_quotation_master as supplierQuotation','supplierQuotation.supplier_quotation_id','=','po.supplier_quotation_id')->where('po.purchase_order_id',$id)->select('po.*',DB::raw('COALESCE(quotation.quotation_no, supplierQuotation.quotation_no_supplier) as quotation_reference_no'),'supplier.company_name','supplier.address as supplier_address','supplier.phone_no as supplier_phone')->first();
     abort_unless($order,404);
     $items = DB::table('purchase_order_item')->where('purchase_order_id',$id)->orderBy('po_item_id')->get();
-    return \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.purchase-order.pdf', compact('order','items'))
-        ->setPaper('a4')->setOption('isRemoteEnabled', false)->stream($order->po_no.'.pdf');
+    $document = json_decode($order->document_data ?? '[]', true) ?: [];
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.purchase-order.pdf', compact('order','items','document'))
+        ->setPaper('a4')->setOption('isRemoteEnabled', false);
+    return request()->boolean('download') ? $pdf->download($order->po_no.'.pdf') : $pdf->stream($order->po_no.'.pdf');
 })->middleware('auth')->name('purchase-order.pdf');
 
 Route::get('/purchase-order/{id}/edit', [\App\Http\Controllers\PurchaseOrderController::class, 'edit'])->whereNumber('id')->middleware('auth')->name('purchase-order.edit');
 Route::put('/purchase-order/{id}', [\App\Http\Controllers\PurchaseOrderController::class, 'store'])->whereNumber('id')->middleware('auth')->name('purchase-order.update');
 
 Route::get('/purchase-order/{id}/preview', function ($id) {
-    $order = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier','supplier.customer_id','=','po.customer_id')->leftJoin('sebutharga_master as quotation','quotation.quotation_id','=','po.quotation_id')->leftJoin('users as creator', 'creator.id', '=', 'po.created_by')->where('po.purchase_order_id',$id)->select('po.*','quotation.quotation_no as quotation_reference_no','supplier.company_name','supplier.address as supplier_address','supplier.phone_no as supplier_phone','creator.name as creator_name','creator.jawatan as creator_jawatan','creator.email as creator_email')->first();
+    $order = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier','supplier.customer_id','=','po.customer_id')->leftJoin('sebutharga_master as quotation','quotation.quotation_id','=','po.quotation_id')->leftJoin('pembekal_quotation_master as supplierQuotation','supplierQuotation.supplier_quotation_id','=','po.supplier_quotation_id')->leftJoin('users as creator', 'creator.id', '=', 'po.created_by')->where('po.purchase_order_id',$id)->select('po.*',DB::raw('COALESCE(quotation.quotation_no, supplierQuotation.quotation_no_supplier) as quotation_reference_no'),'supplier.company_name','supplier.address as supplier_address','supplier.phone_no as supplier_phone','creator.name as creator_name','creator.jawatan as creator_jawatan','creator.email as creator_email')->first();
     abort_unless($order,404);
     $items = DB::table('purchase_order_item')->where('purchase_order_id',$id)->orderBy('po_item_id')->get();
-    return view('pages.purchase-order.preview', compact('order','items'));
+    $document = json_decode($order->document_data ?? '[]', true) ?: [];
+    return view('pages.purchase-order.preview', compact('order','items','document'));
 })->whereNumber('id')->middleware('auth')->name('purchase-order.preview');
 
 Route::get('/purchase-order/{id}', function ($id) {
-    $order = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier','supplier.customer_id','=','po.customer_id')->leftJoin('sebutharga_master as quotation','quotation.quotation_id','=','po.quotation_id')->leftJoin('users as creator', 'creator.id', '=', 'po.created_by')->where('po.purchase_order_id',$id)->select('po.*','quotation.quotation_no as quotation_reference_no','supplier.company_name','supplier.address as supplier_address','supplier.phone_no as supplier_phone','creator.name as creator_name','creator.jawatan as creator_jawatan','creator.email as creator_email')->first();
+    $order = DB::table('purchase_order_master as po')->leftJoin('customer_supplier as supplier','supplier.customer_id','=','po.customer_id')->leftJoin('sebutharga_master as quotation','quotation.quotation_id','=','po.quotation_id')->leftJoin('pembekal_quotation_master as supplierQuotation','supplierQuotation.supplier_quotation_id','=','po.supplier_quotation_id')->leftJoin('users as creator', 'creator.id', '=', 'po.created_by')->where('po.purchase_order_id',$id)->select('po.*',DB::raw('COALESCE(quotation.quotation_no, supplierQuotation.quotation_no_supplier) as quotation_reference_no'),'supplier.company_name','supplier.address as supplier_address','supplier.phone_no as supplier_phone','creator.name as creator_name','creator.jawatan as creator_jawatan','creator.email as creator_email')->first();
     abort_unless($order,404);
     $items = DB::table('purchase_order_item')->where('purchase_order_id',$id)->orderBy('po_item_id')->get();
-    return view('pages.purchase-order.show', compact('order','items'));
+    $document = json_decode($order->document_data ?? '[]', true) ?: [];
+    return view('pages.purchase-order.show', compact('order','items','document'));
 })->whereNumber('id')->middleware('auth')->name('purchase-order.show');
 Route::delete('/purchase-order/{id}', function ($id) { DB::table('purchase_order_item')->where('purchase_order_id',$id)->delete(); DB::table('purchase_order_master')->where('purchase_order_id',$id)->delete(); return redirect()->route('purchase-order.index'); })->middleware('auth')->name('purchase-order.delete');
 
@@ -148,16 +216,24 @@ Route::get('/sebut-harga', function () {
             'customer.customer_name',
             'customer.email',
         ])
-        ->orderBy('quotation.quotation_no')
+        ->orderByDesc('quotation.quotation_date')
+        ->orderByDesc('quotation.quotation_id')
         ->get();
 
     $drafts = DB::table('sebutharga_detail')
         ->whereIn('quotation_id', $quotations->pluck('quotation_id'))
-        ->orderBy('draft_no')
+        ->orderByDesc('quotation_date')
+        ->orderByDesc('draft_no')
+        ->orderByDesc('quotation_detail_id')
         ->get()
         ->groupBy('quotation_id');
 
-    $quotations = $quotations->map(function ($quotation) use ($drafts) {
+    $quotationItems = DB::table('sebutharga_item')
+        ->whereIn('quotation_detail_id', $drafts->flatten()->pluck('quotation_detail_id'))
+        ->get(['quotation_detail_id', 'item_description'])
+        ->groupBy('quotation_detail_id');
+
+    $quotations = $quotations->map(function ($quotation) use ($drafts, $quotationItems) {
             $name = $quotation->company_name ?: ($quotation->customer_name ?: 'Tiada nama');
             $quotationDrafts = $drafts->get($quotation->quotation_id, collect());
             $selectedDraft = $quotationDrafts->firstWhere('quotation_detail_id', $quotation->quotation_detail_id)
@@ -187,10 +263,13 @@ Route::get('/sebut-harga', function () {
                     'draftNo' => $draft->draft_no,
                     'finalNo' => $draft->final_no,
                     'title' => $draft->quotation_title ?: '-',
+                    'source' => $draft->sumber_sebut_harga ?? '-',
                     'date' => $draft->quotation_date ?? $quotation->quotation_date,
+                    'amount' => (float) ($draft->jumlah_total ?? 0),
                     'status' => $draft->status_draft === 'Final' ? 'Final' : 'Draf',
                     'decision' => $finalisationStatus($draft),
                     'selected' => $quotation->quotation_detail_id === $draft->quotation_detail_id,
+                    'items' => $quotationItems->get($draft->quotation_detail_id, collect())->pluck('item_description')->values(),
                 ])->values(),
                 // Snapshot columns were added after existing records were created.
                 // Use master quotation values as the compatible fallback for old rows.
@@ -209,21 +288,21 @@ Route::get('/sebut-harga', function () {
                 'quotationNo' => $quotation['quotationNo'],
                 'customerName' => $quotation['customerName'],
                 'title' => $version['title'],
+                'amount' => $version['amount'] ?? 0,
                 'draftNo' => $version['draftNo'],
                 'status' => $version['status'],
                 'date' => $version['date'],
+                'items' => $version['items'] ?? [],
                 'editUrl' => route('sebut-harga.create', ['source' => $version['id']]),
             ];
         });
     })->values();
 
-    // Keep ordinary Draf records and the original finalized draft visible here.
-    // Revisions created from a Final start at final_no 2 and belong only on the
-    // dedicated Final page.
+    // Keep only active Draf records here. Final versions belong on the
+    // dedicated Final page and must no longer appear in the Draf list.
     $quotations = $quotations->map(function ($quotation) {
         $draftVersions = collect($quotation['versions'])
-            ->filter(fn ($version) => $version['status'] === 'Draf'
-                || ($version['status'] === 'Final' && (int) ($version['finalNo'] ?? 0) === 1))
+            ->filter(fn ($version) => $version['status'] === 'Draf')
             ->values();
 
         if ($draftVersions->isEmpty()) {
@@ -237,6 +316,7 @@ Route::get('/sebut-harga', function () {
             'version' => $selectedDraft['id'],
             'versions' => $draftVersions,
             'closeDate' => $selectedDraft['date'],
+            'amount' => $selectedDraft['amount'] ?? 0,
             'status' => $selectedDraft['status'] === 'Final' ? 'Sudah Difinalisekan' : 'Belum Difinalisekan',
             'decision' => $selectedDraft['decision'],
         ]);
@@ -266,7 +346,10 @@ Route::get('/pembekal', function () {
 
 Route::get('/sebut-harga-pembekal', [\App\Http\Controllers\SupplierQuotationController::class, 'index'])->middleware('auth')->name('sebut-harga-pembekal');
 Route::get('/sebut-harga-pembekal/tambah', [\App\Http\Controllers\SupplierQuotationController::class, 'form'])->middleware('auth')->name('sebut-harga-pembekal.create');
+Route::post('/sebut-harga-pembekal/extract', [\App\Http\Controllers\SupplierQuotationController::class, 'extract'])->middleware('auth')->name('sebut-harga-pembekal.extract');
+Route::post('/sebut-harga-pembekal/register-supplier', [\App\Http\Controllers\SupplierQuotationController::class, 'registerSupplier'])->middleware('auth')->name('sebut-harga-pembekal.register-supplier');
 Route::post('/sebut-harga-pembekal/simpan/{id?}', [\App\Http\Controllers\SupplierQuotationController::class, 'save'])->middleware('auth')->name('sebut-harga-pembekal.save');
+Route::get('/sebut-harga-pembekal/{id}', [\App\Http\Controllers\SupplierQuotationController::class, 'show'])->whereNumber('id')->middleware('auth')->name('sebut-harga-pembekal.show');
 Route::get('/sebut-harga-pembekal/{id}/edit', [\App\Http\Controllers\SupplierQuotationController::class, 'form'])->whereNumber('id')->middleware('auth')->name('sebut-harga-pembekal.edit');
 Route::get('/sebut-harga-pembekal/{id}/download', [\App\Http\Controllers\SupplierQuotationController::class, 'download'])->whereNumber('id')->middleware('auth')->name('sebut-harga-pembekal.download');
 Route::delete('/sebut-harga-pembekal/{id}', [\App\Http\Controllers\SupplierQuotationController::class, 'delete'])->whereNumber('id')->middleware('auth')->name('sebut-harga-pembekal.delete');
@@ -277,14 +360,33 @@ Route::get('/{type}/{id}', [\App\Http\Controllers\ContactController::class, 'sho
 Route::get('/{type}/{id}/edit', [\App\Http\Controllers\ContactController::class, 'form'])->whereIn('type', ['pelanggan','pembekal'])->middleware('auth')->name('contacts.edit');
 Route::delete('/{type}/{id}', [\App\Http\Controllers\ContactController::class, 'delete'])->whereIn('type', ['pelanggan','pembekal'])->middleware('auth')->name('contacts.delete');
 
-// mimi try invoice pages
-Route::get('/invoice', function () {
-    return view('pages.invoice', ['title' => 'Invoice']);
-})->name('invoice');
+// Invoice pages
+Route::get('/invoice/tambah', function () {
+    return redirect()->route('invoice.supplier.create');
+})->middleware('auth')->name('invoice.create');
 
-Route::get('/lo', function () {
-    return view('pages.lo', ['title' => 'LO']);
-})->middleware('auth')->name('lo');
+Route::get('/invoice/pembekal/tambah', [\App\Http\Controllers\SupplierDocumentController::class, 'create'])->middleware('auth')->name('invoice.supplier.create');
+
+Route::get('/invoice/pelanggan/tambah', [\App\Http\Controllers\InvoiceController::class, 'selectSource'])->middleware('auth')->name('invoice.customer.create');
+
+Route::get('/invoice/pelanggan/cipta', [\App\Http\Controllers\InvoiceController::class, 'create'])->middleware('auth')->name('invoice.customer.form');
+
+Route::get('/invoice', function () {
+    return redirect()->route('invoice.supplier');
+})->middleware('auth')->name('invoice');
+
+Route::get('/invoice/pembekal', [\App\Http\Controllers\SupplierDocumentController::class, 'index'])->middleware('auth')->name('invoice.supplier');
+
+Route::get('/invoice/pelanggan', [\App\Http\Controllers\InvoiceController::class, 'index'])->middleware('auth')->name('invoice.customer');
+
+Route::get('/lo', [\App\Http\Controllers\LoController::class, 'index'])->middleware('auth')->name('lo');
+Route::get('/lo/tambah', [\App\Http\Controllers\LoController::class, 'form'])->middleware('auth')->name('lo.create');
+Route::post('/lo', [\App\Http\Controllers\LoController::class, 'save'])->middleware('auth')->name('lo.store');
+Route::get('/lo/{id}/dokumen', [\App\Http\Controllers\LoController::class, 'document'])->whereNumber('id')->middleware('auth')->name('lo.document');
+Route::get('/lo/{id}/edit', [\App\Http\Controllers\LoController::class, 'form'])->whereNumber('id')->middleware('auth')->name('lo.edit');
+Route::put('/lo/{id}', [\App\Http\Controllers\LoController::class, 'save'])->whereNumber('id')->middleware('auth')->name('lo.update');
+Route::delete('/lo/{id}', [\App\Http\Controllers\LoController::class, 'delete'])->whereNumber('id')->middleware('auth')->name('lo.delete');
+Route::get('/lo/{id}', [\App\Http\Controllers\LoController::class, 'show'])->whereNumber('id')->middleware('auth')->name('lo.show');
 
 Route::get('/syarikat', [\App\Http\Controllers\CompanyController::class, 'index'])->middleware('auth')->name('syarikat');
 Route::get('/maklumat-login', [\App\Http\Controllers\UserManagementController::class, 'index'])->middleware('auth')->name('maklumat-login');
@@ -317,6 +419,7 @@ Route::get('/sebut-harga/create', function () {
         ->unique()
         ->sort()
         ->values();
+    $preparedByOptions = DB::table('users')->orderBy('name')->get(['name', 'jawatan']);
     $companies = DB::table('companies')->orderBy('nama_syarikat')->get();
     $supplierQuotations = DB::table('pembekal_quotation_master')
         ->orderByDesc('supplier_quotation_id')
@@ -357,6 +460,7 @@ Route::get('/sebut-harga/create', function () {
         'sourceQuotation' => $sourceQuotation,
         'sourceDraft' => $sourceDraft,
         'jawatanOptions' => $jawatanOptions,
+        'preparedByOptions' => $preparedByOptions,
     ]);
 })->middleware('auth')->name('sebut-harga.create');
 
@@ -367,6 +471,9 @@ Route::get('/sebut-harga/{id}/pdf', function ($id) {
         ->select('master.*', 'customer.customer_name', 'customer.company_name', 'customer.address', 'customer.phone_no', 'customer.email')
         ->first();
     abort_unless($quotation, 404);
+    $company = $quotation->company_id
+        ? DB::table('companies')->where('company_id', $quotation->company_id)->first()
+        : null;
     $detailId = request('draft') ?: $quotation->quotation_detail_id;
     $detail = DB::table('sebutharga_detail')->where('quotation_detail_id', $detailId)->where('quotation_id', $id)->first();
     abort_unless($detail, 404);
@@ -382,8 +489,9 @@ Route::get('/sebut-harga/{id}/pdf', function ($id) {
         $quotation->$field = $detail->$field ?? $quotation->$field;
     }
     $items = DB::table('sebutharga_item')->where('quotation_detail_id', $detail->quotation_detail_id)->get();
-    return \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.sebut-harga.pdf', compact('quotation', 'detail', 'items'))
-        ->setPaper('a4')->setOption('isRemoteEnabled', false)->stream($quotation->quotation_no . '.pdf');
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.sebut-harga.pdf', compact('quotation', 'detail', 'items', 'company'))
+        ->setPaper('a4')->setOption('isRemoteEnabled', false);
+    return request()->boolean('download') ? $pdf->download($quotation->quotation_no.'.pdf') : $pdf->stream($quotation->quotation_no.'.pdf');
 })->middleware('auth')->name('sebut-harga.pdf');
 
 Route::post('/sebut-harga', function (\Illuminate\Http\Request $request) {
@@ -392,6 +500,7 @@ Route::post('/sebut-harga', function (\Illuminate\Http\Request $request) {
         'customer_id' => ['required', 'integer', 'exists:customer_supplier,customer_id'],
         'company_id' => ['nullable', 'integer', 'exists:companies,company_id'],
         'quotation_title' => ['nullable', 'string', 'max:255'],
+        'sumber_sebut_harga' => ['required', 'in:PDF,E-mel,WhatsApp,Surat,Serahan Tangan,Lain-lain'],
         'no_rujukan_pelanggan' => ['nullable', 'string', 'max:100'],
         'status_quotation' => ['nullable', 'in:0,1'],
         'draft_name' => ['nullable', 'string', 'max:100'],
@@ -436,6 +545,7 @@ Route::post('/sebut-harga', function (\Illuminate\Http\Request $request) {
             'quotation_id' => $quotationId,
             'draft_no' => 1,
             'draft_name' => null,
+            'sumber_sebut_harga' => $validated['sumber_sebut_harga'],
             'jumlah_total' => $grossAmount,
             'terma_syarat' => \App\Helpers\QuotationTerms::fromRequest($request),
             'document_data' => \App\Helpers\QuotationDocument::capture($request),
@@ -484,6 +594,7 @@ Route::post('/sebut-harga/{id}/draft', function (\Illuminate\Http\Request $reque
         'customer_id' => ['required', 'integer', 'exists:customer_supplier,customer_id'],
         'company_id' => ['nullable', 'integer', 'exists:companies,company_id'],
         'quotation_title' => ['nullable', 'string', 'max:255'],
+        'sumber_sebut_harga' => ['required', 'in:PDF,E-mel,WhatsApp,Surat,Serahan Tangan,Lain-lain'],
         'no_rujukan_pelanggan' => ['nullable', 'string', 'max:100'],
         'status_quotation' => ['nullable', 'in:0,1'],
         'update_draft_id' => ['nullable', 'integer'],
@@ -530,6 +641,7 @@ Route::post('/sebut-harga/{id}/draft', function (\Illuminate\Http\Request $reque
                 'quotation_date' => $validated['quotation_date'],
                 'customer_id' => $validated['customer_id'],
                 'quotation_title' => $validated['quotation_title'] ?? null,
+                'sumber_sebut_harga' => $validated['sumber_sebut_harga'],
                 'no_rujukan_pelanggan' => $customerReference,
                 'status_quotation' => null,
                 'jumlah_total' => $total,
@@ -604,6 +716,7 @@ Route::post('/sebut-harga/{id}/draft', function (\Illuminate\Http\Request $reque
             'quotation_id' => $id,
             'draft_no' => $draftNo,
             'draft_name' => null,
+            'sumber_sebut_harga' => $validated['sumber_sebut_harga'],
             'jumlah_total' => $total,
             'terma_syarat' => \App\Helpers\QuotationTerms::fromRequest($request),
             'document_data' => \App\Helpers\QuotationDocument::capture($request),
@@ -677,6 +790,7 @@ Route::get('/sebut-harga/{id}/edit', function ($id) {
         ->unique()
         ->sort()
         ->values();
+    $preparedByOptions = DB::table('users')->orderBy('name')->get(['name', 'jawatan']);
     $companies = DB::table('companies')->orderBy('nama_syarikat')->get();
     $supplierQuotations = DB::table('pembekal_quotation_master')
         ->orderByDesc('supplier_quotation_id')
@@ -698,6 +812,9 @@ Route::get('/sebut-harga/{id}/edit', function ($id) {
     $createdBy = $draft->created_by
         ? DB::table('users')->where('id', $draft->created_by)->first(['name', 'jawatan', 'email'])
         : null;
+    $linkedLo = DB::table('lo_inden_master')
+        ->where('quotation_detail_id', $draft->quotation_detail_id)
+        ->first(['lo_inden_id', 'lo_inden_no']);
     $nextDraftNo = ((int) DB::table('sebutharga_detail')->where('quotation_id', $id)->max('draft_no')) + 1;
 
     return view('pages.sebut-harga.edit', [
@@ -710,6 +827,8 @@ Route::get('/sebut-harga/{id}/edit', function ($id) {
         'createdBy' => $createdBy,
         'nextDraftNo' => $nextDraftNo,
         'jawatanOptions' => $jawatanOptions,
+        'preparedByOptions' => $preparedByOptions,
+        'linkedLo' => $linkedLo,
     ]);
 })->middleware('auth')->name('sebut-harga.edit');
 
@@ -720,6 +839,9 @@ Route::get('/sebut-harga/{id}/preview', function ($id) {
         ->select('master.*', 'customer.customer_name', 'customer.company_name', 'customer.address', 'customer.phone_no', 'customer.email')
         ->first();
     abort_unless($quotation, 404);
+    $company = $quotation->company_id
+        ? DB::table('companies')->where('company_id', $quotation->company_id)->first()
+        : null;
     $detailId = request('draft') ?: $quotation->quotation_detail_id;
     $draft = DB::table('sebutharga_detail')->where('quotation_detail_id', $detailId)->where('quotation_id', $id)->first();
     abort_unless($draft, 404);
@@ -736,7 +858,7 @@ Route::get('/sebut-harga/{id}/preview', function ($id) {
         }
     }
     $draft->items = DB::table('sebutharga_item')->where('quotation_detail_id', $draft->quotation_detail_id)->get();
-    return view('pages.sebut-harga.preview', compact('quotation', 'draft'));
+    return view('pages.sebut-harga.preview', compact('quotation', 'draft', 'company'));
 })->middleware('auth')->name('sebut-harga.preview');
 
 Route::patch('/sebut-harga/{id}', function (\Illuminate\Http\Request $request, $id) {
@@ -744,6 +866,7 @@ Route::patch('/sebut-harga/{id}', function (\Illuminate\Http\Request $request, $
         'quotation_date' => ['required', 'date'],
         'customer_id' => ['required', 'integer', 'exists:customer_supplier,customer_id'],
         'quotation_title' => ['nullable', 'string', 'max:255'],
+        'sumber_sebut_harga' => ['required', 'in:PDF,E-mel,WhatsApp,Surat,Serahan Tangan,Lain-lain'],
         'no_rujukan_pelanggan' => ['nullable', 'string', 'max:100'],
         'status_quotation' => ['nullable', 'in:0,1'],
         'terma_syarat' => ['nullable', 'string'],
@@ -781,6 +904,7 @@ Route::patch('/sebut-harga/{id}', function (\Illuminate\Http\Request $request, $
             'quotation_date' => $validated['quotation_date'],
             'customer_id' => $validated['customer_id'],
             'quotation_title' => $validated['quotation_title'] ?? null,
+            'sumber_sebut_harga' => $validated['sumber_sebut_harga'],
             'no_rujukan_pelanggan' => $customerReference,
             'status_quotation' => $validated['status_quotation'] ?? null,
             'draft_name' => null,
@@ -889,6 +1013,7 @@ Route::patch('/sebut-harga/{id}/draft/{draftId}', function (\Illuminate\Http\Req
 
 Route::get('/sebut-harga-final', [\App\Http\Controllers\FinalQuotationController::class, 'index'])->middleware('auth')->name('sebut-harga.final');
 Route::post('/sebut-harga-final/{id}/{draftId}/new', [\App\Http\Controllers\FinalQuotationController::class, 'newVersion'])->whereNumber(['id', 'draftId'])->middleware('auth')->name('sebut-harga.final.new');
+Route::delete('/sebut-harga-final/{id}/{draftId}', [\App\Http\Controllers\FinalQuotationController::class, 'destroy'])->whereNumber(['id', 'draftId'])->middleware('auth')->name('sebut-harga.final.destroy');
 Route::post('/sebut-harga/{id}/final/{draftId}/send', [\App\Http\Controllers\FinalQuotationController::class, 'send'])->whereNumber(['id', 'draftId'])->middleware('auth')->name('sebut-harga.final.send');
 Route::post('/sebut-harga/{id}/final/{draftId}/agree', fn (int $id, int $draftId) => app(\App\Http\Controllers\FinalQuotationController::class)->decide($id, $draftId, 1))->whereNumber(['id', 'draftId'])->middleware('auth')->name('sebut-harga.final.agree');
 Route::post('/sebut-harga/{id}/final/{draftId}/disagree', fn (int $id, int $draftId) => app(\App\Http\Controllers\FinalQuotationController::class)->decide($id, $draftId, 0))->whereNumber(['id', 'draftId'])->middleware('auth')->name('sebut-harga.final.disagree');
@@ -950,3 +1075,64 @@ Route::post('/sebut-harga/{id}/draft/{draftId}/reject', function ($id, $draftId)
 
     return redirect()->route('sebut-harga.edit', [$id, 'draft' => $draftId])->with('success', 'Sebut harga ditandakan sebagai tidak setuju.');
 })->middleware('auth')->name('sebut-harga.draft.reject');
+
+Route::middleware('auth')->prefix('invoice/pelanggan')->name('invoice.customer.')->controller(\App\Http\Controllers\InvoiceController::class)->group(function () {
+    Route::get('/{id}/bayaran', 'payments')->whereNumber('id')->name('payments');
+    Route::post('/', 'store')->name('store');
+    Route::post('/pratonton', 'previewDraft')->name('draft-preview');
+    Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+    Route::get('/{id}/edit', 'edit')->whereNumber('id')->name('edit');
+    Route::put('/{id}', 'update')->whereNumber('id')->name('update');
+    Route::put('/{id}/pratonton', 'previewEdit')->whereNumber('id')->name('edit-preview');
+    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('delete');
+    Route::get('/{id}/pratonton', 'preview')->whereNumber('id')->name('preview');
+    Route::get('/{id}/pdf', 'pdf')->whereNumber('id')->name('pdf');
+});
+
+Route::middleware('auth')->prefix('delivery-order/pelanggan')->name('delivery-order.customer.')->controller(\App\Http\Controllers\DeliveryOrderController::class)->group(function () {
+    Route::post('/', 'store')->name('store');
+    Route::post('/pratonton', 'previewDraft')->name('draft-preview');
+    Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+    Route::get('/{id}/edit', 'edit')->whereNumber('id')->name('edit');
+    Route::put('/{id}', 'update')->whereNumber('id')->name('update');
+    Route::put('/{id}/pratonton', 'previewEdit')->whereNumber('id')->name('edit-preview');
+    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('delete');
+    Route::get('/{id}/pratonton', 'preview')->whereNumber('id')->name('preview');
+    Route::get('/{id}/pdf', 'pdf')->whereNumber('id')->name('pdf');
+});
+
+Route::middleware('auth')->prefix('invoice/pembekal')->name('invoice.supplier.')->controller(\App\Http\Controllers\SupplierDocumentController::class)->group(function () {
+    Route::post('/extract', 'extract')->name('extract');
+    Route::post('/', 'store')->name('store');
+    Route::get('/{id}/edit', 'edit')->whereNumber('id')->name('edit');
+    Route::put('/{id}', 'update')->whereNumber('id')->name('update');
+    Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+    Route::get('/{id}/file', 'file')->whereNumber('id')->name('file');
+    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('delete');
+});
+
+Route::middleware('auth')->prefix('delivery-order/pembekal')->name('delivery-order.supplier.')->controller(\App\Http\Controllers\SupplierDocumentController::class)->group(function () {
+    Route::post('/extract', 'extract')->name('extract');
+    Route::post('/', 'store')->name('store');
+    Route::get('/{id}/edit', 'edit')->whereNumber('id')->name('edit');
+    Route::put('/{id}', 'update')->whereNumber('id')->name('update');
+    Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+    Route::get('/{id}/file', 'file')->whereNumber('id')->name('file');
+    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('delete');
+});
+
+Route::get('/check-ocr-server', function (\Illuminate\Http\Request $request) {
+    abort_unless(
+        hash_equals(
+            (string) config('app.ocr_check_token'),
+            (string) $request->header('X-OCR-Check-Token')
+        ) && !empty(config('app.ocr_check_token')),
+        403
+    );
+
+    $path = base_path('../data/tools/poppler-26.09.0/Library/bin/pdftoppm.exe');
+
+    return response()->json([
+        'exists' => is_file($path),
+    ]);
+});

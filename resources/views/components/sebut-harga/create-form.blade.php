@@ -10,11 +10,13 @@
     'updateDraft' => false,
     'copyAsNewQuotation' => false,
     'jawatanOptions' => collect(),
+    'preparedByOptions' => collect(),
 ])
 
 @php
     $inputClass = 'w-full min-h-11 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90';
     $labelClass = 'mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400';
+    $sourceOptions = ['PDF', 'E-mel', 'WhatsApp', 'Surat', 'Serahan Tangan', 'Lain-lain'];
     $isEditing = $editing && $quotation && $draft;
     $document = App\Helpers\QuotationDocument::data($draft);
     $recipient = $customers->firstWhere('customer_id', old('customer_id', $quotation->customer_id ?? null));
@@ -22,12 +24,14 @@
     foreach (['customer_name', 'company_name', 'phone_no', 'email', 'address'] as $field) {
         $recipientValues[$field] = old($field, array_key_exists($field, $document) ? $document[$field] : ($recipient->$field ?? ''));
     }
-    $selectedCompany = $companies->firstWhere('company_id', old('company_id', $quotation->company_id ?? null));
-    $issuerName = old('issuer_name', array_key_exists('issuer_name', $document) ? $document['issuer_name'] : ($quotation->nama_syarikat ?? ''));
-    $issuerPhone = old('issuer_phone', array_key_exists('issuer_phone', $document) ? $document['issuer_phone'] : ($quotation->no_telefon ?? ''));
-    $issuerEmail = old('issuer_email', array_key_exists('issuer_email', $document) ? $document['issuer_email'] : ($quotation->emel ?? ''));
-    $issuerPersonInCharge = old('issuer_person_in_charge', $document['issuer_person_in_charge'] ?? ($quotation->person_in_charge ?? ''));
-    $issuerAddress = old('issuer_address', array_key_exists('issuer_address', $document) ? $document['issuer_address'] : ($quotation->alamat_syarikat ?? ''));
+    $defaultCompany = $companies->first(fn ($company) => str_contains(strtoupper((string) $company->nama_syarikat), 'K1'));
+    $defaultCompanyId = old('company_id', $quotation->company_id ?? $defaultCompany?->company_id ?? '');
+    $selectedCompany = $companies->firstWhere('company_id', $defaultCompanyId);
+    $issuerName = old('issuer_name', array_key_exists('issuer_name', $document) ? $document['issuer_name'] : ($quotation->nama_syarikat ?? ($selectedCompany->nama_syarikat ?? '')));
+    $issuerPhone = old('issuer_phone', array_key_exists('issuer_phone', $document) ? $document['issuer_phone'] : ($quotation->no_telefon ?? ($selectedCompany->no_telefon ?? '')));
+    $issuerEmail = old('issuer_email', array_key_exists('issuer_email', $document) ? $document['issuer_email'] : ($quotation->emel ?? ($selectedCompany->emel ?? '')));
+    $issuerPersonInCharge = old('issuer_person_in_charge', $document['issuer_person_in_charge'] ?? ($quotation->person_in_charge ?? ($selectedCompany->person_in_charge ?? '')));
+    $issuerAddress = old('issuer_address', array_key_exists('issuer_address', $document) ? $document['issuer_address'] : ($quotation->alamat_syarikat ?? ($selectedCompany->alamat_syarikat ?? '')));
     $defaultJawatan = 'Pengurus Besar';
     $jawatanOptions = collect($jawatanOptions)
         ->map(fn ($jawatan) => trim((string) $jawatan))
@@ -36,8 +40,15 @@
         ->unique()
         ->sort()
         ->values();
-    $confirmationRole = old('disediakan_oleh', $updateDraft ? ($draft->disediakan_oleh ?? $defaultJawatan) : $defaultJawatan);
+    $confirmationPreparedBy = old('disediakan_oleh', $updateDraft ? ($draft->disediakan_oleh ?? auth()->user()?->name ?? '') : (auth()->user()?->name ?? ''));
+    $preparedByOptions = collect($preparedByOptions)
+        ->filter(fn ($user) => filled($user->name ?? null))
+        ->unique('name')
+        ->sortBy('name')
+        ->values();
+    $confirmationRole = old('disediakan_role', $document['disediakan_role'] ?? ($draft->disediakan_role ?? auth()->user()?->jawatan ?? $defaultJawatan));
     $defaultQuotationDate = $copyAsNewQuotation ? now()->format('Y-m-d') : ($isEditing ? $quotation->quotation_date : now()->format('Y-m-d'));
+    $usesExistingQuotationNumber = $isEditing && ! $copyAsNewQuotation;
     $confirmationCompany = old('disediakan_company_name', $document['disediakan_company_name'] ?? $issuerName);
     $formAction = $isEditing && ! $copyAsNewQuotation ? route('sebut-harga.draft.store', $quotation->quotation_id) : route('sebut-harga.store');
     $initialItems = $isEditing
@@ -49,6 +60,7 @@
             'price' => $item->unit_price,
         ])->values()
         : collect([['id' => 1, 'description' => '', 'quantity' => 1, 'unit' => '', 'price' => 0]]);
+    $initialTotal = $initialItems->sum(fn ($item) => max(0, (float) ($item['quantity'] ?? 0)) * max(0, (float) ($item['price'] ?? 0)));
 @endphp
 
 <form method="POST" action="{{ $formAction }}" class="font-outfit space-y-6" x-data="{
@@ -56,7 +68,7 @@
     sequences: {{ Illuminate\Support\Js::from((object) App\Helpers\QuotationNumber::sequences()) }},
     customers: {{ Illuminate\Support\Js::from($customers) }},
     companies: {{ Illuminate\Support\Js::from($companies) }},
-    companyId: {{ Illuminate\Support\Js::from((string) old('company_id', $quotation->company_id ?? '')) }},
+    companyId: {{ Illuminate\Support\Js::from((string) $defaultCompanyId) }},
     issuer: {
         name: {{ Illuminate\Support\Js::from($issuerName) }},
         phone: {{ Illuminate\Support\Js::from($issuerPhone) }},
@@ -107,9 +119,6 @@
     }
 }">
     @csrf
-    @if ($showBack)
-        <div class="flex justify-end"><a @if ($isEditing) href="#" @click.prevent="editing = false" @else href="{{ route('sebut-harga') }}" @endif class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a></div>
-    @endif
     @if ($updateDraft && $isEditing)
         <input type="hidden" name="update_draft_id" value="{{ $draft->quotation_detail_id }}">
     @endif
@@ -154,7 +163,7 @@
         <x-common.document-card title="Maklumat Sebut Harga">
             <div>
                 <label for="quotation_no" class="{{ $labelClass }}">No. Sebut Harga</label>
-                <input id="quotation_no" readonly value="{{ $isEditing && $updateDraft ? $quotation->quotation_no : App\Helpers\QuotationNumber::next(old('quotation_date', $defaultQuotationDate)) }}" @if (! ($isEditing && $updateDraft)) :value="nextQuotationNo" @endif class="{{ $inputClass }} bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                <input id="quotation_no" readonly value="{{ $usesExistingQuotationNumber ? $quotation->quotation_no : App\Helpers\QuotationNumber::next(old('quotation_date', $defaultQuotationDate)) }}" @if (! $usesExistingQuotationNumber) :value="nextQuotationNo" @endif class="{{ $inputClass }} bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
             </div>
             <div>
                 <label for="quotation_date" class="{{ $labelClass }}">Tarikh Sebut Harga</label>
@@ -177,6 +186,15 @@
             <div>
                 <label for="quotation_title" class="{{ $labelClass }}">Tajuk Sebut Harga</label>
                 <input id="quotation_title" name="quotation_title" value="{{ $isEditing ? $quotation->quotation_title : '' }}" maxlength="255" placeholder="Contoh: Pembekalan peralatan pejabat" class="{{ $inputClass }}">
+            </div>
+            <div>
+                <label for="sumber_sebut_harga" class="{{ $labelClass }}">Sumber Sebut Harga</label>
+                <select id="sumber_sebut_harga" name="sumber_sebut_harga" required class="{{ $inputClass }}">
+                    <option value="">Pilih sumber sebut harga</option>
+                    @foreach ($sourceOptions as $source)
+                        <option value="{{ $source }}" @selected(old('sumber_sebut_harga', $draft->sumber_sebut_harga ?? '') === $source)>{{ $source }}</option>
+                    @endforeach
+                </select>
             </div>
         </x-common.document-card>
 
@@ -207,29 +225,27 @@
             </select>
             <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ __('Pilih sebut harga pembekal untuk memasukkan item secara automatik. Item masih boleh diedit.') }}</p>
         </div>
-        <div class="overflow-x-auto">
-            <table class="w-full min-w-[900px] text-start text-theme-sm text-gray-700 dark:text-gray-300">
-                <thead class="bg-error-800 text-white dark:bg-error-900 dark:text-white">
-                    <tr>
-                        @foreach (['Bil.', 'Keterangan / Description', 'Kuantiti', 'Unit', 'Harga Seunit (RM)', 'Jumlah (RM)', 'Tindakan'] as $heading)
-                            <th scope="col" class="whitespace-nowrap px-3 py-3 text-start text-theme-xs font-semibold">{{ $heading }}</th>
-                        @endforeach
-                    </tr>
-                </thead>
-                <tbody>
-                    <template x-for="(item, index) in items" :key="item.id">
-                        <tr class="border-b border-gray-100 dark:border-gray-800">
-                            <td class="p-3 text-center tabular-nums" x-text="index + 1"></td>
-                            <td class="min-w-60 p-3"><textarea :name="`items[${index}][description]`" x-model="item.description" rows="3" required class="{{ $inputClass }}" placeholder="Nama item / perkhidmatan"></textarea></td>
-                            <td class="min-w-32 p-3"><input :name="`items[${index}][quantity]`" type="number" min="1" step="1" x-model.number="item.quantity" required class="{{ $inputClass }} text-center"></td>
-                            <td class="min-w-32 p-3"><input :name="`items[${index}][unit]`" x-model="item.unit" required class="{{ $inputClass }} text-center" placeholder="Unit"></td>
-                            <td class="min-w-40 p-3"><input :name="`items[${index}][price]`" type="number" min="0" step="0.01" x-model.number="item.price" required class="{{ $inputClass }} price-input text-end"></td>
-                            <td class="whitespace-nowrap p-3" x-text="money(subtotal(item))"></td>
-                            <td class="p-3"><button type="button" @click="items.splice(index, 1)" :disabled="items.length === 1" class="text-error-600 disabled:cursor-not-allowed disabled:opacity-40 dark:text-error-400">Buang</button></td>
-                        </tr>
-                    </template>
-                </tbody>
-            </table>
+        <div class="px-4 pb-4">
+            <div class="item-editor-grid grid w-full grid-cols-12 overflow-hidden rounded-xl text-start text-theme-sm text-gray-700 dark:text-gray-300">
+                <div class="col-span-1 whitespace-nowrap bg-error-800 px-2 py-3 text-center text-theme-xs font-semibold text-white dark:bg-error-900">Bil.</div>
+                <div class="col-span-4 whitespace-nowrap bg-error-800 px-2 py-3 text-start text-theme-xs font-semibold text-white dark:bg-error-900">Keterangan / Description</div>
+                <div class="col-span-2 whitespace-nowrap bg-error-800 px-2 py-3 text-start text-theme-xs font-semibold text-white dark:bg-error-900">Kuantiti</div>
+                <div class="col-span-1 whitespace-nowrap bg-error-800 px-2 py-3 text-start text-theme-xs font-semibold text-white dark:bg-error-900">Unit</div>
+                <div class="col-span-2 whitespace-nowrap bg-error-800 px-2 py-3 text-start text-theme-xs font-semibold text-white dark:bg-error-900">Harga Seunit (RM)</div>
+                <div class="col-span-1 whitespace-nowrap bg-error-800 px-2 py-3 text-start text-theme-xs font-semibold text-white dark:bg-error-900">Jumlah (RM)</div>
+                <div class="col-span-1 whitespace-nowrap bg-error-800 px-2 py-3 text-start text-theme-xs font-semibold text-white dark:bg-error-900">Tindakan</div>
+                <template x-for="(item, index) in items" :key="item.id">
+                    <div class="col-span-12 grid grid-cols-12 items-center border-b border-gray-100 py-3 dark:border-gray-800">
+                        <div class="col-span-1 px-1 text-center tabular-nums" x-text="index + 1"></div>
+                        <div class="col-span-4 px-1"><textarea :name="`items[${index}][description]`" x-model="item.description" rows="4" required class="{{ $inputClass }} w-full max-w-full" placeholder="Nama item / perkhidmatan"></textarea></div>
+                        <div class="col-span-2 px-1"><input :name="`items[${index}][quantity]`" type="number" min="1" step="1" x-model.number="item.quantity" @input="$dispatch('quotation-items-updated')" required class="{{ $inputClass }} w-full text-center"></div>
+                        <div class="col-span-1 px-1"><x-form.unit-select :input-class="$inputClass" /></div>
+                        <div class="col-span-2 px-1"><input :name="`items[${index}][price]`" type="number" min="0" step="0.01" x-model.number="item.price" @input="$dispatch('quotation-items-updated')" required class="{{ $inputClass }} w-full price-input text-end"></div>
+                        <div class="col-span-1 whitespace-nowrap px-1" x-text="money(subtotal(item))"></div>
+                        <div class="col-span-1 px-1"><button type="button" title="{{ __('Buang') }}" aria-label="{{ __('Buang') }}" @click="items.splice(index, 1); $dispatch('quotation-items-updated')" :disabled="items.length === 1" class="document-action document-action-delete disabled:cursor-not-allowed disabled:opacity-40"><x-svg.item-trash /></button></div>
+                    </div>
+                </template>
+            </div>
         </div>
 
         <button type="button" @click="addItem()" class="rounded-lg border border-brand-300 px-4 py-2 text-sm font-medium text-brand-600 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10">+ Tambah Item</button>
@@ -245,6 +261,7 @@
         $periodValues = collect($periods)->mapWithKeys(fn ($value, $key) => [$key => old($key, $value)]);
         $savedTerms = trim(old('additional_terms', $document['additional_terms'] ?? ''));
         $defaultTerms = [
+            'Jumlah sebut harga: RM' . number_format($initialTotal, 2) . '.',
             "Tempoh sah sebutharga adalah selama {$periodValues['validity_days']} hari dari tarikh sebutharga dikeluarkan.",
             "Tempoh penghantaran: {$periodValues['delivery_min_days']} - {$periodValues['delivery_max_days']} hari selepas penerimaan Pesanan Belian (PO) rasmi.",
             'Sila tandatangan di bawah untuk pengesahan persetujuan sebutharga ini.',
@@ -252,13 +269,14 @@
         $savedLines = collect(preg_split('/\R/u', $savedTerms ?: ''))
             ->map(fn ($line) => preg_replace('/^\s*\d+\.\s*/', '', trim($line)))
             ->filter(fn ($line) => trim($line) !== '')
+            ->reject(fn ($line) => str_starts_with(strtolower($line), 'harga dalam ringgit malaysia') || str_starts_with(strtolower($line), 'jumlah sebut harga:'))
             ->values();
         $termLines = preg_match('/^\s*1\.\s*/', $savedTerms) && $savedLines->isNotEmpty()
-            ? $savedLines
+            ? $savedLines->prepend($defaultTerms[0])
             : collect($defaultTerms)->merge($savedLines);
         $termsText = $termLines->map(fn ($line, $index) => ($index + 1) . '. ' . $line)->implode("\n") . "\n" . ($termLines->count() + 1) . '. ';
     @endphp
-    <x-common.document-card :title="__('Terma dan Syarat')" x-data="{ periods: {{ Illuminate\Support\Js::from($periodValues) }}, termsText: {{ Illuminate\Support\Js::from($termsText) }}, termsDirty: false, buildTerms() { const lines = this.termsText.split(/\r?\n/); const extras = lines.slice(3).map(line => line.replace(/^\s*\d+\.\s*/, '').trim()).filter(Boolean); return `1. Tempoh sah sebutharga adalah selama ${this.periods.validity_days || '—'} hari dari tarikh sebutharga dikeluarkan.\n2. Tempoh penghantaran: ${this.periods.delivery_min_days || '—'} - ${this.periods.delivery_max_days || '—'} hari selepas penerimaan Pesanan Belian (PO) rasmi.\n3. Sila tandatangan di bawah untuk pengesahan persetujuan sebutharga ini.` + extras.map((line, index) => `\n${index + 4}. ${line}`).join('') + `\n${extras.length + 4}. `; }, syncTerms() { this.termsText = this.buildTerms(); }, insertNextTerm(event) { const field = event.target; const before = field.value.slice(0, field.selectionStart); const after = field.value.slice(field.selectionEnd); const nextNumber = before.split(/\r?\n/).length + 1; const insertion = `\n${nextNumber}. `; field.value = before + insertion + after; field.dispatchEvent(new Event('input', { bubbles: true })); requestAnimationFrame(() => { const cursor = before.length + insertion.length; field.setSelectionRange(cursor, cursor); }); } }">
+    <x-common.document-card :title="__('Terma dan Syarat')" @quotation-items-updated.window="syncTerms()" x-data="{ periods: {{ Illuminate\Support\Js::from($periodValues) }}, termsText: {{ Illuminate\Support\Js::from($termsText) }}, termsDirty: false, buildTerms() { const lines = this.termsText.split(/\r?\n/); const extras = lines.slice(4).map(line => line.replace(/^\s*\d+\.\s*/, '').trim()).filter(Boolean); return `1. Jumlah sebut harga: RM${this.money(this.gross).replace('RM', '').trim()}.\n2. Tempoh sah sebutharga adalah selama ${this.periods.validity_days || '—'} hari dari tarikh sebutharga dikeluarkan.\n3. Tempoh penghantaran: ${this.periods.delivery_min_days || '—'} - ${this.periods.delivery_max_days || '—'} hari selepas penerimaan Pesanan Belian (PO) rasmi.\n4. Sila tandatangan di bawah untuk pengesahan persetujuan sebutharga ini.` + extras.map((line, index) => `\n${index + 5}. ${line}`).join('') + `\n${extras.length + 5}. `; }, syncTerms() { this.termsText = this.buildTerms(); }, insertNextTerm(event) { const field = event.target; const before = field.value.slice(0, field.selectionStart); const after = field.value.slice(field.selectionEnd); const nextNumber = before.split(/\r?\n/).length + 1; const insertion = `\n${nextNumber}. `; field.value = before + insertion + after; field.dispatchEvent(new Event('input', { bubbles: true })); requestAnimationFrame(() => { const cursor = before.length + insertion.length; field.setSelectionRange(cursor, cursor); }); } }">
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
             @foreach (['validity_days' => 'Tempoh Sah (Hari)', 'delivery_min_days' => 'Penghantaran Minimum (Hari)', 'delivery_max_days' => 'Penghantaran Maksimum (Hari)'] as $field => $label)
                 <div>
@@ -279,8 +297,19 @@
             <div class="flex flex-col rounded-xl border border-gray-200 bg-gray-50/50 p-5 dark:border-gray-700 dark:bg-gray-800/30 sm:p-6">
                 <div class="space-y-5">
                     <div>
-                        <label for="disediakan_oleh_confirmation" class="{{ $labelClass }}">{{ __('Disediakan Oleh (Jawatan)') }}</label>
+                        <label for="disediakan_oleh_confirmation" class="{{ $labelClass }}">{{ __('Disediakan Oleh') }}</label>
                         <select id="disediakan_oleh_confirmation" name="disediakan_oleh" class="{{ $inputClass }}">
+                            @if ($confirmationPreparedBy && ! $preparedByOptions->contains(fn ($user) => $user->name === $confirmationPreparedBy))
+                                <option value="{{ $confirmationPreparedBy }}" selected>{{ $confirmationPreparedBy }}</option>
+                            @endif
+                            @foreach ($preparedByOptions as $user)
+                                <option value="{{ $user->name }}" @selected($confirmationPreparedBy === $user->name)>{{ $user->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label for="disediakan_role_confirmation" class="{{ $labelClass }}">{{ __('Jawatan') }}</label>
+                        <select id="disediakan_role_confirmation" name="disediakan_role" class="{{ $inputClass }}">
                             @if ($confirmationRole && ! $jawatanOptions->contains($confirmationRole))
                                 <option value="{{ $confirmationRole }}" selected>{{ $confirmationRole }}</option>
                             @endif
@@ -319,7 +348,7 @@
             </div>
         </x-common.document-card>
 
-    <div class="flex flex-wrap items-center justify-end gap-3">
+    <div class="flex flex-wrap items-center justify-end gap-3 border-t border-gray-100 pt-5 dark:border-gray-800">
         @if (! $submitAtTop)
             <button type="submit" class="inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white hover:bg-brand-600 dark:bg-brand-500 dark:hover:bg-brand-600">{{ $isEditing && $updateDraft ? 'Kemaskini' : 'Simpan Sebut Harga' }}</button>
         @endif

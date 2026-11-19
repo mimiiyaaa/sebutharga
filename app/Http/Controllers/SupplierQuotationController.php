@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
+use App\Services\SupplierQuotationOcr;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -17,7 +19,24 @@ class SupplierQuotationController extends Controller
             ->orderByDesc('quotation.supplier_quotation_id')
             ->get(['quotation.*', 'supplier.company_name as supplier_registered_name']);
 
+        $totals = DB::table('pembekal_quotation_item')
+            ->whereIn('supplier_quotation_id', $quotations->pluck('supplier_quotation_id'))
+            ->select('supplier_quotation_id', DB::raw('SUM(subtotal) as jumlah_total'))
+            ->groupBy('supplier_quotation_id')
+            ->pluck('jumlah_total', 'supplier_quotation_id');
+
+        $quotations->each(function ($quotation) use ($totals) {
+            $quotation->jumlah_total = (float) ($totals->get($quotation->supplier_quotation_id) ?? 0);
+        });
+
         return view('pages.sebut-harga-pembekal.index', compact('quotations'));
+    }
+
+    public function show(int $id)
+    {
+        $quotation = DB::table('pembekal_quotation_master')->where('supplier_quotation_id', $id)->firstOrFail();
+        $items = DB::table('pembekal_quotation_item')->where('supplier_quotation_id', $id)->orderBy('supplier_quotation_item_id')->get();
+        return view('pages.sebut-harga-pembekal.show', compact('quotation', 'items'));
     }
 
     public function form(?int $id = null)
@@ -29,15 +48,379 @@ class SupplierQuotationController extends Controller
         return view('pages.sebut-harga-pembekal.form', compact('quotation', 'items', 'suppliers'));
     }
 
+    public function extract(Request $request)
+    {
+        $data = $request->validate([
+            'supplier_quotation_file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+        ]);
+
+        try {
+            $extracted = app(SupplierQuotationOcr::class)->extractText($data['supplier_quotation_file']);
+        } catch (\RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
+        $parsed = $this->parsePdfText($extracted['text']);
+        $supplier = $parsed['supplier_name']
+            ? DB::table('customer_supplier')
+                ->where('jenis_customer', 2)
+                ->whereRaw('UPPER(TRIM(company_name)) = ?', [strtoupper(trim($parsed['supplier_name']))])
+                ->first(['customer_id'])
+            : null;
+
+
+            logger()->info('PDF: teks asal', [
+                'method' => $extracted['method'],
+                'text' => $extracted['text'],
+            ]);
+
+            $parsed = $this->parsePdfText($extracted['text']);
+
+            logger()->info('PDF: hasil parse', [
+                'items' => $parsed['items'] ?? [],
+            ]);
+
+        return response()->json([
+            'data' => [
+                'supplier_id' => $supplier?->customer_id,
+                'quotation_no_supplier' => $parsed['quotation_no'],
+                'quotation_date' => $this->normaliseDate($parsed['quotation_date']),
+                'quotation_title' => $parsed['quotation_title'],
+                'person_in_charge' => $parsed['person_in_charge'],
+                'items' => $parsed['items'],
+            ],
+            'supplier_name' => $parsed['supplier_name'],
+            'message' => count($parsed['items']) . ' item berjaya dibaca melalui ' . $extracted['method'] . '. Sila semak sebelum simpan.',
+        ]);
+    }
+
+    public function registerSupplier(Request $request)
+    {
+        $data = $request->validate([
+            'company_name' => ['required', 'string', 'max:255'],
+            'customer_name' => ['nullable', 'string', 'max:255'],
+            'address' => ['required', 'string'],
+            'phone_no' => ['nullable', 'string', 'max:20'],
+            'email' => ['nullable', 'email', 'max:255'],
+        ]);
+
+        $existing = DB::table('customer_supplier')
+            ->where('jenis_customer', 2)
+            ->whereRaw('UPPER(TRIM(company_name)) = ?', [strtoupper(trim($data['company_name']))])
+            ->first(['customer_id', 'company_name']);
+
+        if ($existing) {
+            return response()->json([
+                'supplier' => ['customer_id' => $existing->customer_id, 'company_name' => $existing->company_name],
+                'message' => 'Pembekal ini sudah berdaftar dan telah dipilih.',
+            ]);
+        }
+
+        $usedCodes = DB::table('customer_supplier')
+            ->where('jenis_customer', 2)
+            ->pluck('customer_code')
+            ->map(fn ($code) => (int) preg_replace('/\D+/', '', $code))
+            ->filter(fn ($number) => $number >= 201 && $number <= 299)
+            ->all();
+        $nextNumber = collect(range(201, 299))->first(fn ($number) => ! in_array($number, $usedCodes, true));
+
+        if (! $nextNumber) {
+            return response()->json(['message' => 'Had maksimum pembekal telah dicapai.'], 422);
+        }
+
+        $supplierId = DB::table('customer_supplier')->insertGetId([
+            'customer_code' => 'S' . $nextNumber,
+            'jenis_customer' => 2,
+            'customer_name' => $data['customer_name'] ?? null,
+            'company_name' => trim($data['company_name']),
+            'address' => $data['address'],
+            'phone_no' => $data['phone_no'] ?? null,
+            'email' => $data['email'] ?? null,
+            'created_by' => auth()->id(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'supplier' => ['customer_id' => $supplierId, 'company_name' => trim($data['company_name'])],
+            'message' => 'Pembekal berjaya didaftarkan dan telah dipilih.',
+        ]);
+    }
+
+    private function parsePdfText(string $text): array
+    {
+        $lines = collect(preg_split('/\R/u', str_replace("\r", '', $text)))
+            ->map(fn ($line) => trim(preg_replace('/\s+/u', ' ', $line)))
+            ->filter()
+            ->values();
+        $joined = $lines->implode("\n");
+
+        preg_match('/\bNo\.?\s*:\s*([A-Z0-9][A-Z0-9\-\/]+)/i', $joined, $quotationMatch);
+        preg_match('/\bTarikh\s*:\s*([^\n]+)/i', $joined, $dateMatch);
+
+        /*$tableIndex = $lines->search(fn ($line) => preg_match('/\bBIL\b/i', $line)
+            && preg_match('/(?:KETERANGAN|DESCRIPTION|KUANTITI|QUANTITY)/i', $line));
+        if ($tableIndex === false) {
+            $tableIndex = $lines->search(fn ($line) => preg_match('/^BIL\b/i', $line));
+        }*/
+        /*$tableIndex = $lines->search(function ($line) {
+            return preg_match('/^(?:BIL|BL)\b/iu', $line)
+                || preg_match('/KETERANGAN\s*\/\s*DESCRIPTION/iu', $line);
+        });*/
+        $tableIndex = $lines->search(function ($line) {
+            return preg_match('/^(?:BIL|BL)\b/iu', $line)
+                || preg_match(
+                    '/\b(?:KETERANGAN|DESCRIPTION|BUTIRAN|PRODUCT\s+CODE)\b/iu',
+                    $line
+                );
+        });
+        $firstLine = $lines->first() ?: '';
+        preg_match('/^(.+?)\s+SEBUTHARGA\b/i', $firstLine, $issuerMatch);
+        $supplierName = trim($issuerMatch[1] ?? '');
+
+        $toIndex = $lines->search(fn ($line) => strtolower($line) === 'kepada:');
+        $personInCharge = null;
+        $quotationTitle = null;
+        if ($toIndex !== false) {
+            $recipientEnd = $tableIndex === false ? 6 : max(0, $tableIndex - $toIndex - 1);
+            $recipientLines = $lines->slice($toIndex + 1, $recipientEnd)->values();
+            $personInCharge = $recipientLines->first();
+            $titleCandidates = $recipientLines->skip(2)->filter(fn ($line) => ! preg_match('/^(No\.?\s*Tel|E-mel|\d|[A-Za-z]+,)/i', $line)
+                && ! preg_match('/\b(?:BIL|KETERANGAN|DESCRIPTION|KUANTITI|QUANTITY|UNIT|SEUNIT|HARGA|JUMLAH|RM)\b/i', $line));
+            $quotationTitle = $titleCandidates->last() ?: null;
+        }
+
+        /*$items = [];
+        if ($tableIndex !== false) {
+            $pendingDescription = null;
+            $lastItemNumber = null;
+            $deferredPricing = null;
+            foreach ($lines->slice($tableIndex + 1) as $line) {
+                if (preg_match('/^JUMLAH BESAR/i', $line)) {
+                    break;
+                }
+                if (preg_match('/^(\d+)\s+(Sesi)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})$/i', $line, $match)) {
+                    // Some PDF table layouts emit the next row's price columns
+                    // before its description. Hold this row until that description appears.
+                    $deferredPricing = [
+                        'quantity' => (float) $match[1],
+                        'unit' => $match[2],
+                        'price' => (float) str_replace(',', '', $match[3]),
+                    ];
+                } elseif (preg_match('/^(\d+)\s+([A-Za-z]+)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})$/', $line, $match) && ! empty($items)) {
+                    $previous = end($items);
+                    $items[] = [
+                        'item_number' => $previous['item_number'] ?? count($items),
+                        'description' => $previous['description'],
+                        'quantity' => (float) $match[1],
+                        'unit' => $match[2],
+                        'price' => (float) str_replace(',', '', $match[3]),
+                    ];
+                    $lastItemNumber = (int) $match[1];
+                } elseif (preg_match('/^(?:(\d+)\s+)?(.+?)\s+(\d+(?:\.\d+)?)\s+([A-Za-z]+)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})$/', $line, $match)) {
+                    $rowNumber = $match[1] !== '' ? (int) $match[1] : (count($items) + 1);
+                    $description = trim($match[2]);
+                    if (str_starts_with($description, '(') && $pendingDescription) {
+                        $description = trim($pendingDescription . ' ' . $description);
+                    }
+                    $previous = end($items);
+                    if ($match[1] !== '' && $previous && ($previous['item_number'] ?? null) === $rowNumber) {
+                        $description = $previous['description'];
+                    }
+                    $items[] = [
+                        'item_number' => $rowNumber,
+                        'description' => $description,
+                        'quantity' => (float) $match[3],
+                        'unit' => $match[4],
+                        'price' => (float) str_replace(',', '', $match[5]),
+                    ];
+                    $pendingDescription = $description;
+                    $lastItemNumber = $rowNumber;
+                } elseif (preg_match('/^(\d+)\s+\(/', $line, $match) && $lastItemNumber !== (int) $match[1]) {
+                    $items[] = [
+                        'item_number' => (int) $match[1],
+                        'description' => $pendingDescription ?: 'Item ' . $match[1],
+                        'quantity' => $deferredPricing['quantity'] ?? 1,
+                        'unit' => $deferredPricing['unit'] ?? 'unit',
+                        'price' => $deferredPricing['price'] ?? 0,
+                    ];
+                    $lastItemNumber = (int) $match[1];
+                    $deferredPricing = null;
+                } elseif (preg_match('/^(\d+)\s+(.+)$/', $line, $match) && ! str_starts_with(trim($match[2]), '(')) {
+                    $items[] = [
+                        'item_number' => (int) $match[1],
+                        'description' => trim($match[2]),
+                        'quantity' => 1,
+                        'unit' => 'unit',
+                        'price' => 0,
+                    ];
+                    $pendingDescription = trim($match[2]);
+                    $lastItemNumber = (int) $match[1];
+                } elseif (preg_match('/^(\d+)\s+(\(.+)$/', $line, $match) && $items && $lastItemNumber === (int) $match[1]) {
+                    $lastIndex = array_key_last($items);
+                    $items[$lastIndex]['description'] = trim($items[$lastIndex]['description'] . ' ' . $match[2]);
+                    $pendingDescription = $items[$lastIndex]['description'];
+                } elseif ($items && (str_starts_with($line, '(') || str_ends_with($line, ')')) && ! preg_match('/^[\d,\.\s]+$/', $line)) {
+                    $lastIndex = array_key_last($items);
+                    $continuation = preg_replace('/\s+[\d,]+\.\d{2}$/', '', $line);
+                    $description = trim($items[$lastIndex]['description'] . ' ' . $continuation);
+                    $itemNumber = $items[$lastIndex]['item_number'] ?? null;
+                    foreach ($items as $index => $item) {
+                        if ($itemNumber === null || ($item['item_number'] ?? null) === $itemNumber) {
+                            $items[$index]['description'] = $description;
+                        }
+                    }
+                    $pendingDescription = $description;
+                } elseif (preg_match('/[A-Za-z]/', $line) && ! preg_match('/^(SEUNIT|TERMA|Diterima|Disediakan)/i', $line)) {
+                    $pendingDescription = trim($line);
+                }
+            }
+        }
+
+        $items = collect($items)->map(fn ($item) => collect($item)->except('item_number')->all())->values()->all();*/
+        $items = [];
+
+        if ($tableIndex !== false) {
+            $pendingDescription = [];
+            $lastItemIndex = null;
+
+            // Kolum harga dibaca dari hujung baris:
+            // kuantiti | unit | harga seunit | jumlah
+            /*$pricingPattern = '/^(.*?)\s+'
+                . '(\d+(?:\.\d+)?)\s+'
+                . '(\S+)\s+'
+                . '([\d,]+\.\d{2})\s+'
+                . '([\d,]+\.\d{2})$/u';
+            */
+
+            $pricingPattern = '/^(.*?)\s+'
+                . '(\d+(?:\.\d+)?)\s+'
+                . '(\S+)\s+'
+                . '([\d,]+\.\d{2})\s+'
+                . '([\d,]+\.\d{2})$/u';
+
+            foreach ($lines->slice($tableIndex + 1) as $line) {
+                // Tamat jadual.
+                if (preg_match(
+                    '/^(?:JUMLAH\s+BESAR|GRAND\s+TOTAL|TERMA|TERMS|Disediakan|Diterima)/iu',
+                    $line
+                )) {
+                    break;
+                }
+
+                // Abaikan baki tajuk kolum.
+                if (preg_match(
+                    '/^(?:BIL|KETERANGAN|DESCRIPTION|KUANTITI|QUANTITY|UNIT|SEUNIT|HARGA|JUMLAH|\(?RM\)?)$/iu',
+                    $line
+                )) {
+                    continue;
+                }
+
+                if (preg_match($pricingPattern, $line, $match)) {
+                    $descriptionPart = trim($match[1]);
+
+                    // Buang nombor BIL di hadapan description.
+                    // Contoh: "2 (Termasuk Konfigurasi ..."
+                    // atau hanya "1".
+                    $descriptionPart = preg_replace(
+                        '/^\d+[.)]?(?:\s+|$)/u',
+                        '',
+                        $descriptionPart
+                    );
+
+                    $descriptionParts = $pendingDescription;
+
+                    if ($descriptionPart !== '') {
+                        $descriptionParts[] = $descriptionPart;
+                    }
+
+                    $items[] = [
+                        'description' => trim(implode(' ', $descriptionParts)),
+                        'quantity' => (float) $match[2],
+                        'unit' => $match[3],
+                        'price' => (float) str_replace(',', '', $match[4]),
+                    ];
+
+                    $lastItemIndex = array_key_last($items);
+                    $pendingDescription = [];
+
+                    continue;
+                }
+
+                // Description yang mempunyai kurungan belum ditutup
+                // dianggap bersambung pada baris selepas harga.
+                if ($lastItemIndex !== null) {
+                    $description = $items[$lastItemIndex]['description'];
+
+                    $hasOpenParenthesis =
+                        substr_count($description, '(')
+                        > substr_count($description, ')');
+
+                    if ($hasOpenParenthesis) {
+                        $items[$lastItemIndex]['description'] = trim(
+                            $description . ' ' . $line
+                        );
+
+                        continue;
+                    }
+                }
+
+                // Simpan description sebelum baris kuantiti/harga.
+                $pendingDescription[] = $line;
+            }
+        }
+
+        return [
+            'quotation_no' => $quotationMatch[1] ?? null,
+            'quotation_date' => $dateMatch[1] ?? null,
+            'quotation_title' => $quotationTitle,
+            'person_in_charge' => $personInCharge,
+            'supplier_name' => $supplierName,
+            'items' => $items,
+        ];
+    }
+
+    private function normaliseDate(?string $value): ?string
+    {
+        if (! $value) {
+            return null;
+        }
+
+        $value = trim(preg_replace('/\s+/u', ' ', $value));
+        $months = [
+            'Januari' => 'January', 'Februari' => 'February', 'Mac' => 'March',
+            'April' => 'April', 'Mei' => 'May', 'Jun' => 'June', 'Julai' => 'July',
+            'Ogos' => 'August', 'September' => 'September', 'Oktober' => 'October',
+            'November' => 'November', 'Disember' => 'December',
+        ];
+        $value = str_ireplace(array_keys($months), array_values($months), $value);
+        if (preg_match('/(\d{1,2}\s+[A-Za-z]+\s+\d{4})/', $value, $match)) {
+            $value = $match[1];
+        }
+
+        foreach (['d/m/Y', 'd-m-Y', 'Y-m-d', 'd.m.Y', 'j F Y'] as $format) {
+            try {
+                return Carbon::createFromFormat($format, trim($value))->format('Y-m-d');
+            } catch (\Throwable) {
+                // Try the next common date format.
+            }
+        }
+
+        return null;
+    }
+
     public function save(Request $request, ?int $id = null)
     {
+        $existing = $id ? DB::table('pembekal_quotation_master')->where('supplier_quotation_id', $id)->firstOrFail() : null;
         $data = $request->validate([
             'quotation_id' => ['nullable', 'integer', 'exists:sebutharga_master,quotation_id'],
             'supplier_id' => ['required', 'integer', Rule::exists('customer_supplier', 'customer_id')->where('jenis_customer', 2)],
             'quotation_no_supplier' => ['required', 'string', 'max:100'],
+            'quotation_date' => ['required', 'date'],
             'quotation_title' => ['nullable', 'string', 'max:255'],
+            'sumber_sebut_harga' => [$existing ? 'nullable' : 'required', 'in:PDF,E-mel,WhatsApp,Surat,Serahan Tangan,Lain-lain'],
             'person_in_charge' => ['nullable', 'string', 'max:255'],
-            'supplier_quotation_file' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
+            'supplier_quotation_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.description' => ['required', 'string'],
             'items.*.quantity' => ['required', 'numeric', 'min:0.01'],
@@ -45,6 +428,7 @@ class SupplierQuotationController extends Controller
             'items.*.price' => ['required', 'numeric', 'min:0'],
         ]);
 
+        $data['sumber_sebut_harga'] = $data['sumber_sebut_harga'] ?? $existing?->sumber_sebut_harga;
         $supplier = DB::table('customer_supplier')->where('customer_id', $data['supplier_id'])->firstOrFail();
         $items = collect($data['items']);
         $filePath = null;
@@ -54,10 +438,11 @@ class SupplierQuotationController extends Controller
         if ($file && $file->getError() !== UPLOAD_ERR_NO_FILE) {
             $temporaryPath = $file->getPathname();
             if (! $file->isValid() || ! $temporaryPath || ! is_file($temporaryPath)) {
-                return back()->withErrors(['supplier_quotation_file' => 'Fail PDF tidak berjaya diterima. Sila pilih fail PDF semula.'])->withInput();
+                return back()->withErrors(['supplier_quotation_file' => 'Fail dokumen tidak berjaya diterima. Sila pilih fail semula.'])->withInput();
             }
 
-            $storedName = Str::uuid() . '.pdf';
+            $extension = strtolower($file->getClientOriginalExtension() ?: 'pdf');
+            $storedName = Str::uuid() . '.' . $extension;
             $filePath = 'pembekal-quotations/' . $storedName;
             Storage::disk('public')->put($filePath, file_get_contents($temporaryPath));
             $fileName = $file->getClientOriginalName();
@@ -68,8 +453,10 @@ class SupplierQuotationController extends Controller
                 'quotation_id' => $data['quotation_id'] ?? null,
                 'supplier_id' => $data['supplier_id'],
                 'quotation_no_supplier' => $data['quotation_no_supplier'],
+                'quotation_date' => $data['quotation_date'],
                 'company_name' => $supplier->company_name,
                 'quotation_title' => $data['quotation_title'] ?? null,
+                'sumber_sebut_harga' => $data['sumber_sebut_harga'],
                 'person_in_charge' => $data['person_in_charge'] ?? null,
                 'updated_at' => now(),
             ];
@@ -103,7 +490,7 @@ class SupplierQuotationController extends Controller
             }
         });
 
-        return redirect()->route('sebut-harga-pembekal')->with('success', 'Sebut harga pembekal berjaya disimpan.');
+        return redirect()->route($id ? 'sebut-harga-pembekal.show' : 'sebut-harga-pembekal', $id ? [$id] : [])->with('success', 'Sebut harga pembekal berjaya disimpan.');
     }
 
     public function delete(int $id)

@@ -1,11 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
-    <x-common.page-breadcrumb :pageTitle="$user ? __('Edit Pengguna') : __('Tambah Pengguna')">
-        <x-slot:actions>
-            <a href="{{ route('maklumat-login') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">{{ __('Kembali') }}</a>
-        </x-slot:actions>
-    </x-common.page-breadcrumb>
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ $user ? __('Edit Pengguna') : __('Tambah Pengguna') }}</h2>
+        <a href="{{ route('maklumat-login') }}" class="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">{{ __('Kembali') }}</a>
+    </div>
     <div class="w-full">
         <form method="POST" action="{{ route('maklumat-login.save', ['id' => $user?->id]) }}" class="space-y-6">
             @csrf

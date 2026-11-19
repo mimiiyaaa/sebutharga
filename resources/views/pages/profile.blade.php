@@ -1,6 +1,15 @@
 @extends('layouts.app')
 
 @section('content')
+    @php
+        $profileUser = auth()->user();
+        $profileName = $profileUser?->name ?: 'syamimi';
+        $profileNameParts = preg_split('/\s+/', trim($profileName));
+        $profileFirstName = $profileNameParts[0] ?? 'Chowdury';
+        $profileLastName = count($profileNameParts) > 1 ? implode(' ', array_slice($profileNameParts, 1)) : 'Musharof';
+        $profileEmail = $profileUser?->email ?: 'randomuser@pimjo.com';
+        $profileRole = $profileUser?->jawatan ?: 'Team Manager';
+    @endphp
     <div x-data="{ isProfileInfoModal: false, isProfileAddressModal: false }">
         <x-common.page-breadcrumb pageTitle="User Profile" />
 
@@ -20,11 +29,11 @@
                                 </div>
                                 <div class="text-start">
                                     <h4 class="mb-2 text-lg font-semibold text-gray-800 dark:text-white/90">
-                                        syamimi
+                                        {{ $profileName }}
                                     </h4>
                                     <div class="flex items-center gap-1 sm:gap-3">
                                         <p class="text-sm text-gray-500 dark:text-gray-400">
-                                            Team Manager
+                                            {{ $profileRole }}
                                         </p>
                                         <div class="hidden h-3.5 w-px bg-gray-300 sm:block dark:bg-gray-700"></div>
                                         <p class="text-sm text-gray-500 dark:text-gray-400">
@@ -41,7 +50,7 @@
                                     First Name
                                 </p>
                                 <p class="text-sm font-medium text-gray-800 dark:text-white/90">
-                                    Chowdury
+                                    {{ $profileFirstName }}
                                 </p>
                             </div>
                             <div class="w-full">
@@ -49,7 +58,7 @@
                                     Last Name
                                 </p>
                                 <p class="text-sm font-medium text-gray-800 dark:text-white/90">
-                                    Musharof
+                                    {{ $profileLastName }}
                                 </p>
                             </div>
                             <div class="hidden xl:block"></div>
@@ -59,7 +68,7 @@
                                     Email address
                                 </p>
                                 <p class="text-sm font-medium text-gray-800 dark:text-white/90">
-                                    randomuser@pimjo.com
+                                    {{ $profileEmail }}
                                 </p>
                             </div>
                             <div>

@@ -71,6 +71,14 @@ input.price-input[type='number']::-webkit-inner-spin-button {
   --color-brand-900: #262e89;
   --color-brand-950: #161950;
 
+  --color-peach-50: #fff8f4;
+  --color-peach-100: #ffede4;
+  --color-peach-200: #ffd9c7;
+  --color-peach-300: #ffc7ad;
+  --color-peach-500: #ffbb91;
+  --color-peach-600: #e58f68;
+  --color-peach-700: #b96848;
+
   --color-blue-light-25: #f5fbff;
   --color-blue-light-50: #f0f9ff;
   --color-blue-light-100: #e0f2fe;
@@ -200,7 +208,7 @@ input.price-input[type='number']::-webkit-inner-spin-button {
     cursor: pointer;
   }
   body {
-    @apply relative font-normal font-outfit z-1 bg-gray-50 dark:bg-gray-900;
+    @apply relative font-normal font-outfit z-1 bg-white dark:bg-gray-900;
   }
 }
 
@@ -330,13 +338,19 @@ input.price-input[type='number']::-webkit-inner-spin-button {
   background-color: #344054;
 }
 @layer utilities {
-  /* For Remove Date Icon */
+  /* Keep the native date picker visible; only hide spinner/time controls. */
   input[type='date']::-webkit-inner-spin-button,
   input[type='time']::-webkit-inner-spin-button,
-  input[type='date']::-webkit-calendar-picker-indicator,
   input[type='time']::-webkit-calendar-picker-indicator {
     display: none;
     -webkit-appearance: none;
+  }
+  input[type='date']::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.65;
+  }
+  .dark input[type='date'] {
+    color-scheme: dark;
   }
 }
 
@@ -1379,4 +1393,240 @@ pre code,
   direction: ltr !important;
   text-align: left !important;
   unicode-bidi: isolate;
+}
+
+@keyframes loader-wiggle {
+  0%, 100% { transform: rotate(-3deg) translateY(0); }
+  50% { transform: rotate(3deg) translateY(-4px); }
+}
+
+/* Shared document lists: compact desktop columns and stacked mobile records. */
+.document-list-table {
+  width: 100%;
+  table-layout: fixed;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+.document-list-table th,
+.document-list-table td {
+  padding: 0.75rem 0.625rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
+}
+.document-list-table th:last-child {
+  width: max(24%, 190px);
+}
+.document-list-table--customer :is(th, td):nth-child(1) { width: 16%; }
+.document-list-table--customer :is(th, td):nth-child(2) { width: 20%; }
+.document-list-table--customer :is(th, td):nth-child(3) { width: 15%; }
+.document-list-table--customer :is(th, td):nth-child(4) { width: 14%; }
+.document-list-table--customer :is(th, td):nth-child(5) { width: 18%; }
+.document-list-table--customer :is(th, td):last-child { width: 17%; }
+.document-list-table select {
+  max-width: 100%;
+  font-size: 0.75rem;
+  padding-inline: 0.5rem;
+}
+.document-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.document-action {
+  @apply inline-flex h-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+.document-action-primary {
+  @apply border-brand-500 bg-brand-500 text-white hover:border-brand-600 hover:bg-brand-600 dark:border-brand-500 dark:bg-brand-500 dark:text-white dark:hover:border-brand-600 dark:hover:bg-brand-600;
+}
+.document-action-status {
+  border-color: #2C5EAD;
+  background-color: #2C5EAD;
+  color: white;
+}
+.document-action-status:hover {
+  border-color: #245095;
+  background-color: #245095;
+}
+.dark .document-action-status {
+  border-color: #2C5EAD;
+  background-color: #2C5EAD;
+  color: white;
+}
+.dark .document-action-status:hover {
+  border-color: #245095;
+  background-color: #245095;
+}
+.document-action-delete {
+  @apply w-10 border-error-200 p-2 text-base text-error-600 hover:bg-error-50 dark:border-error-700 dark:text-error-400 dark:hover:bg-error-500/10;
+}
+@media (max-width: 767px) {
+  .document-list-table,
+  .document-list-table tbody {
+    display: block;
+  }
+  .document-list-table thead {
+    display: none;
+  }
+  .document-list-table tbody > tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 0.5rem;
+  }
+  .document-list-table td {
+    display: block;
+    min-width: 0;
+    text-align: start;
+  }
+  .document-list-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.375rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    @apply text-gray-500 dark:text-gray-400;
+  }
+  .document-list-table td:last-child,
+  .document-list-table td[colspan] {
+    grid-column: 1 / -1;
+  }
+  .document-actions {
+    justify-content: flex-start;
+  }
+}
+
+/* Shared layout for editable document items; values and actions stay in the forms. */
+.item-editor-table {
+  width: 100%;
+  table-layout: fixed;
+}
+.item-editor-table :is(th, td) {
+  min-width: 0;
+  padding: 0.75rem 0.375rem;
+  text-align: center;
+  vertical-align: middle;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.item-editor-table :is(th, td):nth-child(1) { width: 5%; }
+.item-editor-table :is(th, td):nth-child(2) { width: auto; text-align: start; }
+.item-editor-table :is(th, td):nth-child(3),
+.item-editor-table :is(th, td):nth-child(4),
+.item-editor-table :is(th, td):nth-child(5) { width: 10%; }
+.item-editor-table :is(th, td):nth-child(6) { width: 15%; }
+.item-editor-table :is(th, td):last-child { width: 7%; }
+.item-editor-grid {
+  grid-template-columns: 5% minmax(0, 1fr) repeat(3, minmax(0, 10%)) 15% 7%;
+}
+.item-editor-grid > div,
+.item-editor-grid > div.grid > div {
+  grid-column: auto;
+  min-width: 0;
+  padding-inline: 0.375rem;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.item-editor-grid > div.grid {
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+  padding-inline: 0;
+}
+.item-editor-grid > div:nth-child(2),
+.item-editor-grid > div.grid > div:nth-child(2) { text-align: start; }
+.item-editor-table input:not([type='checkbox']):not([type='hidden']),
+.item-editor-grid input:not([type='checkbox']):not([type='hidden']) {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 2.5rem;
+  height: 2.5rem;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  text-align: center;
+}
+.item-editor-table textarea,
+.item-editor-grid textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 6rem;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  text-align: start;
+}
+.item-editor-table .document-action-delete,
+.item-editor-grid .document-action-delete {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0.5rem;
+  margin-inline: auto;
+}
+
+.quotation-detail-stack > .quotation-detail-main { order: 1; }
+.quotation-detail-stack > .quotation-detail-company { order: 2; }
+.quotation-detail-stack > .quotation-detail-items { order: 3; }
+.quotation-detail-stack > .quotation-detail-terms { order: 4; }
+.quotation-detail-stack > .quotation-detail-additional { order: 5; }
+.quotation-action-bar > a:first-child,
+.quotation-action-bar > button,
+.quotation-action-bar > form > button {
+  @apply inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-theme-xs font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800;
+}
+.quotation-action-bar > button.bg-brand-500,
+.quotation-action-bar > form > button.bg-brand-500 { @apply border-0 bg-brand-500 text-white hover:bg-brand-600 dark:bg-brand-500 dark:text-white; }
+@media (max-width: 639px) {
+  .item-editor-table :is(th, td),
+  .item-editor-grid > div,
+  .item-editor-grid > div.grid > div { padding-inline: 0.125rem; font-size: 0.6875rem; }
+  .item-editor-table input:not([type='checkbox']):not([type='hidden']),
+  .item-editor-grid input:not([type='checkbox']):not([type='hidden']) { padding-inline: 0.125rem; font-size: 0.75rem; }
+  .item-editor-table textarea,
+  .item-editor-grid textarea { padding: 0.375rem; font-size: 0.75rem; }
+}
+
+.purchase-order-detail-stack > .purchase-order-summary { order: 1 !important; }
+.purchase-order-detail-stack > .purchase-order-parties { order: 2 !important; }
+.purchase-order-detail-stack > .purchase-order-items { order: 3 !important; }
+.purchase-order-detail-stack > .purchase-order-delivery { order: 4 !important; }
+.purchase-order-detail-stack > .purchase-order-terms { order: 5 !important; }
+.purchase-order-items tbody tr { @apply !bg-white dark:!bg-gray-900; }
+.purchase-order-items > div:last-child { @apply !bg-white dark:!bg-gray-900; }
+.purchase-order-select [class*="border-brand"] { @apply !border-gray-200 dark:!border-gray-700; }
+.purchase-order-select [class*="bg-brand-50/"] { @apply !bg-white dark:!bg-gray-900; }
+
+.item-editor-table > thead {
+  @apply bg-error-800 text-white dark:bg-error-900 dark:text-white;
+}
+.item-editor-table > thead th {
+  @apply text-white dark:text-white;
+}
+
+/* Compact application shell at desktop widths; browser zoom and mobile sizing remain user-controlled. */
+@media screen and (min-width: 1024px) {
+  html.app-compact {
+    font-size: 80%;
+    --text-title-2xl: 4.5rem;
+    --text-title-2xl--line-height: 5.625rem;
+    --text-title-xl: 3.75rem;
+    --text-title-xl--line-height: 4.5rem;
+    --text-title-lg: 3rem;
+    --text-title-lg--line-height: 3.75rem;
+    --text-title-md: 2.25rem;
+    --text-title-md--line-height: 2.75rem;
+    --text-title-sm: 1.875rem;
+    --text-title-sm--line-height: 2.375rem;
+    --text-theme-xl: 1.25rem;
+    --text-theme-xl--line-height: 1.875rem;
+    --text-theme-sm: 0.875rem;
+    --text-theme-sm--line-height: 1.25rem;
+    --text-theme-xs: 0.75rem;
+    --text-theme-xs--line-height: 1.125rem;
+  }
 }

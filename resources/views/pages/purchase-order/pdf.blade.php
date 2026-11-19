@@ -4,12 +4,17 @@
     <meta charset="utf-8">
     <title>{{ $order->po_no }}</title>
     <style>
-        @page { margin: 40pt 42pt; }
+        @page { margin: 40pt 42pt 72pt; }
         body { font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #000; line-height: 1.3; }
         table { width: 100%; border-collapse: collapse; }
         td, th { vertical-align: top; }
         .header td { vertical-align: top; padding: 0 0 15pt; }
-        .company, .title { color: #800000; font-size: 16pt; font-weight: bold; }
+        .company { color: #800000; font-size: 16pt; font-weight: bold; }
+        .title { color: #800000; font-size: 16pt; font-weight: bold; }
+        .company-block { width: auto; }
+        .company-block td { padding: 0; vertical-align: top; }
+        .company-logo { max-width: 42pt; max-height: 38pt; object-fit: contain; margin-right: 8pt; }
+        .contact { font-size: 9pt; }
         .right { text-align: right; }
         .rule { border-top: 1pt solid #800000; }
         .addresses { margin-bottom: 20px; }
@@ -31,11 +36,33 @@
     </style>
 </head>
 <body>
-    @php($document = $document ?? [])
+    @php
+        $document = $document ?? [];
+        $company = \Illuminate\Support\Facades\DB::table('companies')
+            ->where('nama_syarikat', $document['issuer_name'] ?? '')
+            ->first();
+        $companyLogo = null;
+        if ($company?->logo_path) {
+            $logoPath = \Illuminate\Support\Facades\Storage::disk('public')->path($company->logo_path);
+            if (is_file($logoPath)) {
+                $companyLogo = 'data:' . (mime_content_type($logoPath) ?: 'image/png') . ';base64,' . base64_encode(file_get_contents($logoPath));
+            }
+        }
+        $issuerPersonInCharge = $document['issuer_person_in_charge'] ?? $company?->person_in_charge;
+    @endphp
     <table class="header"><tr>
-        <td><div class="company">{{ $document['issuer_name'] ?? config('purchase_order.issuer_name') }}</div>
-            <div class="lines">{{ $document['issuer_address'] ?? config('purchase_order.issuer_address') }}</div>
-            <div>No. Tel: {{ $document['issuer_phone'] ?? config('purchase_order.issuer_phone') }} | E-mel: {{ $document['issuer_email'] ?? config('purchase_order.issuer_email') }}</div>
+        <td>
+            <table class="company-block"><tr>
+                @if ($companyLogo)<td><img class="company-logo" src="{{ $companyLogo }}" alt="Logo Syarikat"></td>@endif
+                <td>
+                    <div class="company">{{ $document['issuer_name'] ?? config('purchase_order.issuer_name') }}</div>
+                    <div class="contact lines">{{ $document['issuer_address'] ?? config('purchase_order.issuer_address') }}</div>
+                    <div class="contact">
+                        @if ($issuerPersonInCharge)U/P: {{ $issuerPersonInCharge }} | @endif
+                        No. Tel: {{ $document['issuer_phone'] ?? config('purchase_order.issuer_phone') }} | E-mel: {{ $document['issuer_email'] ?? config('purchase_order.issuer_email') }}
+                    </div>
+                </td>
+            </tr></table>
         </td>
         <td class="right"><div class="title">PESANAN BELIAN</div><strong>No: {{ $order->po_no }}</strong><div>Tarikh: {{ \Carbon\Carbon::parse($order->po_date)->locale('ms')->translatedFormat('d F Y') }}</div></td>
     </tr></table>
@@ -46,11 +73,11 @@
     </tr></table>
     <table class="items">
         <thead><tr><th width="5%">BIL</th><th width="42%">PERIHAL BARANGAN (ITEM DESCRIPTION)</th><th width="9%">KUANTITI</th><th width="10%">UNIT</th><th width="16%">HARGA SEUNIT<br>(RM)</th><th width="18%">JUMLAH<br>(RM)</th></tr></thead>
-        <tbody>@foreach($items as $item)<tr><td class="center">{{ $loop->iteration }}</td><td class="lines">{{ $item->item_description }}</td><td class="center">{{ $item->quantity }}</td><td class="center">{{ $item->unit }}</td><td class="right">{{ number_format($item->unit_price,2) }}</td><td class="right">{{ number_format($item->subtotal,2) }}</td></tr>@endforeach</tbody>
+        <tbody>@foreach($items as $item)<tr><td class="center">{{ $loop->iteration }}</td><td class="lines">{{ $item->item_description }}</td><td class="center">{{ (int) $item->quantity }}</td><td class="center">{{ $item->unit }}</td><td class="right">{{ number_format($item->unit_price,2) }}</td><td class="right">{{ number_format($item->subtotal,2) }}</td></tr>@endforeach</tbody>
     </table>
     <table class="totals"><tr><td class="right">JUMLAH KASAR:</td><td width="18%" class="right">{{ number_format($order->gross_amount,2) }}</td></tr><tr><td class="right">DISKAUN PUKAL ({{ (float)$order->discount_percent }}%):</td><td class="right">{{ number_format($order->discount_amount,2) }}</td></tr><tr><td class="right">SST ({{ (float)$order->sst_percent }}%):</td><td class="right">{{ number_format($order->sst_amount,2) }}</td></tr><tr><td class="right">JUMLAH BERSIH:</td><td class="right net">{{ number_format($order->net_amount,2) }}</td></tr></table>
     <div class="terms"><h3>TERMA &amp; SYARAT PEMBELIAN (TERMS &amp; CONDITIONS):</h3><div class="lines">{{ trim(preg_replace('/^\s*\d+\.\s*$/m', '', (string) $order->terms_conditions)) }}</div></div>
-        <table class="signatures"><tr><td><strong>Disediakan Oleh:</strong><div class="signature">
+        <table class="signatures" data-pdf-signature="72"><tr><td><strong>Disediakan Oleh:</strong><div class="signature">
             @if($order->prepared_by){{ $order->prepared_by }}<br>@endif
             @if(!empty($document['prepared_role'])){{ $document['prepared_role'] }}@endif
         </div></td><td><strong>Diluluskan Oleh:</strong><div class="signature">
